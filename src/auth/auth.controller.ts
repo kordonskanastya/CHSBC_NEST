@@ -36,6 +36,7 @@ export class AuthController {
   @UseGuards(LoginAuthGuard)
   @ApiResponse({ type: LoginUserResultDto, description: 'Login user' })
   async login(@Request() request, @Body() loginUserDto: LoginUserDto) {
+    console.log(await this.authService.login(request.user))
     return await this.authService.login(request.user)
   }
 
@@ -48,6 +49,7 @@ export class AuthController {
 
   // TODO: remove in production
   @Post('register')
+  @MinRole(ROLE.ADMIN)
   @ApiCreatedResponse({ type: CreateUserResponseDto, description: 'Register user' })
   async register(@Body() data: RegisterDto): Promise<LoginUserResultDto> {
     if (configService.getEnvName() === 'producrion') {
@@ -68,7 +70,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden resource. Check user role' })
-  @MinRole(ROLE.USER)
+  @MinRole(ROLE.STUDENT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
     return await this.authService.changePassword(+req.user.sub, changePasswordDto, req.user)

@@ -96,10 +96,6 @@ export class AuthService {
 
     const user = await this.usersService.findOne(id)
 
-    if (!user.status) {
-      throw new UnauthorizedException('Worker is suspended from work')
-    }
-
     return this.login(
       plainToClass(CreateUserResponseDto, user, {
         excludeExtraneousValues: true,
@@ -150,10 +146,6 @@ export class AuthService {
 
     if (!user) {
       throw new NotFoundException('User with this login not found. Contact your manager for assistance.')
-    }
-
-    if (!user.status) {
-      throw new UnauthorizedException('Worker is suspended from work.')
     }
 
     if (!user.email) {

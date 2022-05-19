@@ -36,7 +36,6 @@ export class AuthController {
   @UseGuards(LoginAuthGuard)
   @ApiResponse({ type: LoginUserResultDto, description: 'Login user' })
   async login(@Request() request, @Body() loginUserDto: LoginUserDto) {
-    console.log(await this.authService.login(request.user))
     return await this.authService.login(request.user)
   }
 
@@ -52,10 +51,9 @@ export class AuthController {
   @MinRole(ROLE.ADMIN)
   @ApiCreatedResponse({ type: CreateUserResponseDto, description: 'Register user' })
   async register(@Body() data: RegisterDto): Promise<LoginUserResultDto> {
-    if (configService.getEnvName() === 'producrion') {
-      throw new BadRequestException('This endpoint does not work on the product')
-    }
-
+    // if (configService.getEnvName() === 'producrion') {
+    //   throw new BadRequestException('This endpoint does not work on the product')
+    // }
     return await this.authService.register(data)
   }
 

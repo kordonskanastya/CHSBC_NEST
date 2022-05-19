@@ -100,10 +100,16 @@ export class AuthService {
   }
 
   async register(data: RegisterDto): Promise<LoginUserResultDto> {
-    const user = await this.usersService.create({
-      ...data,
-      role: ROLE.ADMIN,
-    })
+    const user = await this.usersService.create({ 
+      data.firstName,
+      data.lastName,
+      data.patronymic,
+      data.email,
+      data.role,
+     })
+
+    // If STUDENT REGISTER to Student table
+    // const student = await this.studentsService.create({ ...data.studentData })
 
     return await this.login(user)
   }

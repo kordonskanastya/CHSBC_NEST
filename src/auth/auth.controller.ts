@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Request, Body, Patch, Get, HttpCode, BadRequestException } from '@nestjs/common'
+import { Controller, Post, UseGuards, Request, Body, Patch, Get, HttpCode } from '@nestjs/common'
 import {
   ApiBearerAuth,
   ApiCreatedResponse,

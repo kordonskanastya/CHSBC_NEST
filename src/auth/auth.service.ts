@@ -36,15 +36,11 @@ export class AuthService {
     public readonly mailerService: MailerService,
   ) {}
 
-  async validateUser(login: string, pass: string): Promise<User> {
-    const user: User = await this.usersService.findOneByLogin(login)
+  async validateUser(email: string, pass: string): Promise<User> {
+    const user: User = await this.usersService.findOneByEmail(email)
 
     if (!user) {
       throw new UnauthorizedException('The username you entered is not correct, please check your entry and try again.')
-    }
-
-    if (!user.status) {
-      throw new UnauthorizedException('Worker is suspended from work')
     }
 
     if (user && (await bcrypt.compare(pass, user.password))) {
@@ -142,7 +138,7 @@ export class AuthService {
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<ForgotPasswordResultDto> {
-    const user = await this.usersService.findOneByLogin(forgotPasswordDto.login)
+    const user = await this.usersService.findOneByEmail(forgotPasswordDto.email)
 
     if (!user) {
       throw new NotFoundException('User with this login not found. Contact your manager for assistance.')

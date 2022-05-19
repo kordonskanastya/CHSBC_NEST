@@ -10,7 +10,7 @@ export class LoginUserDto {
   @MinLength(3)
   @MaxLength(200)
   @ApiProperty({ uniqueItems: true, required: true, example: 'admin' })
-  login: string
+  email: string
 
   @IsString()
   @Transform(({ value }: TransformFnParams) => value?.trim())

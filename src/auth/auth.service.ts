@@ -36,11 +36,15 @@ export class AuthService {
     public readonly mailerService: MailerService,
   ) {}
 
-  async validateUser(email: string, pass: string): Promise<User> {
-    const user: User = await this.usersService.findOneByEmail(email)
+  async validateUser(login: string, pass: string): Promise<User> {
+    const user: User = await this.usersService.findOneByLogin(login)
 
     if (!user) {
       throw new UnauthorizedException('The username you entered is not correct, please check your entry and try again.')
+    }
+
+    if (!user.status) {
+      throw new UnauthorizedException('Worker is suspended from work')
     }
 
     if (user && (await bcrypt.compare(pass, user.password))) {
@@ -92,6 +96,10 @@ export class AuthService {
 
     const user = await this.usersService.findOne(id)
 
+    if (!user.status) {
+      throw new UnauthorizedException('Worker is suspended from work')
+    }
+
     return this.login(
       plainToClass(CreateUserResponseDto, user, {
         excludeExtraneousValues: true,
@@ -100,16 +108,10 @@ export class AuthService {
   }
 
   async register(data: RegisterDto): Promise<LoginUserResultDto> {
-    const user = await this.usersService.create({ 
-      data.firstName,
-      data.lastName,
-      data.patronymic,
-      data.email,
-      data.role,
-     })
-
-    // If STUDENT REGISTER to Student table
-    // const student = await this.studentsService.create({ ...data.studentData })
+    const user = await this.usersService.create({
+      ...data,
+      role: ROLE.ADMIN,
+    })
 
     return await this.login(user)
   }
@@ -144,10 +146,14 @@ export class AuthService {
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<ForgotPasswordResultDto> {
-    const user = await this.usersService.findOneByEmail(forgotPasswordDto.email)
+    const user = await this.usersService.findOneByLogin(forgotPasswordDto.login)
 
     if (!user) {
       throw new NotFoundException('User with this login not found. Contact your manager for assistance.')
+    }
+
+    if (!user.status) {
+      throw new UnauthorizedException('Worker is suspended from work.')
     }
 
     if (!user.email) {

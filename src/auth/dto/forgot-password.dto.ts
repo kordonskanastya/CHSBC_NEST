@@ -5,5 +5,5 @@ import * as faker from 'faker'
 export class ForgotPasswordDto {
   @IsString()
   @ApiProperty({ uniqueItems: true, example: faker.internet.userName() })
-  email: string
+  login: string
 }

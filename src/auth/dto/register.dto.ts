@@ -42,7 +42,8 @@ export class RegisterDto {
   @ApiPropertyOptional({ example: 'cghybjbtc' })
   password: string
 
-  // @ApiPropertyOptional({ type: StudentData })
-  // @Type(() => StudentData)
-  // studentData: StudentData
+  @IsObject()
+  @ApiPropertyOptional({ type: StudentData })
+  @Type(() => StudentData)
+  studentData: StudentData
 }

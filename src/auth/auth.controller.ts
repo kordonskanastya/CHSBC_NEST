@@ -50,12 +50,10 @@ export class AuthController {
   @Post('register')
   @ApiCreatedResponse({ type: CreateUserResponseDto, description: 'Register user' })
   async register(@Body() data: RegisterDto): Promise<LoginUserResultDto> {
-    console.log(data)
-
     if (configService.getEnvName() === 'production') {
       throw new BadRequestException('This endpoint does not work on the product')
     }
-    console.log('STARTING DEBUGG')
+
     return await this.authService.register(data)
   }
 

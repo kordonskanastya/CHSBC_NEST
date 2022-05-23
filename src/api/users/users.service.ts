@@ -55,16 +55,11 @@ export class UsersService {
     private authService: AuthService,
   ) {}
 
-  async create(
-    {
-      // studentData,
-      ...createUserDto
-    }: CreateUserDto,
-    tokenDto?: TokenDto,
-  ): Promise<CreateUserResponseDto> {
+  async create({ studentData, ...createUserDto }: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
+    console.log('studentData', studentData)
+
     const { sub, role } = tokenDto || {}
-    // console.log('studentData', studentData)
-    console.log('createUserDto', createUserDto)
+
     if (
       await this.usersRepository
         .createQueryBuilder()
@@ -83,11 +78,11 @@ export class UsersService {
     })
     console.log(user)
 
-    // if (studentData) {
-    //   console.log('student data is here')
-    //   // create student
-    //   // await this.studentsRepository.create(studentData).save()
-    // }
+    if (studentData) {
+      console.log('student data is here')
+      // create student
+      // await this.studentsRepository.create(studentData).save()
+    }
     console.log('student data is NOT here')
 
     this.authService.sendMailCreatePassword({

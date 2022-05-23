@@ -1,7 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import { getManager } from 'typeorm'
 import * as moment from 'moment'
-import { Image } from '../api/images/entities/image.entity'
 
 export function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
@@ -35,18 +34,4 @@ export async function getDatabaseCurrentTimestamp() {
   const [{ current_timestamp }] = await getManager().query(`SELECT CURRENT_TIMESTAMP`)
 
   return moment(current_timestamp)
-}
-
-export const removeOldImage = async (oldImages: (number | string)[] = undefined, images: Image[]): Promise<Image[]> => {
-  if (oldImages) {
-    const removeImages = images.filter(({ id }) => !oldImages.find((oldId) => +oldId === +id))
-
-    for (const id in removeImages) {
-      await Image.remove(removeImages[id])
-    }
-
-    return images.filter(({ id }) => oldImages.find((oldId) => +oldId === +id))
-  }
-
-  return images
 }

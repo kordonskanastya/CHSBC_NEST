@@ -61,10 +61,6 @@ export class LoggersService {
       query.andWhere(`Logger.entityId = :entityId`, { entityId })
     }
 
-    if (user) {
-      query.andWhere(`(User.login) ILIKE (:user)`, { user: `%${user}%` })
-    }
-
     if (userId) {
       query.andWhere(`User.id = :userId`, { userId })
     }

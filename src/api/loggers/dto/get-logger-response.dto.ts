@@ -8,10 +8,6 @@ class UserResponseDto {
 
   @Expose()
   @ApiProperty({ type: String })
-  login: string
-
-  @Expose()
-  @ApiProperty({ type: String })
   email: string
 
   @Expose()

@@ -24,6 +24,7 @@ import * as bcrypt from 'bcrypt'
 import { CreateUserDto } from '../api/users/dto/create-user.dto'
 import { plainToClass } from 'class-transformer'
 import { TokenDto } from './dto/token.dto'
+import { SendMailDto } from './dto/send-mail.dto'
 
 @Injectable()
 export class AuthService {
@@ -100,13 +101,7 @@ export class AuthService {
   }
 
   async register(data: RegisterDto): Promise<LoginUserResultDto> {
-    const user = await this.usersService.create({ 
-      data.firstName,
-      data.lastName,
-      data.patronymic,
-      data.email,
-      data.role,
-     })
+    const user = await this.usersService.create(data)
 
     // If STUDENT REGISTER to Student table
     // const student = await this.studentsService.create({ ...data.studentData })
@@ -114,7 +109,7 @@ export class AuthService {
     return await this.login(user)
   }
 
-  async sendMailCreatePassword(user: CreateUserDto) {
+  async sendMailCreatePassword(user: SendMailDto) {
     if (!user.email) {
       return
     }
@@ -147,7 +142,7 @@ export class AuthService {
     const user = await this.usersService.findOneByEmail(forgotPasswordDto.email)
 
     if (!user) {
-      throw new NotFoundException('User with this login not found. Contact your manager for assistance.')
+      throw new NotFoundException('User with this email not found. Contact your manager for assistance.')
     }
 
     if (!user.email) {

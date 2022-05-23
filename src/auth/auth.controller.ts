@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Request, Body, Patch, Get, HttpCode } from '@nestjs/common'
+import { Controller, Post, UseGuards, Request, Body, Patch, Get, HttpCode, BadRequestException } from '@nestjs/common'
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -48,12 +48,14 @@ export class AuthController {
 
   // TODO: remove in production
   @Post('register')
-  @MinRole(ROLE.ADMIN)
   @ApiCreatedResponse({ type: CreateUserResponseDto, description: 'Register user' })
   async register(@Body() data: RegisterDto): Promise<LoginUserResultDto> {
-    // if (configService.getEnvName() === 'producrion') {
-    //   throw new BadRequestException('This endpoint does not work on the product')
-    // }
+    console.log(data)
+
+    if (configService.getEnvName() === 'production') {
+      throw new BadRequestException('This endpoint does not work on the product')
+    }
+    console.log('STARTING DEBUGG')
     return await this.authService.register(data)
   }
 

@@ -32,7 +32,6 @@ export enum UserColumns {
   ID = 'id',
   FIRST_NAME = 'firstName',
   LAST_NAME = 'lastName',
-  LOGIN = 'login',
   EMAIL = 'email',
   ROLE = 'role',
   STATUS = 'status',
@@ -56,22 +55,16 @@ export class UsersService {
     private authService: AuthService,
   ) {}
 
-  async create(createUserDto: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
+  async create(
+    {
+      // studentData,
+      ...createUserDto
+    }: CreateUserDto,
+    tokenDto?: TokenDto,
+  ): Promise<CreateUserResponseDto> {
     const { sub, role } = tokenDto || {}
-
-    // if (createUserDto.role === ROLE.ROOT || (role === ROLE.MANAGER && createUserDto.role !== ROLE.USER)) {
-    //   throw new ForbiddenException('Unable to create user with these rights')
-    // }
-
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(login) = LOWER(:login)`, { login: createUserDto.login })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This user login: ${createUserDto.login} already exist.`)
-    }
-
+    // console.log('studentData', studentData)
+    console.log('createUserDto', createUserDto)
     if (
       await this.usersRepository
         .createQueryBuilder()
@@ -81,13 +74,28 @@ export class UsersService {
       throw new BadRequestException(`This user email: ${createUserDto.email} already exist.`)
     }
 
+    createUserDto.password = Buffer.from(Math.random().toString()).toString('base64').substring(0, 7)
+
     const user = await this.usersRepository.create(createUserDto).save({
       data: {
         id: sub,
       },
     })
+    console.log(user)
 
-    this.authService.sendMailCreatePassword(createUserDto)
+    // if (studentData) {
+    //   console.log('student data is here')
+    //   // create student
+    //   // await this.studentsRepository.create(studentData).save()
+    // }
+    console.log('student data is NOT here')
+
+    this.authService.sendMailCreatePassword({
+      firstName: createUserDto.firstName,
+      lastName: createUserDto.lastName,
+      password: createUserDto.password,
+      email: createUserDto.email,
+    })
 
     return plainToClass(CreateUserResponseDto, user, {
       excludeExtraneousValues: true,
@@ -103,7 +111,6 @@ export class UsersService {
     search: string,
     orderByColumn: UserColumns,
     orderBy: 'ASC' | 'DESC',
-    login: string,
     name: string,
     firstName: string,
     lastName: string,
@@ -124,17 +131,11 @@ export class UsersService {
     if (search) {
       query.andWhere(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(User.firstName), LOWER(User.lastName), LOWER(User.firstName), LOWER(User.login), LOWER(User.email)) LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(User.firstName), LOWER(User.lastName), LOWER(User.firstName), LOWER(User.email)) LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
       )
-    }
-
-    if (login) {
-      query.andWhere(`LOWER(User.login) LIKE LOWER(:login)`, {
-        login: `%${login}%`,
-      })
     }
 
     if (firstName) {
@@ -188,10 +189,10 @@ export class UsersService {
     return plainToClass(GetUserResponseDto, user)
   }
 
-  async findOneByLogin(login: string): Promise<User> {
+  async findOneByEmail(email: string): Promise<User> {
     return await this.usersRepository
       .createQueryBuilder()
-      .where('LOWER(User.login) = LOWER(:login)', { login })
+      .where('LOWER(User.email) = LOWER(:email)', { email })
       .getOne()
   }
 
@@ -206,11 +207,11 @@ export class UsersService {
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(login) = LOWER(:login)`, { login: updateUserDto.login })
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user login: ${updateUserDto.login} already exist.`)
+      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
     if (

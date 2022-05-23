@@ -19,11 +19,6 @@ export class GetLoggerUserDto {
   lastName: string
 
   @Expose()
-  @IsString()
-  @ApiProperty({ type: String })
-  login: string
-
-  @Expose()
   @IsEmail()
   @IsOptional()
   @ApiPropertyOptional({ type: String })

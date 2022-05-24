@@ -5,7 +5,7 @@ import { ApiProperty } from '@nestjs/swagger'
 
 export class CreateGroupDto {
   @IsString()
-  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @MinLength(1)
   @MaxLength(200)
   @ApiProperty({ required: true, example: '1П-21' })
@@ -16,7 +16,7 @@ export class CreateGroupDto {
   curatorId: number
 
   @IsString()
-  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @MinLength(6)
   @MaxLength(50)
   @ApiProperty({ required: true, example: 523512 })

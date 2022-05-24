@@ -5,7 +5,7 @@ import { TransformFnParams } from 'class-transformer/types/interfaces'
 
 export class LoginUserDto {
   @IsEmail()
-  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @Matches(/^[^\s]+$/, { message: "You can't use spaces within a string" })
   @MinLength(3)
   @MaxLength(200)
@@ -13,7 +13,6 @@ export class LoginUserDto {
   email: string
 
   @IsString()
-  @Transform(({ value }: TransformFnParams) => value?.trim())
   @MinLength(6, {
     message: 'The string must be greater than 6 characters. No spaces are allowed at the beginning or end of a line.',
   })

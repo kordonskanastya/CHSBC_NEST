@@ -7,6 +7,6 @@ export class RegisterDto extends CreateUserDto {
   @MinLength(6, {
     message: 'The string must be greater than 6 characters. No spaces are allowed at the beginning or end of a line.',
   })
-  @ApiPropertyOptional({ example: 'cghybjbtc' })
+  @ApiPropertyOptional({ example: 'c4hG3ybg$jTc' })
   password: string
 }

@@ -10,28 +10,28 @@ export class CreateUserDto {
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @ApiProperty({ required: true, example: faker.name.firstName() })
   firstName: string
 
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @ApiProperty({ required: true, example: faker.name.lastName() })
   lastName: string
 
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @ApiProperty({ required: true, example: 'ivanovych' })
   patronymic: string
 
   @IsEmail()
   @MinLength(5)
   @MaxLength(100)
-  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @ApiProperty({ uniqueItems: true, example: FAKE_EMAIL })
   email: string
 

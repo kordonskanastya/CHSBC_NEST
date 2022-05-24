@@ -6,8 +6,8 @@ import { TransformFnParams } from 'class-transformer/types/interfaces'
 export class LoginUserDto {
   @IsEmail()
   @Transform(({ value }: TransformFnParams) => (typeof value === 'string' && value !== '' ? value.trim() : null))
-  @MinLength(3)
-  @MaxLength(200)
+  @MinLength(5)
+  @MaxLength(100)
   @ApiProperty({ uniqueItems: true, required: true, example: 'admin@gmail.com' })
   email: string
 

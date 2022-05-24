@@ -4,33 +4,39 @@ import * as faker from 'faker'
 import { FAKE_EMAIL } from '../../../constants'
 import { ROLE } from '../../../auth/roles/role.enum'
 import { StudentData } from './student-data.dto'
-import { Type } from 'class-transformer'
+import { Transform, TransformFnParams, Type } from 'class-transformer'
 
 export class CreateUserDto {
   @IsString()
   @MinLength(2)
-  @MaxLength(200)
+  @MaxLength(100)
+  @Transform(({ value }: TransformFnParams) => (typeof value === 'string' && value !== '' ? value.trim() : null))
   @ApiProperty({ required: true, example: faker.name.firstName() })
   firstName: string
 
   @IsString()
   @MinLength(2)
-  @MaxLength(200)
+  @MaxLength(100)
+  @Transform(({ value }: TransformFnParams) => (typeof value === 'string' && value !== '' ? value.trim() : null))
   @ApiProperty({ required: true, example: faker.name.lastName() })
   lastName: string
 
   @IsString()
   @MinLength(2)
-  @MaxLength(200)
+  @MaxLength(100)
+  @Transform(({ value }: TransformFnParams) => (typeof value === 'string' && value !== '' ? value.trim() : null))
   @ApiProperty({ required: true, example: 'ivanovych' })
   patronymic: string
 
   @IsEmail()
-  @MaxLength(320)
+  @MinLength(5)
+  @MaxLength(100)
+  @Transform(({ value }: TransformFnParams) => (typeof value === 'string' && value !== '' ? value.trim() : null))
   @ApiProperty({ uniqueItems: true, example: FAKE_EMAIL })
   email: string
 
   @IsEnum(ROLE)
+  @Transform(({ value }: TransformFnParams) => (typeof value === 'string' && value !== '' ? value.trim() : null))
   @ApiProperty({ default: ROLE.STUDENT, enum: ROLE })
   role: ROLE
 

@@ -174,7 +174,7 @@ export class UsersService {
     return await paginateAndPlainToClass(GetUserResponseDto, query, options)
   }
 
-  async findOne(id: number, token?: TokenDto): Promise<GetUserResponseDto> {
+  async findOne(id: number, token: TokenDto): Promise<GetUserResponseDto> {
     const { sub, role } = token || {}
     const user = await this.selectUsers().andWhere({ id }).getOne()
 

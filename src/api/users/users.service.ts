@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -25,9 +24,7 @@ import { USER_REPOSITORY } from '../../constants'
 import { AuthService } from '../../auth/auth.service'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
-import { ROLE } from '../../auth/roles/role.enum'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
-import { RegisterDto } from '../../auth/dto/register.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -35,7 +32,6 @@ export enum UserColumns {
   LAST_NAME = 'lastName',
   EMAIL = 'email',
   ROLE = 'role',
-  STATUS = 'status',
   CREATED = 'created',
   UPDATED = 'updated',
 }
@@ -163,18 +159,12 @@ export class UsersService {
       })
     }
 
-    if (status !== undefined) {
-      query.andWhere('User.status = :status', {
-        status,
-      })
-    }
-
     query.orderBy(`User.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetUserResponseDto, query, options)
   }
 
-  async findOne(id: number, token: TokenDto): Promise<GetUserResponseDto> {
+  async findOne(id: number, token?: TokenDto): Promise<GetUserResponseDto> {
     const { sub, role } = token || {}
     const user = await this.selectUsers().andWhere({ id }).getOne()
 
@@ -189,6 +179,13 @@ export class UsersService {
     return await this.usersRepository
       .createQueryBuilder()
       .where('LOWER(User.email) = LOWER(:email)', { email })
+      .getOne()
+  }
+
+  async findOneByLogin(login: string): Promise<User> {
+    return await this.usersRepository
+      .createQueryBuilder()
+      .where('LOWER(User.login) = LOWER(:login)', { login })
       .getOne()
   }
 

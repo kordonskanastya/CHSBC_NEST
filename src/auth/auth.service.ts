@@ -137,7 +137,7 @@ export class AuthService {
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<ForgotPasswordResultDto> {
-    const user = await this.usersService.findOneByEmail(forgotPasswordDto.email)
+    const user = await this.usersService.findOneByLogin(forgotPasswordDto.login)
 
     if (!user) {
       throw new NotFoundException('User with this email not found. Contact your manager for assistance.')

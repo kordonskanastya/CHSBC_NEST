@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -25,17 +24,14 @@ import { USER_REPOSITORY } from '../../constants'
 import { AuthService } from '../../auth/auth.service'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
-import { ROLE } from '../../auth/roles/role.enum'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
 
 export enum UserColumns {
   ID = 'id',
   FIRST_NAME = 'firstName',
   LAST_NAME = 'lastName',
-  LOGIN = 'login',
   EMAIL = 'email',
   ROLE = 'role',
-  STATUS = 'status',
   CREATED = 'created',
   UPDATED = 'updated',
 }
@@ -56,38 +52,42 @@ export class UsersService {
     private authService: AuthService,
   ) {}
 
-  async create(createUserDto: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
+  async create({ studentData, ...createUserDto }: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
     const { sub, role } = tokenDto || {}
 
-    // if (createUserDto.role === ROLE.ROOT || (role === ROLE.MANAGER && createUserDto.role !== ROLE.USER)) {
-    //   throw new ForbiddenException('Unable to create user with these rights')
-    // }
-
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(login) = LOWER(:login)`, { login: createUserDto.login })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This user login: ${createUserDto.login} already exist.`)
+    const registerDto = {
+      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 7),
+      ...createUserDto,
     }
 
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: createUserDto.email })
+        .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${createUserDto.email} already exist.`)
+      throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
     }
 
-    const user = await this.usersRepository.create(createUserDto).save({
+    const user = await this.usersRepository.create(registerDto).save({
       data: {
         id: sub,
       },
     })
 
-    this.authService.sendMailCreatePassword(createUserDto)
+    if (studentData) {
+      console.log('student data is here')
+      // create student
+      // await this.studentsRepository.create(studentData).save()
+    }
+    console.log('student data is NOT here')
+
+    this.authService.sendMailCreatePassword({
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      password: registerDto.password,
+      email: registerDto.email,
+    })
 
     return plainToClass(CreateUserResponseDto, user, {
       excludeExtraneousValues: true,
@@ -103,7 +103,6 @@ export class UsersService {
     search: string,
     orderByColumn: UserColumns,
     orderBy: 'ASC' | 'DESC',
-    login: string,
     name: string,
     firstName: string,
     lastName: string,
@@ -124,17 +123,11 @@ export class UsersService {
     if (search) {
       query.andWhere(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(User.firstName), LOWER(User.lastName), LOWER(User.firstName), LOWER(User.login), LOWER(User.email)) LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(User.firstName), LOWER(User.lastName), LOWER(User.firstName), LOWER(User.email)) LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
       )
-    }
-
-    if (login) {
-      query.andWhere(`LOWER(User.login) LIKE LOWER(:login)`, {
-        login: `%${login}%`,
-      })
     }
 
     if (firstName) {
@@ -166,18 +159,12 @@ export class UsersService {
       })
     }
 
-    if (status !== undefined) {
-      query.andWhere('User.status = :status', {
-        status,
-      })
-    }
-
     query.orderBy(`User.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetUserResponseDto, query, options)
   }
 
-  async findOne(id: number, token: TokenDto): Promise<GetUserResponseDto> {
+  async findOne(id: number, token?: TokenDto): Promise<GetUserResponseDto> {
     const { sub, role } = token || {}
     const user = await this.selectUsers().andWhere({ id }).getOne()
 
@@ -188,6 +175,13 @@ export class UsersService {
     return plainToClass(GetUserResponseDto, user)
   }
 
+  async findOneByEmail(email: string): Promise<User> {
+    return await this.usersRepository
+      .createQueryBuilder()
+      .where('LOWER(User.email) = LOWER(:email)', { email })
+      .getOne()
+  }
+
   async findOneByLogin(login: string): Promise<User> {
     return await this.usersRepository
       .createQueryBuilder()
@@ -196,9 +190,14 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto, { sub, role }: TokenDto): Promise<UpdateResponseDto> {
+    const userDto = {
+      password: '',
+      ...updateUserDto,
+    }
+
     // if (
-    //   updateUserDto.role &&
-    //   (updateUserDto.role === ROLE.ROOT || (role === ROLE.CURATOR && updateUserDto.role !== ROLE.USER))
+    //   userDto.role &&
+    //   (userDto.role === ROLE.ROOT || (role === ROLE.CURATOR && userDto.role !== ROLE.USER))
     // ) {
     //   throw new ForbiddenException("You don't have enough rights")
     // }
@@ -206,21 +205,21 @@ export class UsersService {
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(login) = LOWER(:login)`, { login: updateUserDto.login })
+        .where(`LOWER(email) = LOWER(:email)`, { email: userDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user login: ${updateUserDto.login} already exist.`)
+      throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
     }
 
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
+        .where(`LOWER(email) = LOWER(:email)`, { email: userDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
+      throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
     }
 
     const user = await this.usersRepository.findOne(id)
@@ -229,18 +228,18 @@ export class UsersService {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
 
-    Object.assign(user, updateUserDto)
+    Object.assign(user, userDto)
 
     // switch (role) {
     //   case ROLE.USER:
-    //     if (updateUserDto.status && updateUserDto.status !== user.status) {
+    //     if (userDto.status && userDto.status !== user.status) {
     //       throw new ForbiddenException("You don't have enough rights")
     //     }
     //     break
     //
     //   case ROLE.MANAGER:
     //     if (sub === `${id}`) {
-    //       if (updateUserDto.status && updateUserDto.status !== user.status) {
+    //       if (userDto.status && userDto.status !== user.status) {
     //         throw new ForbiddenException("You don't have enough rights")
     //       }
     //     } else {
@@ -251,7 +250,7 @@ export class UsersService {
     //     break
     // }
 
-    if (updateUserDto.password) {
+    if (userDto.password) {
       await user.hashPassword()
     }
 

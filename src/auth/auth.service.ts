@@ -17,13 +17,12 @@ import { ForgotPasswordResultDto } from './dto/result/forgot-password.dto'
 import { LoginUserResultDto } from './dto/result/login-user.dto'
 import { MailerService } from '@nestjs-modules/mailer'
 import { SentMessageInfo } from 'nodemailer'
-import { ROLE } from './roles/role.enum'
 import { RegisterDto } from './dto/register.dto'
 import { CreateUserResponseDto } from '../api/users/dto/create-user-response.dto'
 import * as bcrypt from 'bcrypt'
-import { CreateUserDto } from '../api/users/dto/create-user.dto'
 import { plainToClass } from 'class-transformer'
 import { TokenDto } from './dto/token.dto'
+import { SendMailDto } from './dto/send-mail.dto'
 
 @Injectable()
 export class AuthService {
@@ -36,15 +35,11 @@ export class AuthService {
     public readonly mailerService: MailerService,
   ) {}
 
-  async validateUser(login: string, pass: string): Promise<User> {
-    const user: User = await this.usersService.findOneByLogin(login)
+  async validateUser(email: string, pass: string): Promise<User> {
+    const user: User = await this.usersService.findOneByEmail(email)
 
     if (!user) {
       throw new UnauthorizedException('The username you entered is not correct, please check your entry and try again.')
-    }
-
-    if (!user.status) {
-      throw new UnauthorizedException('Worker is suspended from work')
     }
 
     if (user && (await bcrypt.compare(pass, user.password))) {
@@ -96,10 +91,6 @@ export class AuthService {
 
     const user = await this.usersService.findOne(id)
 
-    if (!user.status) {
-      throw new UnauthorizedException('Worker is suspended from work')
-    }
-
     return this.login(
       plainToClass(CreateUserResponseDto, user, {
         excludeExtraneousValues: true,
@@ -108,15 +99,15 @@ export class AuthService {
   }
 
   async register(data: RegisterDto): Promise<LoginUserResultDto> {
-    const user = await this.usersService.create({
-      ...data,
-      role: ROLE.ADMIN,
-    })
+    const user = await this.usersService.create(data)
+
+    // If STUDENT REGISTER to Student table
+    // const student = await this.studentsService.create({ ...data.studentData })
 
     return await this.login(user)
   }
 
-  async sendMailCreatePassword(user: CreateUserDto) {
+  async sendMailCreatePassword(user: SendMailDto) {
     if (!user.email) {
       return
     }
@@ -149,11 +140,7 @@ export class AuthService {
     const user = await this.usersService.findOneByLogin(forgotPasswordDto.login)
 
     if (!user) {
-      throw new NotFoundException('User with this login not found. Contact your manager for assistance.')
-    }
-
-    if (!user.status) {
-      throw new UnauthorizedException('Worker is suspended from work.')
+      throw new NotFoundException('User with this email not found. Contact your manager for assistance.')
     }
 
     if (!user.email) {

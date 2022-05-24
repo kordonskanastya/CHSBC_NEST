@@ -1,16 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsEmail, IsString, Matches, MaxLength, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
 import { TransformFnParams } from 'class-transformer/types/interfaces'
 
 export class LoginUserDto {
-  @IsString()
+  @IsEmail()
   @Transform(({ value }: TransformFnParams) => value?.trim())
   @Matches(/^[^\s]+$/, { message: "You can't use spaces within a string" })
   @MinLength(3)
   @MaxLength(200)
-  @ApiProperty({ uniqueItems: true, required: true, example: 'admin' })
-  login: string
+  @ApiProperty({ uniqueItems: true, required: true, example: 'admin@gmail.com' })
+  email: string
 
   @IsString()
   @Transform(({ value }: TransformFnParams) => value?.trim())

@@ -27,7 +27,7 @@ import { SubscriberEventTypes } from './entities/logger-subscriber'
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Unauthorized' })
 @ApiForbiddenResponse({ description: 'Forbidden resource. Check user role' })
-@MinRole(ROLE.USER)
+@MinRole(ROLE.ADMIN)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiExtraModels(PaginatedDto)
 export class LoggersController {

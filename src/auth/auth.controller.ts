@@ -50,7 +50,7 @@ export class AuthController {
   @Post('register')
   @ApiCreatedResponse({ type: CreateUserResponseDto, description: 'Register user' })
   async register(@Body() data: RegisterDto): Promise<LoginUserResultDto> {
-    if (configService.getEnvName() === 'producrion') {
+    if (configService.getEnvName() === 'production') {
       throw new BadRequestException('This endpoint does not work on the product')
     }
 
@@ -68,7 +68,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden resource. Check user role' })
-  @MinRole(ROLE.USER)
+  @MinRole(ROLE.STUDENT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
     return await this.authService.changePassword(+req.user.sub, changePasswordDto, req.user)

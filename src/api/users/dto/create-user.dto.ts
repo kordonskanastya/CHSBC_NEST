@@ -36,7 +36,6 @@ export class CreateUserDto {
   email: string
 
   @IsEnum(ROLE)
-  @Transform(({ value }: TransformFnParams) => (typeof value === 'string' && value !== '' ? value.trim() : null))
   @ApiProperty({ default: ROLE.STUDENT, enum: ROLE })
   role: ROLE
 

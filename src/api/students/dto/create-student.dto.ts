@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { Transform, TransformFnParams } from 'class-transformer'
 import { IsBoolean, IsNumber, IsString, MaxLength, MinLength } from 'class-validator'
+import { Group } from '../../groups/entities/group.entity'
+import { User } from '../../users/entities/user.entity'
 
 export class CreateStudentDto {
   @IsString()
@@ -12,7 +14,11 @@ export class CreateStudentDto {
 
   @IsNumber()
   @ApiProperty({ required: true, example: 15 })
-  groupId: number
+  groupId: Group
+
+  @IsNumber()
+  @ApiProperty({ required: true, example: 10 })
+  userId: User
 
   @IsString()
   @MinLength(6)

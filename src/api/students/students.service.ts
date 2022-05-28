@@ -15,6 +15,7 @@ import { STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
+import { User } from '../users/entities/user.entity'
 import { CreateStudentResponseDto } from './dto/create-student-response.dto'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
@@ -25,6 +26,7 @@ export enum StudentColumns {
   ID = 'id',
   DATE_OF_BIRTH = 'dateOfBirth',
   GROUP_ID = 'groupId',
+  STUDENT_ID = 'studentId',
   ORDER_NUMBER = 'orderNumber',
   EDEBO_ID = 'edeboId',
   IS_FULL_TIME = 'isFullTime',
@@ -44,13 +46,23 @@ export class StudentsService {
 
   async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
     const { sub, role } = tokenDto || {}
+
     if (
       await this.studentsRepository
         .createQueryBuilder()
-        .where(`LOWER(edeboId) = LOWER(:edeboId)`, { edeboId: createStudentDto.edeboId })
+        .where(`Student.edeboId = LOWER(:edeboId)`, { edeboId: createStudentDto.edeboId })
         .getOne()
     ) {
       throw new BadRequestException(`This student edeboId: ${createStudentDto.edeboId} already exist.`)
+    }
+
+    if (
+      await this.studentsRepository
+        .createQueryBuilder()
+        .where(`Student.userId = :userId`, { userId: createStudentDto.userId })
+        .getOne()
+    ) {
+      throw new BadRequestException(`This student user: ${createStudentDto.userId} already exist.`)
     }
 
     const student = await this.studentsRepository.create(createStudentDto).save({
@@ -58,6 +70,7 @@ export class StudentsService {
         id: sub,
       },
     })
+
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,
     })
@@ -96,34 +109,37 @@ export class StudentsService {
     }
 
     if (group) {
-      query.andWhere(`LOWER(User.group) LIKE LOWER('%${group}%')`)
+      query.andWhere(`LOWER(Student.group) LIKE LOWER('%${group}%')`)
     }
 
     if (orderNumber) {
-      query.andWhere(`LOWER(User.orderNumber) LIKE LOWER('%${orderNumber}%')`)
+      query.andWhere(`LOWER(Student.orderNumber) LIKE LOWER('%${orderNumber}%')`)
     }
 
     if (edeboId) {
-      query.andWhere(`LOWER(User.edeboId) LIKE LOWER('%${edeboId}%')`)
+      query.andWhere(`LOWER(Student.edeboId) LIKE LOWER('%${edeboId}%')`)
     }
 
-    if (isFullTime) {
-      query.andWhere(`LOWER(User.isFullTime) LIKE '%${isFullTime}%'`)
+    if (isFullTime !== null) {
+      query.andWhere(`Student.isFullTime = :isFullTime`, { isFullTime })
     }
 
-    query.orderBy(`User.${orderByColumn}`, orderBy)
+    query.orderBy(`Student.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetStudentResponseDto, query, options)
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetStudentResponseDto> {
     const { sub, role } = token || {}
-    const student = await this.selectStudents().andWhere({ id }).getOne()
+    const student = await this.selectStudents()
+      .leftJoinAndSelect(User, 'user', 'student.userId = user.id')
+      .andWhere({ id })
+      .getOne()
 
     if (!student) {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
-
+    console.log('HEREEEEEEEEEEEEEEEE', student)
     return plainToClass(GetStudentResponseDto, student)
   }
 
@@ -132,7 +148,6 @@ export class StudentsService {
       await this.studentsRepository
         .createQueryBuilder()
         .where(`LOWER(edeboId) = LOWER(:edeboId)`, { edeboId: updateStudentDto.edeboId })
-        .andWhere({ id: Not(id) })
         .getOne()
     ) {
       throw new BadRequestException(`This student edeboId: ${updateStudentDto.edeboId} already exist.`)

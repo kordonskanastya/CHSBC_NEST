@@ -19,6 +19,10 @@ export class GetStudentResponseDto {
   @ApiProperty({ required: true, example: 15 })
   groupId: number
 
+  @IsNumber()
+  @ApiProperty({ required: true, example: 10 })
+  userId: number
+
   @IsString()
   @MinLength(6)
   @MaxLength(100)

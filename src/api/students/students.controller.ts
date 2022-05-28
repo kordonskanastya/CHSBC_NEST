@@ -1,9 +1,29 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Request, Query, BadRequestException } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Request,
+  Query,
+  BadRequestException,
+  UseGuards,
+} from '@nestjs/common'
 import { StudentColumns, StudentsService } from './students.service'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { MinRole } from '../../auth/roles/roles.decorator'
-import { ApiCreatedResponse, ApiBadRequestResponse, ApiOkResponse } from '@nestjs/swagger'
+import {
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiOkResponse,
+  ApiTags,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger'
 import { ROLE } from '../../auth/roles/role.enum'
 import { CreateStudentResponseDto } from './dto/create-student-response.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
@@ -12,8 +32,17 @@ import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorato
 import { Entities } from '../common/enums'
 import { PaginationTypeEnum } from 'nestjs-typeorm-paginate'
 import { DeleteResponseDto } from '../common/dto/delete-response.dto'
+import { capitalize } from '../../utils/common'
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
+import { RolesGuard } from '../../auth/roles/roles.guard'
 
-@Controller('students')
+@Controller(Entities.STUDENTS)
+@ApiTags(capitalize(Entities.STUDENTS))
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Unauthorized' })
+@ApiForbiddenResponse({ description: 'Forbidden resource. Check user role' })
+@MinRole(ROLE.TEACHER)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 

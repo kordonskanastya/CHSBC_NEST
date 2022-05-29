@@ -15,7 +15,9 @@ import { STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
+import { GroupsService } from '../groups/groups.service'
 import { User } from '../users/entities/user.entity'
+import { UsersService } from '../users/users.service'
 import { CreateStudentResponseDto } from './dto/create-student-response.dto'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
@@ -40,12 +42,26 @@ export class StudentsService {
   constructor(
     @Inject(STUDENT_REPOSITORY)
     @Inject(forwardRef(() => AuthService))
+    private usersService: UsersService,
+    private groupsService: GroupsService,
     private studentsRepository: Repository<Student>,
     private authService: AuthService,
   ) {}
 
   async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
     const { sub, role } = tokenDto || {}
+
+    if (!(await this.usersService.findOne(createStudentDto.userId.id))) {
+      throw new BadRequestException(`This student with Id: ${createStudentDto.userId.id} doesn't exist.`)
+    }
+
+    if (!(await this.groupsService.findOne(createStudentDto.groupId.id))) {
+      throw new BadRequestException(`This group with Id: ${createStudentDto.userId.id} doesn't exist.`)
+    }
+
+    if (!(await this.usersService.findOne(createStudentDto.userId.id))) {
+      throw new BadRequestException(`This student with Id: ${createStudentDto.userId.id} doesn't exist.`)
+    }
 
     if (
       await this.studentsRepository

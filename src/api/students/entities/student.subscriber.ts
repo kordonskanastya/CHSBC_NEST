@@ -2,8 +2,8 @@ import { EventSubscriber } from 'typeorm'
 import { Student } from './student.entity'
 import { LoggerSubscriber } from '../../loggers/entities/logger-subscriber'
 import { plainToClass } from 'class-transformer'
-import { GetLoggerUserDto } from '../../loggers/dto/get-logger-user.dto'
 import { Entities } from '../../common/enums'
+import { GetLoggerStudentDto } from '../../loggers/dto/get-logger-student.dto'
 
 @EventSubscriber()
 export class StudentSubscriber extends LoggerSubscriber<Student> {
@@ -16,7 +16,7 @@ export class StudentSubscriber extends LoggerSubscriber<Student> {
   }
 
   prepareData(data) {
-    return plainToClass(GetLoggerUserDto, data, {
+    return plainToClass(GetLoggerStudentDto, data, {
       excludeExtraneousValues: true,
     })
   }

@@ -76,10 +76,6 @@ export class StudentsService {
     })
   }
 
-  selectStudents() {
-    return this.studentsRepository.createQueryBuilder()
-  }
-
   async findAll(
     options: IPaginationOptions,
     search: string,
@@ -96,7 +92,8 @@ export class StudentsService {
 
     checkColumnExist(STUDENT_COLUMN_LIST, orderByColumn)
 
-    const query = this.selectStudents()
+    // const query = this.selectStudents()
+    const query = this.studentsRepository.createQueryBuilder()
 
     if (search) {
       query.andWhere(
@@ -131,15 +128,17 @@ export class StudentsService {
 
   async findOne(id: number, token?: TokenDto): Promise<GetStudentResponseDto> {
     const { sub, role } = token || {}
-    const student = await this.selectStudents()
-      .leftJoinAndSelect(User, 'user', 'student.userId = user.id')
+    const student = await this.studentsRepository
+      .createQueryBuilder('student')
+      // .leftJoinAndSelect(User, 'user', 'student.userId = user.id')
+      .leftJoinAndSelect('student.userId', 'user')
+      .leftJoinAndSelect('student.groupId', 'group')
       .andWhere({ id })
       .getOne()
 
     if (!student) {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
-    console.log('HEREEEEEEEEEEEEEEEE', student)
     return plainToClass(GetStudentResponseDto, student)
   }
 
@@ -147,7 +146,7 @@ export class StudentsService {
     if (
       await this.studentsRepository
         .createQueryBuilder()
-        .where(`LOWER(edeboId) = LOWER(:edeboId)`, { edeboId: updateStudentDto.edeboId })
+        .where(`LOWER(Student.edeboId) LIKE LOWER('%${updateStudentDto.edeboId}%')`)
         .getOne()
     ) {
       throw new BadRequestException(`This student edeboId: ${updateStudentDto.edeboId} already exist.`)

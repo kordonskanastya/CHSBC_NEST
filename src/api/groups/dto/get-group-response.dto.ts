@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsDate, IsNumber, IsString } from 'class-validator'
+import { IsDate, IsNumber, IsObject, IsString } from 'class-validator'
 import { Expose } from 'class-transformer'
+import { User } from '../../users/entities/user.entity'
 
 export class GetGroupResponseDto {
   @Expose()
@@ -14,9 +15,9 @@ export class GetGroupResponseDto {
   name: string
 
   @Expose()
-  @IsNumber()
-  @ApiProperty({ type: Number })
-  curatorId: number
+  @IsObject()
+  @ApiProperty({ type: User })
+  curatorId: User
 
   @Expose()
   @IsString()

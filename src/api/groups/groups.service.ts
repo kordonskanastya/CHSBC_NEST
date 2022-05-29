@@ -15,10 +15,10 @@ import { CreateGroupResponseDto } from './dto/create-group-response.dto'
 import { plainToClass } from 'class-transformer'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
-import { USER_COLUMN_LIST } from '../users/users.service'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { AuthService } from '../../auth/auth.service'
+import { GetGroupResponseDto } from './dto/get-group-response.dto'
 
 export enum GroupsColumns {
   ID = 'id',
@@ -50,9 +50,6 @@ export class GroupsService {
     })
   }
 
-  selectGroups() {
-    return this.groupsRepository.createQueryBuilder()
-  }
   async findAll(
     options: IPaginationOptions,
     search: string,
@@ -66,41 +63,44 @@ export class GroupsService {
     orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
-    checkColumnExist(USER_COLUMN_LIST, orderByColumn)
+    checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
 
-    const query = this.selectGroups()
+    const query = this.groupsRepository.createQueryBuilder('group').leftJoinAndSelect('group.curatorId', 'user')
 
     if (search) {
       query.andWhere(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(Group.name), LOWER(Group.orderNumber),LOWER(Group.curatorId),LOWER(Group.deleted0rderNumber)) LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(group.name), LOWER(group.orderNumber),LOWER(group.curatorId),LOWER(group.deleted0rderNumber)) LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
       )
     }
     if (name) {
-      query.andWhere(`LOWER(Group.name) LIKE LOWER('%${name}%')`)
+      query.andWhere(`LOWER(group.name) LIKE LOWER('%${name}%')`)
     }
     if (orderNumber) {
-      query.andWhere(`LOWER(Group.orderNumber) LIKE LOWER('%${orderNumber}%')`)
+      query.andWhere(`LOWER(group.orderNumber) LIKE LOWER('%${orderNumber}%')`)
     }
     if (deleted0rderNumber) {
-      query.andWhere(`LOWER(Group.deletedOrderNumber) LIKE '%NULL%'`)
+      query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
     }
-    query.orderBy(`Group.${orderByColumn}`, orderBy)
+    query.orderBy(`group.${orderByColumn}`, orderBy)
 
-    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
+    return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
   }
 
-  async findOne(id: number, token?: TokenDto): Promise<CreateGroupResponseDto> {
-    const group = await this.selectGroups().andWhere({ id }).getOne()
-
+  async findOne(id: number, token?: TokenDto): Promise<GetGroupResponseDto> {
+    const group = await this.groupsRepository
+      .createQueryBuilder('group')
+      .leftJoinAndSelect('group.curatorId', 'user')
+      .andWhere({ id })
+      .getOne()
     if (!group) {
       throw new NotFoundException(`Not found group id: ${id}`)
     }
 
-    return plainToClass(CreateGroupResponseDto, group)
+    return plainToClass(GetGroupResponseDto, group)
   }
 
   async update(id: number, updateGroupDto: UpdateExactFieldDto) {

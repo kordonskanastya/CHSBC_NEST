@@ -11,6 +11,7 @@ import { LoggersModule } from './api/loggers/loggers.module'
 import { LoggerMiddleware } from './utils/logger.middleware'
 import { LoggerModule } from 'nestjs-pino'
 // import { GroupsModule } from './api/groups/groups.module'
+import { StudentsModule } from './api/students/students.module'
 import * as fs from 'fs'
 import { GroupsModule } from './api/groups/groups.module'
 
@@ -39,6 +40,7 @@ const logLevel = configService.getEnvName() === 'local' ? 'debug' : 'error'
     UsersModule,
     LoggersModule,
     GroupsModule,
+    StudentsModule,
   ],
   controllers: [AppController],
   providers: [

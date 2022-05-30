@@ -4,4 +4,5 @@ export enum Entities {
   IMAGES = 'images',
   LOGGERS = 'loggers',
   GROUPS = 'groups',
+  STUDENTS = 'students',
 }

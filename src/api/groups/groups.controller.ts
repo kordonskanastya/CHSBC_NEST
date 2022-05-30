@@ -80,6 +80,7 @@ export class GroupsController {
       orderByColumn,
       orderBy,
       name,
+      curatorId,
       orderNumber,
       deletedOrderNumber,
       req.group,

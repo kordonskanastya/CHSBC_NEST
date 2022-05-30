@@ -3,8 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
@@ -19,8 +18,7 @@ export class Group extends BaseEntity {
   @Column({ type: 'varchar', length: 20, nullable: false })
   name: string
 
-  @OneToOne(() => User)
-  @JoinColumn()
+  @ManyToOne(() => User, (user) => user.id)
   curatorId: User
 
   @Column({ nullable: false })

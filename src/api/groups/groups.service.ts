@@ -56,9 +56,10 @@ export class GroupsService {
     orderByColumn: GroupsColumns,
     orderBy: 'ASC' | 'DESC',
     name: string,
-    curator_id: string,
+    curatorId: number,
     orderNumber: string,
     deleted0rderNumber: string,
+    a: number,
   ) {
     orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
@@ -68,9 +69,9 @@ export class GroupsService {
     const query = this.groupsRepository.createQueryBuilder('group').leftJoinAndSelect('group.curatorId', 'user')
 
     if (search) {
-      query.andWhere(
+      query.where(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(group.name), LOWER(group.orderNumber),LOWER(group.curatorId),LOWER(group.deleted0rderNumber)) LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(name), LOWER(user.firstName) , LOWER(user.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorIdId","deletedOrderNumber") LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
@@ -79,6 +80,9 @@ export class GroupsService {
     if (name) {
       query.andWhere(`LOWER(group.name) LIKE LOWER('%${name}%')`)
     }
+    if (curatorId) {
+      query.where(`user.id=${curatorId}`)
+    }
     if (orderNumber) {
       query.andWhere(`LOWER(group.orderNumber) LIKE LOWER('%${orderNumber}%')`)
     }
@@ -86,7 +90,6 @@ export class GroupsService {
       query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
     }
     query.orderBy(`group.${orderByColumn}`, orderBy)
-
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
   }
 

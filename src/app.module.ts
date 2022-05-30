@@ -13,6 +13,7 @@ import { LoggerModule } from 'nestjs-pino'
 // import { GroupsModule } from './api/groups/groups.module'
 import { StudentsModule } from './api/students/students.module'
 import * as fs from 'fs'
+import { GroupsModule } from './api/groups/groups.module'
 
 const stream = configService.getEnvName() === 'local' ? process.stdout : fs.createWriteStream('my-file.log')
 const logLevel = configService.getEnvName() === 'local' ? 'debug' : 'error'
@@ -38,8 +39,8 @@ const logLevel = configService.getEnvName() === 'local' ? 'debug' : 'error'
     AuthModule,
     UsersModule,
     LoggersModule,
+    GroupsModule,
     StudentsModule,
-    // GroupsModule,
   ],
   controllers: [AppController],
   providers: [

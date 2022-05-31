@@ -18,7 +18,7 @@ export class Group extends BaseEntity {
   @Column({ type: 'varchar', length: 20, nullable: false })
   name: string
 
-  @ManyToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User, (user) => user.id, { onDelete: 'CASCADE' })
   curatorId: User
 
   @Column({ nullable: false })

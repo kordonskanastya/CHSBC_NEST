@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -19,6 +20,7 @@ export class Group extends BaseEntity {
   name: string
 
   @ManyToOne(() => User, (user) => user.id)
+  @JoinColumn()
   curatorId: User
 
   @Column({ nullable: false })

@@ -4,33 +4,33 @@ import { Expose, Type } from 'class-transformer'
 import { GetUserResponseDto } from '../../users/dto/get-user-response.dto'
 
 export class GetGroupResponseDto {
-  @Expose()
+  // @Expose()
   @IsNumber()
   @ApiProperty({ type: Number })
   id: number
 
-  @Expose()
+  // @Expose()
   @IsString()
   @ApiProperty({ type: String })
   name: string
 
-  @Expose()
+  // @Expose()
   @IsObject()
   @Type(() => GetUserResponseDto)
   @ApiProperty({ type: GetUserResponseDto })
   curatorId: GetUserResponseDto
 
-  @Expose()
+  // @Expose()
   @IsString()
   @ApiProperty({ type: String })
   orderNumber: string
 
-  @Expose()
+  // @Expose()
   @IsDate()
   @ApiProperty({ type: Date })
   updated: Date
 
-  @Expose()
+  // @Expose()
   @IsDate()
   @ApiProperty({ type: Date })
   created: Date

@@ -7,7 +7,7 @@ import { GroupsModule } from '../groups/groups.module'
 import { UsersModule } from '../users/users.module'
 
 @Module({
-  imports: [DatabaseModule, forwardRef(() => UsersModule), GroupsModule],
+  imports: [DatabaseModule],
   controllers: [StudentsController],
   providers: [StudentsService, ...studentProviders],
   exports: [StudentsService, ...studentProviders],

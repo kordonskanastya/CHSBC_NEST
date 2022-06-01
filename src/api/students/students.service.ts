@@ -1,24 +1,14 @@
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
-} from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { plainToClass } from 'class-transformer'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
-import { Not, Repository } from 'typeorm'
-import { AuthService } from '../../auth/auth.service'
+import { Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
 import { Group } from '../groups/entities/group.entity'
-import { GroupsService } from '../groups/groups.service'
 import { User } from '../users/entities/user.entity'
-import { UsersService } from '../users/users.service'
 import { CreateStudentResponseDto } from './dto/create-student-response.dto'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
@@ -42,20 +32,17 @@ export const STUDENT_COLUMNS = enumToObject(StudentColumns)
 export class StudentsService {
   constructor(
     @Inject(STUDENT_REPOSITORY)
-    @Inject(forwardRef(() => UsersService))
     private studentsRepository: Repository<Student>,
-    private usersRepository: Repository<User>,
-    private groupsRepository: Repository<Group>,
   ) {}
 
   async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
     const { sub, role } = tokenDto || {}
 
-    if (!(await this.usersRepository.findOne(createStudentDto.userId))) {
+    if (!(await User.findOne(createStudentDto.userId))) {
       throw new BadRequestException(`This student with Id: ${createStudentDto.userId} doesn't exist.`)
     }
 
-    if (!(await this.groupsRepository.findOne(createStudentDto.groupId))) {
+    if (!(await Group.findOne(createStudentDto.groupId))) {
       throw new BadRequestException(`This group with Id: ${createStudentDto.userId} doesn't exist.`)
     }
 
@@ -143,15 +130,16 @@ export class StudentsService {
   async findOne(id: number, token?: TokenDto): Promise<GetStudentResponseDto> {
     const { sub, role } = token || {}
     const student = await this.studentsRepository
-      .createQueryBuilder('student')
-      .leftJoinAndSelect('student.userId', 'user')
-      .leftJoinAndSelect('student.groupId', 'group')
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
       .andWhere({ id })
       .getOne()
 
     if (!student) {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
+
     return plainToClass(GetStudentResponseDto, student)
   }
 

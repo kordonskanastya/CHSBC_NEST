@@ -67,7 +67,6 @@ export class GroupsController {
     @Query('curatorId') curatorId: number,
     @Query('orderNumber') orderNumber: string,
     @Query('deletedOrderNumber') deletedOrderNumber: string,
-    @Request() req,
   ) {
     return await this.groupsService.findAll(
       {
@@ -83,7 +82,6 @@ export class GroupsController {
       curatorId,
       orderNumber,
       deletedOrderNumber,
-      req.group,
     )
   }
 

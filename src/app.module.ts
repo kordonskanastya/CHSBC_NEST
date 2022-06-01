@@ -6,11 +6,9 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { configService } from './config/config.service'
 import { AuthModule } from './auth/auth.module'
 import { ScheduleModule } from '@nestjs/schedule'
-// import { TmpFileService } from './tmp-file.service'
 import { LoggersModule } from './api/loggers/loggers.module'
 import { LoggerMiddleware } from './utils/logger.middleware'
 import { LoggerModule } from 'nestjs-pino'
-// import { GroupsModule } from './api/groups/groups.module'
 import { StudentsModule } from './api/students/students.module'
 import * as fs from 'fs'
 import { GroupsModule } from './api/groups/groups.module'
@@ -43,10 +41,7 @@ const logLevel = configService.getEnvName() === 'local' ? 'debug' : 'error'
     StudentsModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    // TmpFileService
-  ],
+  providers: [AppService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

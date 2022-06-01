@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
-} from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { UpdateExactFieldDto } from './dto/update-exact-field.dto'
 import { GROUP_REPOSITORY } from '../../constants'
@@ -17,7 +10,6 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
-import { AuthService } from '../../auth/auth.service'
 import { GetGroupResponseDto } from './dto/get-group-response.dto'
 
 export enum GroupsColumns {
@@ -56,8 +48,7 @@ export class GroupsService {
     name: string,
     curatorId: number,
     orderNumber: string,
-    deleted0rderNumber: string,
-    a: number,
+    deletedOrderNumber: string,
   ) {
     orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
@@ -84,10 +75,11 @@ export class GroupsService {
     if (orderNumber) {
       query.andWhere(`LOWER(group.orderNumber) LIKE LOWER('%${orderNumber}%')`)
     }
-    if (deleted0rderNumber) {
+    if (deletedOrderNumber) {
       query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
     }
     query.orderBy(`group.${orderByColumn}`, orderBy)
+
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
   }
 

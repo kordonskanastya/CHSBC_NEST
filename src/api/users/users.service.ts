@@ -49,10 +49,9 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY)
     @Inject(forwardRef(() => AuthService))
-    @Inject(forwardRef(() => StudentsService))
-    private studentsService: StudentsService,
     private usersRepository: Repository<User>,
     private authService: AuthService,
+    private studentsService: StudentsService,
   ) {}
 
   async create({ studentData, ...createUserDto }: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
@@ -80,7 +79,6 @@ export class UsersService {
 
     if (studentData) {
       console.log('student data is here')
-      // create student
       await this.studentsService.create(studentData)
     }
     console.log('student data is NOT here')

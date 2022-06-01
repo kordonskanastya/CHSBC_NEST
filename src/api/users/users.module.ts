@@ -7,7 +7,7 @@ import { AuthModule } from '../../auth/auth.module'
 import { StudentsModule } from '../students/students.module'
 
 @Module({
-  imports: [DatabaseModule, forwardRef(() => AuthModule), forwardRef(() => StudentsModule)],
+  imports: [DatabaseModule, forwardRef(() => AuthModule), StudentsModule],
   controllers: [UsersController],
   providers: [UsersService, ...userProviders],
   exports: [UsersService, ...userProviders],

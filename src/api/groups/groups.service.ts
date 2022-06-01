@@ -37,9 +37,7 @@ export const GROUPS_COLUMNS = enumToObject(GroupsColumns)
 export class GroupsService {
   constructor(
     @Inject(GROUP_REPOSITORY)
-    @Inject(forwardRef(() => AuthService))
     private groupsRepository: Repository<Group>,
-    private authService: AuthService,
   ) {}
 
   async create(createGroupDto: CreateGroupDto) {

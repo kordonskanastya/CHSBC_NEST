@@ -4,9 +4,10 @@ import { GroupsController } from './groups.controller'
 import { DatabaseModule } from '../../database.module'
 import { groupProviders } from './entities/groups.providers'
 import { AuthModule } from '../../auth/auth.module'
+import { UsersModule } from '../users/users.module'
 
 @Module({
-  imports: [DatabaseModule, forwardRef(() => AuthModule)],
+  imports: [DatabaseModule],
   controllers: [GroupsController],
   providers: [GroupsService, ...groupProviders],
   exports: [GroupsService, ...groupProviders],

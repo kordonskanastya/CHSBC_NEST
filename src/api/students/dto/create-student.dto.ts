@@ -13,12 +13,12 @@ export class CreateStudentDto {
   dateOfBirth: string
 
   @IsNumber()
-  @ApiProperty({ required: true, example: 15 })
-  groupId: Group
+  @ApiProperty({ required: true, example: 15, type: Number })
+  groupId: number
 
   @IsNumber()
-  @ApiProperty({ required: true, example: 10 })
-  userId: User
+  @ApiProperty({ required: true, example: 10, type: Number })
+  userId: number
 
   @IsString()
   @MinLength(6)

@@ -11,13 +11,13 @@ export class Student extends BaseEntity {
   @Column({ type: 'varchar', length: 10, nullable: false })
   dateOfBirth: string
 
-  @ManyToOne((type) => Group, (group) => group.id)
+  @ManyToOne(() => Group, (group) => group.id)
   @JoinColumn()
-  groupId: Group
+  group: Group
 
-  @OneToOne(() => User)
+  @OneToOne(() => User, (user) => user.id)
   @JoinColumn()
-  userId: User
+  user: User
 
   @Column({ type: 'varchar', length: 20, nullable: false })
   orderNumber: string

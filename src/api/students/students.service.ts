@@ -15,6 +15,7 @@ import { STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
+import { Group } from '../groups/entities/group.entity'
 import { GroupsService } from '../groups/groups.service'
 import { User } from '../users/entities/user.entity'
 import { UsersService } from '../users/users.service'
@@ -41,26 +42,22 @@ export const STUDENT_COLUMNS = enumToObject(StudentColumns)
 export class StudentsService {
   constructor(
     @Inject(STUDENT_REPOSITORY)
-    @Inject(forwardRef(() => AuthService))
+    @Inject(forwardRef(() => UsersService))
     private studentsRepository: Repository<Student>,
-    private authService: AuthService,
+    private usersRepository: Repository<User>,
+    private groupsRepository: Repository<Group>,
   ) {}
-
-  // @Inject(forwardRef(() => UsersService))
-  //   @Inject(forwardRef(() => GroupsService))
-  //   private usersService: UsersService,
-  //   private groupsService: GroupsService,
 
   async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
     const { sub, role } = tokenDto || {}
 
-    // if (!(await this.usersService.findOne(createStudentDto.userId.id))) {
-    //   throw new BadRequestException(`This student with Id: ${createStudentDto.userId.id} doesn't exist.`)
-    // }
+    if (!(await this.usersRepository.findOne(createStudentDto.userId))) {
+      throw new BadRequestException(`This student with Id: ${createStudentDto.userId} doesn't exist.`)
+    }
 
-    // if (!(await this.groupsService.findOne(createStudentDto.groupId.id))) {
-    //   throw new BadRequestException(`This group with Id: ${createStudentDto.userId.id} doesn't exist.`)
-    // }
+    if (!(await this.groupsRepository.findOne(createStudentDto.groupId))) {
+      throw new BadRequestException(`This group with Id: ${createStudentDto.userId} doesn't exist.`)
+    }
 
     if (
       await this.studentsRepository

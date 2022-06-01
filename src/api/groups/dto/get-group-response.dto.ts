@@ -1,37 +1,30 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsDate, IsNumber, IsObject, IsString } from 'class-validator'
 import { Expose, Type } from 'class-transformer'
 import { GetUserResponseDto } from '../../users/dto/get-user-response.dto'
 
 export class GetGroupResponseDto {
-  // @Expose()
-  @IsNumber()
+  @Expose()
   @ApiProperty({ type: Number })
   id: number
 
-  // @Expose()
-  @IsString()
+  @Expose()
   @ApiProperty({ type: String })
   name: string
 
-  // @Expose()
-  @IsObject()
+  @Expose()
   @Type(() => GetUserResponseDto)
   @ApiProperty({ type: GetUserResponseDto })
-  curatorId: GetUserResponseDto
+  curator: GetUserResponseDto
 
-  // @Expose()
-  @IsString()
+  @Expose()
   @ApiProperty({ type: String })
   orderNumber: string
 
-  // @Expose()
-  @IsDate()
+  @Expose()
   @ApiProperty({ type: Date })
   updated: Date
 
-  // @Expose()
-  @IsDate()
+  @Expose()
   @ApiProperty({ type: Date })
   created: Date
 }

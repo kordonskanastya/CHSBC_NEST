@@ -37,7 +37,6 @@ export class Student extends BaseEntity {
   updated: Date
 
   @ManyToOne(() => Group, (group) => group.students)
-  @JoinColumn()
   group: Group
 
   @OneToOne(() => User, (user) => user.id)

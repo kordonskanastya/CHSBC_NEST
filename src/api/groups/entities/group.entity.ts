@@ -37,6 +37,5 @@ export class Group extends BaseEntity {
   students: Student[]
 
   @ManyToOne(() => User, (user) => user.id)
-  @JoinColumn()
   curator: User
 }

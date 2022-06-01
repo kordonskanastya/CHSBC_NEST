@@ -1,9 +1,9 @@
 import { EventSubscriber } from 'typeorm'
 import { LoggerSubscriber } from '../../loggers/entities/logger-subscriber'
 import { plainToClass } from 'class-transformer'
-import { GetLoggerUserDto } from '../../loggers/dto/get-logger-user.dto'
 import { Entities } from '../../common/enums'
 import { Group } from './group.entity'
+import { GetLoggerGroupDto } from '../../loggers/dto/get-logger-group.dto'
 
 @EventSubscriber()
 export class GroupSubscriber extends LoggerSubscriber<Group> {
@@ -16,7 +16,7 @@ export class GroupSubscriber extends LoggerSubscriber<Group> {
   }
 
   prepareData(data) {
-    return plainToClass(GetLoggerUserDto, data, {
+    return plainToClass(GetLoggerGroupDto, data, {
       excludeExtraneousValues: true,
     })
   }

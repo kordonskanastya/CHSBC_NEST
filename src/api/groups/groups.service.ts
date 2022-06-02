@@ -33,7 +33,6 @@ export class GroupsService {
   ) {}
 
   async create(createGroupDto: CreateGroupDto) {
-    console.log(createGroupDto)
     const group = await this.groupsRepository.create(createGroupDto).save()
     return plainToClass(CreateGroupResponseDto, group, {
       excludeExtraneousValues: true,
@@ -55,12 +54,11 @@ export class GroupsService {
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
 
-    const query = this.groupsRepository.createQueryBuilder('group').leftJoinAndSelect('group.curatorId', 'user')
-
+    const query = this.groupsRepository.createQueryBuilder('group').leftJoinAndSelect('group.curator', 'user')
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(name), LOWER(user.firstName) , LOWER(user.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorIdId","deletedOrderNumber") LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(name), LOWER(user.firstName) , LOWER(user.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorId","deletedOrderNumber") LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
@@ -79,14 +77,13 @@ export class GroupsService {
       query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
     }
     query.orderBy(`group.${orderByColumn}`, orderBy)
-
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetGroupResponseDto> {
     const group = await this.groupsRepository
       .createQueryBuilder('group')
-      .leftJoinAndSelect('group.curatorId', 'user')
+      .leftJoinAndSelect('group.curator', 'user')
       .andWhere({ id })
       .getOne()
     if (!group) {

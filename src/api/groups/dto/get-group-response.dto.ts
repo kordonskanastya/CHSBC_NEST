@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { Expose, Type } from 'class-transformer'
+import { Expose } from 'class-transformer'
 import { GetUserResponseDto } from '../../users/dto/get-user-response.dto'
 
 export class GetGroupResponseDto {
@@ -12,7 +12,6 @@ export class GetGroupResponseDto {
   name: string
 
   @Expose()
-  @Type(() => GetUserResponseDto)
   @ApiProperty({ type: GetUserResponseDto })
   curator: GetUserResponseDto
 

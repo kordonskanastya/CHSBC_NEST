@@ -2,7 +2,6 @@ import { IsNumber, IsString, MaxLength, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
 import { TransformFnParams } from 'class-transformer/types/interfaces'
 import { ApiProperty } from '@nestjs/swagger'
-import { User } from '../../users/entities/user.entity'
 
 export class CreateGroupDto {
   @IsString()
@@ -14,7 +13,7 @@ export class CreateGroupDto {
 
   @IsNumber()
   @ApiProperty({ required: true, example: 234 })
-  curatorId: User
+  curatorId: number
 
   @IsString()
   @Transform(({ value }: TransformFnParams) => value.toString().trim())

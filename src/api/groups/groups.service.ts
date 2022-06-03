@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-  NotAcceptableException,
-  NotFoundException,
-} from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { UpdateExactFieldDto } from './dto/update-exact-field.dto'
 import { GROUP_REPOSITORY } from '../../constants'
@@ -17,8 +10,9 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
-import { AuthService } from '../../auth/auth.service'
 import { GetGroupResponseDto } from './dto/get-group-response.dto'
+import { User } from '../users/entities/user.entity'
+import { ROLE } from '../../auth/roles/role.enum'
 
 export enum GroupsColumns {
   ID = 'id',
@@ -37,14 +31,23 @@ export const GROUPS_COLUMNS = enumToObject(GroupsColumns)
 export class GroupsService {
   constructor(
     @Inject(GROUP_REPOSITORY)
-    @Inject(forwardRef(() => AuthService))
     private groupsRepository: Repository<Group>,
-    private authService: AuthService,
   ) {}
 
   async create(createGroupDto: CreateGroupDto) {
-    console.log(createGroupDto)
-    const group = await this.groupsRepository.create(createGroupDto).save()
+    const curator = await User.findOne(createGroupDto.curatorId)
+
+    if (!curator || curator.role !== ROLE.CURATOR) {
+      throw new BadRequestException(`This curator id: ${createGroupDto.curatorId} not found.`)
+    }
+
+    const group = await this.groupsRepository
+      .create({
+        ...createGroupDto,
+        curator,
+      })
+      .save()
+
     return plainToClass(CreateGroupResponseDto, group, {
       excludeExtraneousValues: true,
     })
@@ -58,20 +61,18 @@ export class GroupsService {
     name: string,
     curatorId: number,
     orderNumber: string,
-    deleted0rderNumber: string,
-    a: number,
+    deletedOrderNumber: string,
   ) {
     orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
 
-    const query = this.groupsRepository.createQueryBuilder('group').leftJoinAndSelect('group.curatorId', 'user')
-
+    const query = this.groupsRepository.createQueryBuilder('group').leftJoinAndSelect('group.curator', 'user')
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(name), LOWER(user.firstName) , LOWER(user.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorIdId","deletedOrderNumber") LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(name), LOWER(user.firstName) , LOWER(user.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorId","deletedOrderNumber") LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
@@ -86,17 +87,18 @@ export class GroupsService {
     if (orderNumber) {
       query.andWhere(`LOWER(group.orderNumber) LIKE LOWER('%${orderNumber}%')`)
     }
-    if (deleted0rderNumber) {
+    if (deletedOrderNumber) {
       query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
     }
     query.orderBy(`group.${orderByColumn}`, orderBy)
+
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetGroupResponseDto> {
     const group = await this.groupsRepository
       .createQueryBuilder('group')
-      .leftJoinAndSelect('group.curatorId', 'user')
+      .leftJoinAndSelect('group.curator', 'user')
       .andWhere({ id })
       .getOne()
     if (!group) {

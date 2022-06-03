@@ -4,11 +4,13 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
 import { Entities } from '../../common/enums'
 import { User } from '../../users/entities/user.entity'
+import { Student } from '../../students/entities/student.entity'
 
 @Entity({ name: Entities.GROUPS })
 export class Group extends BaseEntity {
@@ -17,9 +19,6 @@ export class Group extends BaseEntity {
 
   @Column({ type: 'varchar', length: 20, nullable: false })
   name: string
-
-  @ManyToOne(() => User, (user) => user.id)
-  curatorId: User
 
   @Column({ nullable: false })
   orderNumber: string
@@ -32,4 +31,10 @@ export class Group extends BaseEntity {
 
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
+
+  @OneToMany(() => Student, (student) => student.group)
+  students: Student[]
+
+  @ManyToOne(() => User, (user) => user.id)
+  curator: User
 }

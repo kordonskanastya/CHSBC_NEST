@@ -1,38 +1,36 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsEmail, IsNumber, IsObject, IsOptional, IsString } from 'class-validator'
-import { Expose } from 'class-transformer'
+import { Expose, Type } from 'class-transformer'
 import { Group } from '../../groups/entities/group.entity'
 import { User } from '../../users/entities/user.entity'
+import { GetUserResponseDto } from '../../users/dto/get-user-response.dto'
+import { GetGroupResponseDto } from '../../groups/dto/get-group-response.dto'
 
 export class GetLoggerStudentDto {
   @Expose()
-  @IsNumber()
   @ApiProperty({ type: Number })
   id: number
 
   @Expose()
-  @IsObject()
-  @ApiProperty({ type: Object })
-  groupId: Group
+  @ApiProperty({ type: GetGroupResponseDto })
+  @Type(() => GetGroupResponseDto)
+  group: GetGroupResponseDto
 
   @Expose()
-  @IsObject()
-  @ApiProperty({ type: Object })
-  userId: User
+  @ApiProperty({ type: GetGroupResponseDto })
+  @Type(() => GetUserResponseDto)
+  user: GetUserResponseDto
 
   @Expose()
-  @IsString()
   @IsOptional()
   @ApiPropertyOptional({ type: String })
   orderNumber: string
 
   @Expose()
-  @IsString()
   @ApiProperty({ type: String })
   edeboId: string
 
   @Expose()
-  @IsBoolean()
   @ApiProperty({ type: Boolean })
   isFullTime: boolean
 }

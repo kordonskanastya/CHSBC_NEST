@@ -25,6 +25,7 @@ import { AuthService } from '../../auth/auth.service'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
+import { StudentsService } from '../students/students.service'
 
 export enum UserColumns {
   ID = 'id',
@@ -50,6 +51,7 @@ export class UsersService {
     @Inject(forwardRef(() => AuthService))
     private usersRepository: Repository<User>,
     private authService: AuthService,
+    private studentsService: StudentsService,
   ) {}
 
   async create({ studentData, ...createUserDto }: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
@@ -77,8 +79,7 @@ export class UsersService {
 
     if (studentData) {
       console.log('student data is here')
-      // create student
-      // await this.studentsRepository.create(studentData).save()
+      await this.studentsService.create(studentData)
     }
     console.log('student data is NOT here')
 

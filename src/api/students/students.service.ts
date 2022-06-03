@@ -38,11 +38,13 @@ export class StudentsService {
   async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
     const { sub, role } = tokenDto || {}
 
-    if (!(await User.findOne(createStudentDto.userId))) {
+    const user = await User.findOne(createStudentDto.userId)
+    if (!user) {
       throw new BadRequestException(`This student with Id: ${createStudentDto.userId} doesn't exist.`)
     }
 
-    if (!(await Group.findOne(createStudentDto.groupId))) {
+    const group = await Group.findOne(createStudentDto.groupId)
+    if (!group) {
       throw new BadRequestException(`This group with Id: ${createStudentDto.userId} doesn't exist.`)
     }
 
@@ -64,11 +66,17 @@ export class StudentsService {
       throw new BadRequestException(`This student user: ${createStudentDto.userId} already exist.`)
     }
 
-    const student = await this.studentsRepository.create(createStudentDto).save({
-      data: {
-        id: sub,
-      },
-    })
+    const student = await this.studentsRepository
+      .create({
+        ...createStudentDto,
+        group,
+        user,
+      })
+      .save({
+        data: {
+          id: sub,
+        },
+      })
 
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,

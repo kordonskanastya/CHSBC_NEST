@@ -11,6 +11,8 @@ import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { GetGroupResponseDto } from './dto/get-group-response.dto'
+import { User } from '../users/entities/user.entity'
+import { ROLE } from '../../auth/roles/role.enum'
 
 export enum GroupsColumns {
   ID = 'id',
@@ -33,7 +35,19 @@ export class GroupsService {
   ) {}
 
   async create(createGroupDto: CreateGroupDto) {
-    const group = await this.groupsRepository.create(createGroupDto).save()
+    const curator = await User.findOne(createGroupDto.curatorId)
+
+    if (!curator || curator.role !== ROLE.CURATOR) {
+      throw new BadRequestException(`This curator id: ${createGroupDto.curatorId} not found.`)
+    }
+
+    const group = await this.groupsRepository
+      .create({
+        ...createGroupDto,
+        curator,
+      })
+      .save()
+
     return plainToClass(CreateGroupResponseDto, group, {
       excludeExtraneousValues: true,
     })
@@ -77,6 +91,7 @@ export class GroupsService {
       query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
     }
     query.orderBy(`group.${orderByColumn}`, orderBy)
+
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
   }
 

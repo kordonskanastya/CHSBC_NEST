@@ -3,6 +3,7 @@ import { plainToClass } from 'class-transformer'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
+import { ROLE } from '../../auth/roles/role.enum'
 import { STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
@@ -37,11 +38,13 @@ export class StudentsService {
 
   async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
     const { sub, role } = tokenDto || {}
+    const studentCheck = await User.findOne(createStudentDto.userId)
+
+    if (!studentCheck || studentCheck.role !== ROLE.STUDENT) {
+      throw new BadRequestException(`This student id: ${createStudentDto.userId} not found or not student.`)
+    }
 
     const user = await User.findOne(createStudentDto.userId)
-    if (!user) {
-      throw new BadRequestException(`This student with Id: ${createStudentDto.userId} doesn't exist.`)
-    }
 
     const group = await Group.findOne(createStudentDto.groupId)
     if (!group) {
@@ -101,8 +104,8 @@ export class StudentsService {
 
     const query = this.studentsRepository
       .createQueryBuilder('student')
-      .leftJoinAndSelect('student.userId', 'user')
-      .leftJoinAndSelect('student.groupId', 'group')
+      .leftJoinAndSelect('student.user', 'user')
+      .leftJoinAndSelect('student.group', 'group')
 
     if (search) {
       query.andWhere(

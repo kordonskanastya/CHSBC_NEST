@@ -37,6 +37,15 @@ export class GroupsService {
   async create(createGroupDto: CreateGroupDto) {
     const curator = await User.findOne(createGroupDto.curatorId)
 
+    const checkName = await this.groupsRepository
+      .createQueryBuilder('group')
+      .andWhere(`LOWER(group.name) LIKE LOWER('%${createGroupDto.name}%')`)
+      .getOne()
+
+    if (checkName) {
+      throw new BadRequestException(`This group with name: ${createGroupDto.name} is exist.`)
+    }
+
     if (!curator || curator.role !== ROLE.CURATOR) {
       throw new BadRequestException(`This curator id: ${createGroupDto.curatorId} not found.`)
     }

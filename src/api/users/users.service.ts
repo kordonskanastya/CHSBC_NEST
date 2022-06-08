@@ -190,15 +190,12 @@ export class UsersService {
       .getOne()
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto, { sub, role }: TokenDto): Promise<UpdateResponseDto> {
-    const userDto = {
-      password: '',
-      ...updateUserDto,
-    }
+  async update(id: number, updateUserDto: UpdateUserDto, tokenDto?: TokenDto): Promise<UpdateResponseDto> {
+    const { sub, role } = tokenDto || {}
 
     // if (
-    //   userDto.role &&
-    //   (userDto.role === ROLE.ROOT || (role === ROLE.CURATOR && userDto.role !== ROLE.USER))
+    //   updateUserDto.role &&
+    //   (updateUserDto.role === ROLE.ROOT || (role === ROLE.CURATOR && updateUserDto.role !== ROLE.USER))
     // ) {
     //   throw new ForbiddenException("You don't have enough rights")
     // }
@@ -206,21 +203,21 @@ export class UsersService {
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: userDto.email })
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
+      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: userDto.email })
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
+      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
     const user = await this.usersRepository.findOne(id)
@@ -229,18 +226,18 @@ export class UsersService {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
 
-    Object.assign(user, userDto)
+    Object.assign(user, updateUserDto)
 
     // switch (role) {
     //   case ROLE.USER:
-    //     if (userDto.status && userDto.status !== user.status) {
+    //     if (updateUserDto.status && updateUserDto.status !== user.status) {
     //       throw new ForbiddenException("You don't have enough rights")
     //     }
     //     break
     //
     //   case ROLE.MANAGER:
     //     if (sub === `${id}`) {
-    //       if (userDto.status && userDto.status !== user.status) {
+    //       if (updateUserDto.status && updateUserDto.status !== user.status) {
     //         throw new ForbiddenException("You don't have enough rights")
     //       }
     //     } else {
@@ -251,14 +248,14 @@ export class UsersService {
     //     break
     // }
 
-    if (userDto.password) {
+    if (updateUserDto.password) {
       await user.hashPassword()
     }
 
     try {
       await user.save({
         data: {
-          user,
+          id: sub,
         },
       })
     } catch (e) {

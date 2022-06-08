@@ -91,6 +91,7 @@ export class GroupsController {
   findOne(@Param('id') id: string): Promise<CreateGroupResponseDto> {
     return this.groupsService.findOne(+id)
   }
+
   @Patch(':id([0-9]+)')
   @MinRole(ROLE.ADMIN)
   async update(@Param('id') id: string, @Body() updateGroupDto: UpdateExactFieldDto) {

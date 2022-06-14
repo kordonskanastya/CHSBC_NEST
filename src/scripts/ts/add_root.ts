@@ -44,10 +44,8 @@ async function main() {
   console.log('Running SQL seed...')
 
   const seedQuery = `INSERT INTO 
-    public.users ("firstName", "lastName", "login", "email", "password", "role") 
-    values ('${email}', '${email}', '${email}', '${email}', '${await hashPassword(password as string)}', '${
-    ROLE.ROOT
-  }');`
+    public.users ("firstName", "lastName", "email", "password", "role") 
+    values ('${email}', '${email}', '${email}', '${await hashPassword(password as string)}', '${ROLE.ROOT}');`
 
   connection.query(seedQuery, (err) => {
     connection.end()

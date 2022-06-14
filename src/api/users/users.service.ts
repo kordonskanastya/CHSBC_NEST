@@ -25,6 +25,7 @@ import { AuthService } from '../../auth/auth.service'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
+import { StudentsService } from '../students/students.service'
 
 export enum UserColumns {
   ID = 'id',
@@ -50,6 +51,7 @@ export class UsersService {
     @Inject(forwardRef(() => AuthService))
     private usersRepository: Repository<User>,
     private authService: AuthService,
+    private studentsService: StudentsService,
   ) {}
 
   async create({ studentData, ...createUserDto }: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
@@ -77,8 +79,7 @@ export class UsersService {
 
     if (studentData) {
       console.log('student data is here')
-      // create student
-      // await this.studentsRepository.create(studentData).save()
+      await this.studentsService.create(studentData)
     }
     console.log('student data is NOT here')
 
@@ -182,22 +183,12 @@ export class UsersService {
       .getOne()
   }
 
-  async findOneByLogin(login: string): Promise<User> {
-    return await this.usersRepository
-      .createQueryBuilder()
-      .where('LOWER(User.login) = LOWER(:login)', { login })
-      .getOne()
-  }
-
-  async update(id: number, updateUserDto: UpdateUserDto, { sub, role }: TokenDto): Promise<UpdateResponseDto> {
-    const userDto = {
-      password: '',
-      ...updateUserDto,
-    }
+  async update(id: number, updateUserDto: UpdateUserDto, tokenDto?: TokenDto): Promise<UpdateResponseDto> {
+    const { sub, role } = tokenDto || {}
 
     // if (
-    //   userDto.role &&
-    //   (userDto.role === ROLE.ROOT || (role === ROLE.CURATOR && userDto.role !== ROLE.USER))
+    //   updateUserDto.role &&
+    //   (updateUserDto.role === ROLE.ROOT || (role === ROLE.CURATOR && updateUserDto.role !== ROLE.USER))
     // ) {
     //   throw new ForbiddenException("You don't have enough rights")
     // }
@@ -205,21 +196,21 @@ export class UsersService {
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: userDto.email })
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
+      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: userDto.email })
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
+      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
     const user = await this.usersRepository.findOne(id)
@@ -228,18 +219,18 @@ export class UsersService {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
 
-    Object.assign(user, userDto)
+    Object.assign(user, updateUserDto)
 
     // switch (role) {
     //   case ROLE.USER:
-    //     if (userDto.status && userDto.status !== user.status) {
+    //     if (updateUserDto.status && updateUserDto.status !== user.status) {
     //       throw new ForbiddenException("You don't have enough rights")
     //     }
     //     break
     //
     //   case ROLE.MANAGER:
     //     if (sub === `${id}`) {
-    //       if (userDto.status && userDto.status !== user.status) {
+    //       if (updateUserDto.status && updateUserDto.status !== user.status) {
     //         throw new ForbiddenException("You don't have enough rights")
     //       }
     //     } else {
@@ -250,14 +241,14 @@ export class UsersService {
     //     break
     // }
 
-    if (userDto.password) {
+    if (updateUserDto.password) {
       await user.hashPassword()
     }
 
     try {
       await user.save({
         data: {
-          user,
+          id: sub,
         },
       })
     } catch (e) {

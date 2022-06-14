@@ -183,13 +183,6 @@ export class UsersService {
       .getOne()
   }
 
-  async findOneByLogin(login: string): Promise<User> {
-    return await this.usersRepository
-      .createQueryBuilder()
-      .where('LOWER(User.login) = LOWER(:login)', { login })
-      .getOne()
-  }
-
   async update(id: number, updateUserDto: UpdateUserDto, tokenDto?: TokenDto): Promise<UpdateResponseDto> {
     const { sub, role } = tokenDto || {}
 

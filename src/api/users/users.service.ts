@@ -10,7 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto'
 import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { RefreshTokenList, User } from './entities/user.entity'
-import { UpdateResult, Repository, Not } from 'typeorm'
+import { Not, Repository, UpdateResult } from 'typeorm'
 import { GetUserResponseDto } from './dto/get-user-response.dto'
 import { DeleteResponseDto } from '../common/dto/delete-response.dto'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
@@ -18,14 +18,16 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { plainToClass } from 'class-transformer'
 import * as bcrypt from 'bcrypt'
 import * as moment from 'moment'
-import { configService } from '../../config/config.service'
 import { DurationInputArg1, DurationInputArg2 } from 'moment'
+import { configService } from '../../config/config.service'
 import { USER_REPOSITORY } from '../../constants'
-import { AuthService } from '../../auth/auth.service'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
 import { StudentsService } from '../students/students.service'
+import { AuthService } from '../../auth/auth.service'
+import { Group } from '../groups/entities/group.entity'
+import { ROLE } from '../../auth/roles/role.enum'
 
 export enum UserColumns {
   ID = 'id',
@@ -58,8 +60,8 @@ export class UsersService {
     const { sub, role } = tokenDto || {}
 
     const registerDto = {
-      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 7),
       ...createUserDto,
+      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 7),
     }
 
     if (
@@ -71,17 +73,32 @@ export class UsersService {
       throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
     }
 
-    const user = await this.usersRepository.create(registerDto).save({
-      data: {
-        id: sub,
-      },
-    })
+    if (createUserDto.role === ROLE.STUDENT && studentData) {
+      const group = await Group.findOne(studentData.groupId)
+      if (!group) {
+        throw new BadRequestException(`This group with Id: ${studentData.groupId} doesn't exist.`)
+      }
 
-    if (studentData) {
-      console.log('student data is here')
-      await this.studentsService.create(studentData)
+      if (await this.studentsService.findOneByEdeboId(studentData.edeboId)) {
+        throw new BadRequestException(`This student edeboId: ${studentData.edeboId} already exist.`)
+      }
+
+      if (createUserDto.role !== ROLE.STUDENT) {
+        throw new BadRequestException(
+          `This user can't be registered as student because has role: ${createUserDto.role}`,
+        )
+      }
     }
-    console.log('student data is NOT here')
+
+    const user = await this.usersRepository.create(registerDto).save()
+
+    if (!user) {
+      throw new BadRequestException(`Can't create user, some unexpected error`)
+    }
+
+    if (createUserDto.role === ROLE.STUDENT && studentData) {
+      await this.studentsService.create({ ...studentData, userId: +user.id })
+    }
 
     this.authService.sendMailCreatePassword({
       firstName: registerDto.firstName,
@@ -183,24 +200,10 @@ export class UsersService {
       .getOne()
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto, tokenDto?: TokenDto): Promise<UpdateResponseDto> {
-    const { sub, role } = tokenDto || {}
-
-    // if (
-    //   updateUserDto.role &&
-    //   (updateUserDto.role === ROLE.ROOT || (role === ROLE.CURATOR && updateUserDto.role !== ROLE.USER))
-    // ) {
-    //   throw new ForbiddenException("You don't have enough rights")
-    // }
-
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
-        .andWhere({ id: Not(id) })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
+  async update(id: number, updateUserDto: UpdateUserDto, { sub, role }: TokenDto): Promise<UpdateResponseDto> {
+    const userDto = {
+      password: '',
+      ...updateUserDto,
     }
 
     if (
@@ -213,7 +216,17 @@ export class UsersService {
       throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
-    const user = await this.usersRepository.findOne(id)
+    if (
+      await this.usersRepository
+        .createQueryBuilder()
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
+        .andWhere({ id: Not(id) })
+        .getOne()
+    ) {
+      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
+    }
+
+    const user = await this.selectUsers().andWhere({ id }).getOne()
 
     if (!user) {
       throw new NotFoundException(`Not found user id: ${id}`)
@@ -221,28 +234,13 @@ export class UsersService {
 
     Object.assign(user, updateUserDto)
 
-    // switch (role) {
-    //   case ROLE.USER:
-    //     if (updateUserDto.status && updateUserDto.status !== user.status) {
-    //       throw new ForbiddenException("You don't have enough rights")
-    //     }
-    //     break
-    //
-    //   case ROLE.MANAGER:
-    //     if (sub === `${id}`) {
-    //       if (updateUserDto.status && updateUserDto.status !== user.status) {
-    //         throw new ForbiddenException("You don't have enough rights")
-    //       }
-    //     } else {
-    //       if (user.role !== ROLE.USER) {
-    //         throw new ForbiddenException("You don't have enough rights")
-    //       }
-    //     }
-    //     break
-    // }
-
     if (updateUserDto.password) {
       await user.hashPassword()
+    }
+
+    if (user.role === ROLE.STUDENT && userDto.studentData) {
+      const { id: studentId } = await this.studentsService.findOneByUserId(user.id)
+      await this.studentsService.update(studentId, userDto.studentData, { sub, role })
     }
 
     try {
@@ -317,6 +315,11 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException(`Not found user id: ${id}`)
+    }
+
+    if (user.role === ROLE.STUDENT) {
+      const { id: studentId } = await this.studentsService.findOneByUserId(user.id)
+      await this.studentsService.remove(studentId)
     }
 
     await this.usersRepository.remove(user, {

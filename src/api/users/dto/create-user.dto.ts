@@ -4,7 +4,7 @@ import * as faker from 'faker'
 import { FAKE_EMAIL } from '../../../constants'
 import { ROLE } from '../../../auth/roles/role.enum'
 import { Transform, TransformFnParams, Type } from 'class-transformer'
-import { CreateStudentDto } from '../../students/dto/create-student.dto'
+import { StudentDataDto } from './student-data.dto'
 
 export class CreateUserDto {
   @IsString()
@@ -40,8 +40,7 @@ export class CreateUserDto {
   role: ROLE
 
   @IsObject()
-  @IsOptional()
-  @ApiPropertyOptional({ type: CreateStudentDto })
-  @Type(() => CreateStudentDto)
-  studentData: CreateStudentDto
+  @ApiPropertyOptional({ type: StudentDataDto })
+  @Type(() => StudentDataDto)
+  studentData: StudentDataDto
 }

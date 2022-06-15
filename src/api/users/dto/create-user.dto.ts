@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsObject, IsString, MaxLength, MinLength } from 'class-validator'
+import { IsEmail, IsEnum, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import * as faker from 'faker'
 import { FAKE_EMAIL } from '../../../constants'

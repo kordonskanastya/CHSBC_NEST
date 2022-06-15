@@ -5,9 +5,9 @@ export default function setupHooks(app: INestApplication) {
   const options: ValidationPipeOptions = {
     transform: true,
     enableDebugMessages: !configService.isProduction(),
-    skipUndefinedProperties: true,
+    skipUndefinedProperties: false,
     skipNullProperties: true,
-    skipMissingProperties: true,
+    skipMissingProperties: false,
     whitelist: true,
     forbidNonWhitelisted: true,
   }

@@ -209,21 +209,21 @@ export class UsersService {
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: userDto.email })
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
+      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
     if (
       await this.usersRepository
         .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: userDto.email })
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
+      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
     const user = await this.selectUsers().andWhere({ id }).getOne()
@@ -232,9 +232,9 @@ export class UsersService {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
 
-    Object.assign(user, userDto)
+    Object.assign(user, updateUserDto)
 
-    if (userDto.password) {
+    if (updateUserDto.password) {
       await user.hashPassword()
     }
 
@@ -246,7 +246,7 @@ export class UsersService {
     try {
       await user.save({
         data: {
-          user,
+          id: sub,
         },
       })
     } catch (e) {

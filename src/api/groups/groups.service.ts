@@ -100,8 +100,17 @@ export class GroupsService {
       query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
     }
     query.orderBy(`group.${orderByColumn}`, orderBy)
-
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
+  }
+
+  async countGroupStudent(id: number) {
+    const studentQuantity = await this.groupsRepository
+      .createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.students', 'Student')
+      .andWhere({ id })
+      .getOne()
+      .then((grst) => grst.students.length)
+    return { quantity: studentQuantity }
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetGroupResponseDto> {

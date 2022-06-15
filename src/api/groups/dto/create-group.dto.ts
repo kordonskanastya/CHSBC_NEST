@@ -26,6 +26,6 @@ export class CreateGroupDto {
   @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @MinLength(6)
   @MaxLength(50)
-  @ApiPropertyOptional({ required: true, example: 234 })
+  @ApiPropertyOptional({ required: false, example: 123456 })
   deletedOrderNumber: string
 }

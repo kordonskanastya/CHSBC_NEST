@@ -26,6 +26,8 @@ import { TokenDto } from '../../auth/dto/token.dto'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
 import { StudentsService } from '../students/students.service'
 import { AuthService } from '../../auth/auth.service'
+import { Group } from '../groups/entities/group.entity'
+import { ROLE } from '../../auth/roles/role.enum'
 
 export enum UserColumns {
   ID = 'id',
@@ -58,8 +60,8 @@ export class UsersService {
     const { sub, role } = tokenDto || {}
 
     const registerDto = {
-      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 7),
       ...createUserDto,
+      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 7),
     }
 
     if (
@@ -70,28 +72,32 @@ export class UsersService {
     ) {
       throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
     }
-    // if (studentData) {
-    //   const group = await Group.findOne(studentData.groupId)
-    //   if (!group) {
-    //     throw new BadRequestException(`This group with Id: ${studentData.groupId} doesn't exist.`)
-    //   }
-    //
-    //   if (
-    //     await this.studentsRepository
-    //       .createQueryBuilder()
-    //       .where(`Student.edeboId = LOWER(:edeboId)`, { edeboId: studentData.edeboId })
-    //       .getOne()
-    //   ) {
-    //     throw new BadRequestException(`This student edeboId: ${studentData.edeboId} already exist.`)
-    //   }
-    // }
-    const user = await this.usersRepository.create(registerDto).save({
-      data: {
-        id: sub,
-      },
-    })
-    if (studentData) {
-      const student = await this.studentsService.create({ ...studentData, userId: +user.id })
+
+    if (createUserDto.role === ROLE.STUDENT && studentData) {
+      const group = await Group.findOne(studentData.groupId)
+      if (!group) {
+        throw new BadRequestException(`This group with Id: ${studentData.groupId} doesn't exist.`)
+      }
+
+      if (await this.studentsService.findOneByEdeboId(studentData.edeboId)) {
+        throw new BadRequestException(`This student edeboId: ${studentData.edeboId} already exist.`)
+      }
+
+      if (createUserDto.role !== ROLE.STUDENT) {
+        throw new BadRequestException(
+          `This user can't be registered as student because has role: ${createUserDto.role}`,
+        )
+      }
+    }
+
+    const user = await this.usersRepository.create(registerDto).save()
+
+    if (!user) {
+      throw new BadRequestException(`Can't create user, some unexpected error`)
+    }
+
+    if (createUserDto.role === ROLE.STUDENT && studentData) {
+      await this.studentsService.create({ ...studentData, userId: +user.id })
     }
 
     this.authService.sendMailCreatePassword({
@@ -194,26 +200,12 @@ export class UsersService {
       .getOne()
   }
 
-  async findOneByLogin(login: string): Promise<User> {
-    return await this.usersRepository
-      .createQueryBuilder()
-      .where('LOWER(User.login) = LOWER(:login)', { login })
-      .getOne()
-  }
-
   async update(id: number, updateUserDto: UpdateUserDto, { sub, role }: TokenDto): Promise<UpdateResponseDto> {
     const userDto = {
       password: '',
       ...updateUserDto,
     }
 
-    // if (
-    //   userDto.role &&
-    //   (userDto.role === ROLE.ROOT || (role === ROLE.CURATOR && userDto.role !== ROLE.USER))
-    // ) {
-    //   throw new ForbiddenException("You don't have enough rights")
-    // }
-
     if (
       await this.usersRepository
         .createQueryBuilder()
@@ -234,7 +226,7 @@ export class UsersService {
       throw new BadRequestException(`This user email: ${userDto.email} already exist.`)
     }
 
-    const user = await this.usersRepository.findOne(id)
+    const user = await this.selectUsers().andWhere({ id }).getOne()
 
     if (!user) {
       throw new NotFoundException(`Not found user id: ${id}`)
@@ -242,28 +234,13 @@ export class UsersService {
 
     Object.assign(user, userDto)
 
-    // switch (role) {
-    //   case ROLE.USER:
-    //     if (userDto.status && userDto.status !== user.status) {
-    //       throw new ForbiddenException("You don't have enough rights")
-    //     }
-    //     break
-    //
-    //   case ROLE.MANAGER:
-    //     if (sub === `${id}`) {
-    //       if (userDto.status && userDto.status !== user.status) {
-    //         throw new ForbiddenException("You don't have enough rights")
-    //       }
-    //     } else {
-    //       if (user.role !== ROLE.USER) {
-    //         throw new ForbiddenException("You don't have enough rights")
-    //       }
-    //     }
-    //     break
-    // }
-
     if (userDto.password) {
       await user.hashPassword()
+    }
+
+    if (user.role === ROLE.STUDENT && userDto.studentData) {
+      const { id: studentId } = await this.studentsService.findOneByUserId(user.id)
+      await this.studentsService.update(studentId, userDto.studentData, { sub, role })
     }
 
     try {
@@ -338,6 +315,11 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException(`Not found user id: ${id}`)
+    }
+
+    if (user.role === ROLE.STUDENT) {
+      const { id: studentId } = await this.studentsService.findOneByUserId(user.id)
+      await this.studentsService.remove(studentId)
     }
 
     await this.usersRepository.remove(user, {

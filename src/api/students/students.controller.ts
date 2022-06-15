@@ -55,6 +55,7 @@ export class StudentsController {
   }
 
   @Get()
+  @MinRole(ROLE.TEACHER)
   @ApiPaginatedResponse(GetStudentResponseDto, {
     description: 'Find all students',
   })

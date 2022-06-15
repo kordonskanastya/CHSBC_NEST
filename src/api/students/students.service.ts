@@ -38,36 +38,8 @@ export class StudentsService {
 
   async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
     const { sub, role } = tokenDto || {}
-    const studentCheck = await User.findOne(createStudentDto.userId)
-
-    if (!studentCheck || studentCheck.role !== ROLE.STUDENT) {
-      throw new BadRequestException(`This student id: ${createStudentDto.userId} not found or not student.`)
-    }
-
     const user = await User.findOne(createStudentDto.userId)
-
     const group = await Group.findOne(createStudentDto.groupId)
-    if (!group) {
-      throw new BadRequestException(`This group with Id: ${createStudentDto.userId} doesn't exist.`)
-    }
-
-    if (
-      await this.studentsRepository
-        .createQueryBuilder()
-        .where(`Student.edeboId = LOWER(:edeboId)`, { edeboId: createStudentDto.edeboId })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This student edeboId: ${createStudentDto.edeboId} already exist.`)
-    }
-
-    if (
-      await this.studentsRepository
-        .createQueryBuilder()
-        .where(`Student.userId = :userId`, { userId: createStudentDto.userId })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This student user: ${createStudentDto.userId} already exist.`)
-    }
 
     const student = await this.studentsRepository
       .create({
@@ -149,6 +121,36 @@ export class StudentsService {
 
     if (!student) {
       throw new NotFoundException(`Not found user id: ${id}`)
+    }
+
+    return plainToClass(GetStudentResponseDto, student)
+  }
+
+  async findOneByEdeboId(edeboId: string): Promise<GetStudentResponseDto> {
+    const student = await this.studentsRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .where({ edeboId })
+      .getOne()
+
+    if (student) {
+      throw new NotFoundException(`Student with this edeboid: ${edeboId}, already exist`)
+    }
+
+    return plainToClass(GetStudentResponseDto, student)
+  }
+
+  async findOneByUserId(userId: number): Promise<GetStudentResponseDto> {
+    const student = await this.studentsRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .where({ user: userId })
+      .getOne()
+
+    if (!student) {
+      throw new NotFoundException(`Student with this userId: ${userId}, doesn't exist`)
     }
 
     return plainToClass(GetStudentResponseDto, student)

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { GroupsColumns, GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { Entities } from '../common/enums'
@@ -92,6 +92,12 @@ export class GroupsController {
     return this.groupsService.findOne(+id)
   }
 
+  @Get(':id([0-9]+)/quantity-students')
+  @MinRole(ROLE.ADMIN)
+  @ApiOkResponse({ description: 'Get quantity students in group', type: Number })
+  async getQuantityStudent(@Param('id') id: number) {
+    return await this.groupsService.countStudents(id)
+  }
   @Patch(':id([0-9]+)')
   @MinRole(ROLE.ADMIN)
   async update(@Param('id') id: string, @Body() updateGroupDto: UpdateExactFieldDto) {

@@ -148,4 +148,14 @@ export class GroupsService {
       success: true,
     }
   }
+
+  async countStudents(id) {
+    return await this.groupsRepository
+      .createQueryBuilder()
+      .addSelect((subQuery) => {
+        return subQuery.select('COUNT(st.id)', 'quantity').from('students', 'st').where('st.groupId = :id', { id })
+      }, 'quantity')
+      .getRawOne()
+      .then((gr) => gr.quantity)
+  }
 }

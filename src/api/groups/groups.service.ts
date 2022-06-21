@@ -158,4 +158,47 @@ export class GroupsService {
       .getRawOne()
       .then((gr) => gr.quantity)
   }
+
+  async dropdownName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', name: string) {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
+
+    const query = this.groupsRepository.createQueryBuilder('Group').leftJoinAndSelect('Group.curator', 'User')
+
+    if (name) {
+      query.andWhere(`LOWER(group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
+    }
+
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
+
+    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
+  }
+
+  async dropdownCurators(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', search: string) {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
+
+    const query = this.groupsRepository
+      .createQueryBuilder()
+      .select(`concat(u."firstName",'  ',u."lastName")`, 'curator')
+      .from('users', 'u')
+      .where("u.role like '%curator%'")
+    if (search) {
+      query
+        .where(
+          // eslint-disable-next-line max-len
+          `concat_ws(' ', LOWER(name), LOWER(u."firstName") , LOWER(u."lastName")  ,LOWER(concat(u."firstName",' ', u."lastName"))) LIKE LOWER(:search)`,
+          {
+            search: `%${search}%`,
+          },
+        )
+        .andWhere("u.role like '%curator%'")
+    }
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
+    return query.getRawMany()
+  }
 }

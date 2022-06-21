@@ -184,7 +184,7 @@ export class GroupsService {
 
     const query = this.groupsRepository
       .createQueryBuilder()
-      .select(`concat(u."firstName",'  ',u."lastName")`, 'curator')
+      .select(`u.id,concat(u."firstName",'  ',u."lastName")`, 'curator')
       .from('users', 'u')
       .where("u.role like '%curator%'")
     if (search) {

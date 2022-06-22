@@ -85,6 +85,64 @@ export class GroupsController {
     )
   }
 
+  @Get('dropdown/name')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(CreateGroupResponseDto, {
+    description: 'get dropdown list',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'name', required: false },
+  ])
+  async dropdownName(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('name') name: string,
+  ) {
+    return await this.groupsService.dropdownName(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      name,
+    )
+  }
+
+  @Get('dropdown/curators')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(CreateGroupResponseDto, {
+    description: 'get dropdown list',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'curatorName', required: false },
+  ])
+  async dropdownCurator(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('curatorName') curatorName: string,
+  ) {
+    return await this.groupsService.dropdownCurators(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      curatorName,
+    )
+  }
+
   @Get(':id([0-9]+)')
   @MinRole(ROLE.STUDENT)
   @ApiOkResponse({ description: 'Find group', type: CreateGroupResponseDto })

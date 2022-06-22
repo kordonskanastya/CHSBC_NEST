@@ -10,6 +10,7 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
 import { Group } from '../groups/entities/group.entity'
 import { User } from '../users/entities/user.entity'
+import { UsersService } from '../users/users.service'
 import { CreateStudentResponseDto } from './dto/create-student-response.dto'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
@@ -34,18 +35,35 @@ export class StudentsService {
   constructor(
     @Inject(STUDENT_REPOSITORY)
     private studentsRepository: Repository<Student>,
+    private usersService: UsersService,
   ) {}
 
-  async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
-    const { sub, role } = tokenDto || {}
-    const user = await User.findOne(createStudentDto.userId)
+  async create(
+    { user, ...createStudentDto }: CreateStudentDto,
+    tokenDto?: TokenDto,
+  ): Promise<CreateStudentResponseDto> {
+    const { sub, role } = tokenDto
+
     const group = await Group.findOne(createStudentDto.groupId)
+    if (!group) {
+      throw new BadRequestException(`This group with Id: ${createStudentDto.groupId} doesn't exist.`)
+    }
+
+    if (await this.findOneByEdeboId(createStudentDto.edeboId)) {
+      throw new BadRequestException(`This student edeboId: ${createStudentDto.edeboId} already exist.`)
+    }
+
+    if (user.role !== ROLE.STUDENT) {
+      throw new BadRequestException(`This user can't be registered as student because has role: ${user.role}`)
+    }
+
+    const { id: userId } = await this.usersService.create(user, tokenDto)
 
     const student = await this.studentsRepository
       .create({
         ...createStudentDto,
         group,
-        user,
+        user: await User.findOne(userId),
       })
       .save({
         data: {
@@ -101,7 +119,7 @@ export class StudentsService {
       query.andWhere(`LOWER(student.edeboId) LIKE LOWER('%${edeboId}%')`)
     }
 
-    if (isFullTime !== null) {
+    if (isFullTime !== undefined) {
       query.andWhere(`student.isFullTime = :isFullTime`, { isFullTime })
     }
 
@@ -111,7 +129,7 @@ export class StudentsService {
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetStudentResponseDto> {
-    const { sub, role } = token || {}
+    const { sub, role } = token
     const student = await this.studentsRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.user', 'User')
@@ -120,7 +138,7 @@ export class StudentsService {
       .getOne()
 
     if (!student) {
-      throw new NotFoundException(`Not found user id: ${id}`)
+      throw new NotFoundException(`Not found student id: ${id}`)
     }
 
     return plainToClass(GetStudentResponseDto, student)
@@ -156,28 +174,41 @@ export class StudentsService {
     return plainToClass(GetStudentResponseDto, student)
   }
 
-  async update(id: number, updateStudentDto: UpdateStudentDto, { sub, role }: TokenDto): Promise<UpdateResponseDto> {
-    if (
-      await this.studentsRepository
-        .createQueryBuilder()
-        .where(`LOWER(Student.edeboId) LIKE LOWER('%${updateStudentDto.edeboId}%')`)
-        .getOne()
-    ) {
+  async update(
+    id: number,
+    { user, ...updateStudentDto }: UpdateStudentDto,
+    { sub, role }: TokenDto,
+  ): Promise<UpdateResponseDto> {
+    if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
       throw new BadRequestException(`This student edeboId: ${updateStudentDto.edeboId} already exist.`)
     }
 
     const student = await this.studentsRepository.findOne(id)
-
     if (!student) {
       throw new NotFoundException(`Not found student id: ${id}`)
     }
 
+    const group = await Group.findOne(updateStudentDto.groupId)
+    if (!group) {
+      throw new BadRequestException(`This group with Id: ${updateStudentDto.groupId} doesn't exist.`)
+    }
+
+    const {
+      user: { id: userId },
+    } = await this.studentsRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .andWhere({ id })
+      .getOne()
+
     Object.assign(student, updateStudentDto)
 
     try {
+      await this.usersService.update(userId, user, { sub, role })
       await student.save({
         data: {
-          student,
+          id: sub,
         },
       })
     } catch (e) {
@@ -195,14 +226,27 @@ export class StudentsService {
       throw new NotFoundException(`Not found student id: ${id}`)
     }
 
-    await this.studentsRepository.remove(student, {
-      data: {
-        id: userId,
-      },
-    })
+    const {
+      user: { id: userIdDeleted },
+    } = await this.studentsRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .andWhere({ id })
+      .getOne()
 
-    return {
-      success: true,
+    try {
+      await this.studentsRepository.remove(student, {
+        data: {
+          id: userId,
+        },
+      })
+
+      await this.usersService.remove(userIdDeleted, userId)
+
+      return { success: true }
+    } catch (e) {
+      throw new NotAcceptableException("Can't delete student. " + e.message)
     }
   }
 }

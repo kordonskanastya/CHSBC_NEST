@@ -1,10 +1,9 @@
-import { IsEmail, IsEnum, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { IsEmail, IsEnum, IsString, MaxLength, MinLength } from 'class-validator'
+import { ApiProperty } from '@nestjs/swagger'
 import * as faker from 'faker'
 import { FAKE_EMAIL } from '../../../constants'
 import { ROLE } from '../../../auth/roles/role.enum'
 import { Transform, TransformFnParams, Type } from 'class-transformer'
-import { StudentDataDto } from './student-data.dto'
 
 export class CreateUserDto {
   @IsString()
@@ -36,11 +35,6 @@ export class CreateUserDto {
   email: string
 
   @IsEnum(ROLE)
-  @ApiProperty({ default: ROLE.STUDENT, enum: ROLE })
+  @ApiProperty({ default: ROLE.TEACHER, enum: ROLE })
   role: ROLE
-
-  @IsObject()
-  @ApiPropertyOptional({ type: StudentDataDto })
-  @Type(() => StudentDataDto)
-  studentData: StudentDataDto
 }

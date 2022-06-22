@@ -100,10 +100,6 @@ export class AuthService {
 
   async register(data: RegisterDto): Promise<LoginUserResultDto> {
     const user = await this.usersService.create(data)
-
-    // If STUDENT REGISTER to Student table
-    // const student = await this.studentsService.create({ ...data.studentData })
-
     return await this.login(user)
   }
 
@@ -150,7 +146,7 @@ export class AuthService {
       )
     }
 
-    const password = Buffer.from(Math.random().toString()).toString('base64').substring(0, 7)
+    const password = Buffer.from(Math.random().toString()).toString('base64').substring(0, 8)
 
     user.password = password
 

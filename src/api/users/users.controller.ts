@@ -107,7 +107,6 @@ export class UsersController {
       email,
       role,
       props.status,
-      req.user,
     )
   }
 

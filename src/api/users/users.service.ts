@@ -24,10 +24,7 @@ import { USER_REPOSITORY } from '../../constants'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
-import { StudentsService } from '../students/students.service'
 import { AuthService } from '../../auth/auth.service'
-import { Group } from '../groups/entities/group.entity'
-import { ROLE } from '../../auth/roles/role.enum'
 
 export enum UserColumns {
   ID = 'id',
@@ -53,15 +50,14 @@ export class UsersService {
     @Inject(forwardRef(() => AuthService))
     private usersRepository: Repository<User>,
     private authService: AuthService,
-    private studentsService: StudentsService,
   ) {}
 
-  async create({ studentData, ...createUserDto }: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
+  async create(createUserDto: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
     const { sub, role } = tokenDto || {}
 
     const registerDto = {
+      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 8),
       ...createUserDto,
-      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 7),
     }
 
     if (
@@ -73,31 +69,14 @@ export class UsersService {
       throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
     }
 
-    if (createUserDto.role === ROLE.STUDENT && studentData) {
-      const group = await Group.findOne(studentData.groupId)
-      if (!group) {
-        throw new BadRequestException(`This group with Id: ${studentData.groupId} doesn't exist.`)
-      }
-
-      if (await this.studentsService.findOneByEdeboId(studentData.edeboId)) {
-        throw new BadRequestException(`This student edeboId: ${studentData.edeboId} already exist.`)
-      }
-
-      if (createUserDto.role !== ROLE.STUDENT) {
-        throw new BadRequestException(
-          `This user can't be registered as student because has role: ${createUserDto.role}`,
-        )
-      }
-    }
-
-    const user = await this.usersRepository.create(registerDto).save()
+    const user = await this.usersRepository.create(registerDto).save({
+      data: {
+        id: sub,
+      },
+    })
 
     if (!user) {
       throw new BadRequestException(`Can't create user, some unexpected error`)
-    }
-
-    if (createUserDto.role === ROLE.STUDENT && studentData) {
-      await this.studentsService.create({ ...studentData, userId: +user.id })
     }
 
     this.authService.sendMailCreatePassword({
@@ -126,7 +105,6 @@ export class UsersService {
     lastName: string,
     email: string,
     role: string,
-    status: boolean,
     token: TokenDto,
   ) {
     orderByColumn = orderByColumn || UserColumns.ID
@@ -238,11 +216,6 @@ export class UsersService {
       await user.hashPassword()
     }
 
-    if (user.role === ROLE.STUDENT && userDto.studentData) {
-      const { id: studentId } = await this.studentsService.findOneByUserId(user.id)
-      await this.studentsService.update(studentId, userDto.studentData, { sub, role })
-    }
-
     try {
       await user.save({
         data: {
@@ -315,11 +288,6 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException(`Not found user id: ${id}`)
-    }
-
-    if (user.role === ROLE.STUDENT) {
-      const { id: studentId } = await this.studentsService.findOneByUserId(user.id)
-      await this.studentsService.remove(studentId)
     }
 
     await this.usersRepository.remove(user, {

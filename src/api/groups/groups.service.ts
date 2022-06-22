@@ -34,7 +34,8 @@ export class GroupsService {
     private groupsRepository: Repository<Group>,
   ) {}
 
-  async create(createGroupDto: CreateGroupDto) {
+  async create(createGroupDto: CreateGroupDto, tokenDto?: TokenDto) {
+    const { sub, role } = tokenDto || {}
     const curator = await User.findOne(createGroupDto.curatorId)
 
     const checkName = await this.groupsRepository
@@ -55,7 +56,7 @@ export class GroupsService {
         ...createGroupDto,
         curator,
       })
-      .save()
+      .save({ data: { id: sub } })
 
     return plainToClass(CreateGroupResponseDto, group, {
       excludeExtraneousValues: true,
@@ -117,7 +118,8 @@ export class GroupsService {
     return plainToClass(GetGroupResponseDto, group)
   }
 
-  async update(id: number, updateGroupDto: UpdateExactFieldDto) {
+  async update(id: number, updateGroupDto: UpdateExactFieldDto, tokenDto?: TokenDto) {
+    const { sub, role } = tokenDto || {}
     if (
       await this.groupsRepository
         .createQueryBuilder()
@@ -135,11 +137,7 @@ export class GroupsService {
 
     Object.assign(group, updateGroupDto)
     try {
-      await group.save({
-        data: {
-          group,
-        },
-      })
+      await group.save({ data: { id: sub } })
     } catch (e) {
       throw new NotAcceptableException("Can't save group. " + e.message)
     }

@@ -1,7 +1,7 @@
 import { IsNumber, IsString, MaxLength, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
 import { TransformFnParams } from 'class-transformer/types/interfaces'
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class UpdateExactFieldDto {
   @IsString()
@@ -22,10 +22,6 @@ export class UpdateExactFieldDto {
   @ApiProperty({ required: false, example: 523512 })
   orderNumber?: string
 
-  @IsString()
-  @Transform(({ value }: TransformFnParams) => value?.trim())
-  @MinLength(6)
-  @MaxLength(50)
-  @ApiProperty({ required: false, example: 523512 })
-  deletedOrderNumber?: string
+  @ApiPropertyOptional({ required: false, example: 123456 })
+  deletedOrderNumber?: string | null
 }

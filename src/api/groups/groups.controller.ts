@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards, Request } from '@nestjs/common'
 import { GroupsColumns, GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { Entities } from '../common/enums'
@@ -37,8 +37,8 @@ export class GroupsController {
   @MinRole(ROLE.ADMIN)
   @ApiCreatedResponse({ type: CreateGroupResponseDto })
   @ApiBadRequestResponse({ description: 'Bad request' })
-  async create(@Body() createGroupDto: CreateGroupDto): Promise<CreateGroupResponseDto> {
-    return await this.groupsService.create(createGroupDto)
+  async create(@Request() req, @Body() createGroupDto: CreateGroupDto): Promise<CreateGroupResponseDto> {
+    return await this.groupsService.create(createGroupDto, req.user)
   }
 
   @Get()
@@ -100,7 +100,7 @@ export class GroupsController {
   }
   @Patch(':id([0-9]+)')
   @MinRole(ROLE.ADMIN)
-  async update(@Param('id') id: string, @Body() updateGroupDto: UpdateExactFieldDto) {
-    return await this.groupsService.update(+id, updateGroupDto)
+  async update(@Request() req, @Param('id') id: string, @Body() updateGroupDto: UpdateExactFieldDto) {
+    return await this.groupsService.update(+id, updateGroupDto, req.user)
   }
 }

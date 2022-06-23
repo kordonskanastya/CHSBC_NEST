@@ -25,6 +25,9 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
 import { AuthService } from '../../auth/auth.service'
+import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
+import { ROLE } from '../../auth/roles/role.enum'
+import { identity } from 'rxjs'
 
 export enum UserColumns {
   ID = 'id',
@@ -51,6 +54,9 @@ export class UsersService {
     private usersRepository: Repository<User>,
     private authService: AuthService,
   ) {}
+
+  transformToFullName = (lastName: string, firstName: string, patronymic: string): string =>
+    lastName + ' ' + firstName + ' ' + patronymic
 
   async create(createUserDto: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
     const { sub, role } = tokenDto || {}
@@ -299,5 +305,69 @@ export class UsersService {
     return {
       success: true,
     }
+  }
+
+  async dropdownTeacher(): Promise<GetUserDropdownResponseDto[]> {
+    const teachers = await this.usersRepository
+      .createQueryBuilder()
+      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
+      .getMany()
+
+    const resultArr = teachers.map((teacher) => {
+      return {
+        id: teacher.id,
+        fullName: this.transformToFullName(teacher.lastName, teacher.firstName, teacher.patronymic),
+      }
+    })
+
+    return resultArr
+  }
+
+  async dropdownCurator(): Promise<GetUserDropdownResponseDto[]> {
+    const curators = await this.usersRepository
+      .createQueryBuilder()
+      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.CURATOR })
+      .getMany()
+
+    const resultArr = curators.map((curator) => {
+      return {
+        id: curator.id,
+        fullName: this.transformToFullName(curator.lastName, curator.firstName, curator.patronymic),
+      }
+    })
+
+    return resultArr
+  }
+
+  async dropdownAdmin(): Promise<GetUserDropdownResponseDto[]> {
+    const administrators = await this.usersRepository
+      .createQueryBuilder()
+      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.ADMIN })
+      .getMany()
+
+    const resultArr = administrators.map((admin) => {
+      return {
+        id: admin.id,
+        fullName: this.transformToFullName(admin.lastName, admin.firstName, admin.patronymic),
+      }
+    })
+
+    return resultArr
+  }
+
+  async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
+    const students = await this.usersRepository
+      .createQueryBuilder()
+      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.STUDENT })
+      .getMany()
+
+    const resultArr = students.map((student) => {
+      return {
+        id: student.id,
+        fullName: this.transformToFullName(student.lastName, student.firstName, student.patronymic),
+      }
+    })
+
+    return resultArr
   }
 }

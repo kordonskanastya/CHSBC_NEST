@@ -166,7 +166,7 @@ export class GroupsService {
     const query = this.groupsRepository.createQueryBuilder('Group').leftJoinAndSelect('Group.curator', 'User')
 
     if (name) {
-      query.andWhere(`LOWER(group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
+      query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
     }
 
     query.orderBy(`Group.${orderByColumn}`, orderBy)

@@ -13,6 +13,7 @@ import { TokenDto } from '../../auth/dto/token.dto'
 import { GetGroupResponseDto } from './dto/get-group-response.dto'
 import { User } from '../users/entities/user.entity'
 import { ROLE } from '../../auth/roles/role.enum'
+import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
 
 export enum GroupsColumns {
   ID = 'id',
@@ -182,23 +183,18 @@ export class GroupsService {
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
 
-    const query = this.groupsRepository
-      .createQueryBuilder()
-      .select(`u.id,concat(u."firstName",'  ',u."lastName")`, 'curator')
-      .from('users', 'u')
-      .where("u.role like '%curator%'")
+    const query = User.createQueryBuilder().where('LOWER(User.role) = LOWER(:role)', { role: ROLE.CURATOR })
+
     if (search) {
-      query
-        .where(
-          // eslint-disable-next-line max-len
-          `concat_ws(' ', LOWER(name), LOWER(u."firstName") , LOWER(u."lastName")  ,LOWER(concat(u."firstName",' ', u."lastName"))) LIKE LOWER(:search)`,
-          {
-            search: `%${search}%`,
-          },
-        )
-        .andWhere("u.role like '%curator%'")
+      query.andWhere(
+        // eslint-disable-next-line max-len
+        `concat_ws(' ', LOWER("firstName") , LOWER("lastName")  ,LOWER(concat("firstName",' ', "lastName"))) LIKE LOWER(:search)`,
+        {
+          search: `%${search}%`,
+        },
+      )
     }
-    query.orderBy(`Group.${orderByColumn}`, orderBy)
-    return query.getRawMany()
+    query.orderBy(`User.${orderByColumn}`, orderBy)
+    return await paginateAndPlainToClass(GetUserDropdownResponseDto, query, options)
   }
 }

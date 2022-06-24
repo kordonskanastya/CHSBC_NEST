@@ -79,7 +79,11 @@ export class GroupsService {
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
 
-    const query = this.groupsRepository.createQueryBuilder('Group').leftJoinAndSelect('Group.curator', 'User')
+    const query = this.groupsRepository
+      .createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.curator', 'User')
+      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
+
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
@@ -99,7 +103,11 @@ export class GroupsService {
       query.andWhere(`LOWER(Group.orderNumber) LIKE LOWER(:orderNumber)`, { orderNumber: `%${orderNumber}%` })
     }
     if (deletedOrderNumber) {
-      query.andWhere(`LOWER(Group.deletedOrderNumber) LIKE '%NULL%'`)
+      query
+        .andWhere("(Group.deletedOrderNumber  <> '') IS  TRUE")
+        .orWhere(`LOWER(Group.deletedOrderNumber) LIKE :deletedOrderNumber`, {
+          deletedOrderNumber: `%${deletedOrderNumber}%`,
+        })
     }
     query.orderBy(`Group.${orderByColumn}`, orderBy)
 

@@ -8,11 +8,11 @@ export class CreateGroupDto {
   @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @MinLength(1)
   @MaxLength(200)
-  @ApiProperty({ required: true, example: '1П-21' })
+  @ApiProperty({ example: '1П-21' })
   name: string
 
   @IsNumber()
-  @ApiProperty({ required: true, example: 234 })
+  @ApiProperty({ example: 3 })
   curatorId: number
 
   @IsString()

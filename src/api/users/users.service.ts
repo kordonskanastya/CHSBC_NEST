@@ -27,7 +27,6 @@ import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestam
 import { AuthService } from '../../auth/auth.service'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { ROLE } from '../../auth/roles/role.enum'
-import { identity } from 'rxjs'
 
 export enum UserColumns {
   ID = 'id',
@@ -316,7 +315,9 @@ export class UsersService {
     const resultArr = teachers.map((teacher) => {
       return {
         id: teacher.id,
-        fullName: this.transformToFullName(teacher.lastName, teacher.firstName, teacher.patronymic),
+        firstName: teacher.firstName,
+        lastName: teacher.lastName,
+        patronymic: teacher.patronymic,
       }
     })
 
@@ -332,7 +333,9 @@ export class UsersService {
     const resultArr = curators.map((curator) => {
       return {
         id: curator.id,
-        fullName: this.transformToFullName(curator.lastName, curator.firstName, curator.patronymic),
+        firstName: curator.firstName,
+        lastName: curator.lastName,
+        patronymic: curator.patronymic,
       }
     })
 
@@ -348,7 +351,9 @@ export class UsersService {
     const resultArr = administrators.map((admin) => {
       return {
         id: admin.id,
-        fullName: this.transformToFullName(admin.lastName, admin.firstName, admin.patronymic),
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        patronymic: admin.patronymic,
       }
     })
 
@@ -364,7 +369,9 @@ export class UsersService {
     const resultArr = students.map((student) => {
       return {
         id: student.id,
-        fullName: this.transformToFullName(student.lastName, student.firstName, student.patronymic),
+        firstName: student.firstName,
+        lastName: student.lastName,
+        patronymic: student.patronymic,
       }
     })
 

@@ -15,16 +15,16 @@ export class GetUserResponseDto {
   lastName: string
 
   @Expose()
+  @ApiProperty({ type: String })
+  patronymic: string
+
+  @Expose()
   @ApiPropertyOptional({ type: String })
   email: string
 
   @Expose()
   @ApiProperty({ type: String })
   role: string
-
-  @Expose()
-  @ApiProperty({ type: Boolean })
-  status: boolean
 
   @Expose()
   @ApiProperty({ type: Date })

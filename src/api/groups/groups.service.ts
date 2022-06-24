@@ -78,44 +78,46 @@ export class GroupsService {
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
 
-    const query = this.groupsRepository.createQueryBuilder('group').leftJoinAndSelect('group.curator', 'user')
+    const query = this.groupsRepository.createQueryBuilder('Group').leftJoinAndSelect('Group.curator', 'User')
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(name), LOWER(user.firstName) , LOWER(user.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorId","deletedOrderNumber") LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(name), LOWER(User.firstName) , LOWER(User.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorId","deletedOrderNumber") LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
       )
     }
     if (name) {
-      query.andWhere(`LOWER(group.name) LIKE LOWER('%${name}%')`)
+      query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
     }
     if (curatorId) {
-      query.where(`user.id=${curatorId}`)
+      query.where(`User.id=:curId`, { curId: curatorId })
     }
     if (orderNumber) {
-      query.andWhere(`LOWER(group.orderNumber) LIKE LOWER('%${orderNumber}%')`)
+      query.andWhere(`LOWER(Group.orderNumber) LIKE LOWER(:orderNumber)`, { orderNumber: `%${orderNumber}%` })
     }
     if (deletedOrderNumber) {
-      query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
+      query.andWhere(`LOWER(Group.deletedOrderNumber) LIKE '%NULL%'`)
     }
-    query.orderBy(`group.${orderByColumn}`, orderBy)
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetGroupResponseDto> {
     const group = await this.groupsRepository
-      .createQueryBuilder('group')
-      .leftJoinAndSelect('group.curator', 'user')
+      .createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.curator', 'User')
       .andWhere({ id })
       .getOne()
     if (!group) {
       throw new NotFoundException(`Not found group id: ${id}`)
     }
 
-    return plainToClass(GetGroupResponseDto, group)
+    return plainToClass(GetGroupResponseDto, group, {
+      excludeExtraneousValues: true,
+    })
   }
 
   async update(id: number, updateGroupDto: UpdateExactFieldDto, tokenDto?: TokenDto) {

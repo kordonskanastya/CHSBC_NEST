@@ -142,11 +142,27 @@ export class GroupsService {
     }
 
     const group = await this.groupsRepository.findOne(id)
+
     if (!group) {
       throw new NotFoundException(`Not found group id: ${id}`)
     }
 
+    if (updateGroupDto.curatorId) {
+      const curator = await User.findOne(updateGroupDto.curatorId)
+
+      if (!curator || curator.role !== ROLE.CURATOR) {
+        throw new BadRequestException(`This curator id: ${updateGroupDto.curatorId} not found.`)
+      }
+
+      if (!group) {
+        throw new NotFoundException(`Not found group id: ${id}`)
+      }
+
+      Object.assign(group, { ...updateGroupDto, curator })
+    }
+
     Object.assign(group, updateGroupDto)
+
     try {
       await group.save({ data: { id: sub } })
     } catch (e) {

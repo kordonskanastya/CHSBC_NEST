@@ -7,7 +7,6 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import { CreateUserDto } from './dto/create-user.dto'
-import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { RefreshTokenList, User } from './entities/user.entity'
 import { Not, Repository, UpdateResult } from 'typeorm'
@@ -25,6 +24,7 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
 import { AuthService } from '../../auth/auth.service'
+import { CreateUserResponseDto } from './dto/create-user-response.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -168,7 +168,7 @@ export class UsersService {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
 
-    return plainToClass(GetUserResponseDto, user)
+    return plainToClass(GetUserResponseDto, user, { excludeExtraneousValues: true })
   }
 
   async findOneByEmail(email: string): Promise<User> {

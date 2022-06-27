@@ -6,10 +6,12 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   BeforeInsert,
+  OneToMany,
 } from 'typeorm'
 import { ROLE } from '../../../auth/roles/role.enum'
 import { hashPassword } from '../users.service'
 import { Entities } from '../../common/enums'
+import { Course } from '../../courses/entities/course.entity'
 
 export interface RefreshToken {
   token: string
@@ -49,6 +51,9 @@ export class User extends BaseEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   refreshTokenList: RefreshTokenList
+
+  @OneToMany(() => Course, (course) => course.teacher)
+  courses: Course[]
 
   @BeforeInsert()
   async hashPassword() {

@@ -36,6 +36,7 @@ import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorato
 import { Entities } from '../common/enums'
 import { capitalize } from '../../utils/common'
 import { ApiPaginatedResponse } from '../../utils/paginate'
+import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -152,5 +153,45 @@ export class UsersController {
   @ApiOkResponse({ type: GetUserResponseDto, description: 'Get user profile' })
   async getProfile(@Request() req): Promise<GetUserResponseDto> {
     return await this.usersService.findOne(req.user.sub, req.user)
+  }
+
+  @Get('dropdown/teacher')
+  @MinRole(ROLE.TEACHER)
+  @ApiOkResponse({
+    description: 'Find teachers full names (ПІБ) for dropdown filter',
+    type: GetUserDropdownResponseDto,
+  })
+  async dropdownTeacher(): Promise<GetUserDropdownResponseDto[]> {
+    return await this.usersService.dropdownTeacher()
+  }
+
+  @Get('dropdown/curator')
+  @MinRole(ROLE.TEACHER)
+  @ApiOkResponse({
+    description: 'Find curators full names (ПІБ) for dropdown filter',
+    type: GetUserDropdownResponseDto,
+  })
+  async dropdownCurator(): Promise<GetUserDropdownResponseDto[]> {
+    return await this.usersService.dropdownCurator()
+  }
+
+  @Get('dropdown/admin')
+  @MinRole(ROLE.TEACHER)
+  @ApiOkResponse({
+    description: 'Find admins full names (ПІБ) for dropdown filter',
+    type: GetUserDropdownResponseDto,
+  })
+  async dropdownAdmin(): Promise<GetUserDropdownResponseDto[]> {
+    return await this.usersService.dropdownAdmin()
+  }
+
+  @Get('dropdown/student')
+  @MinRole(ROLE.TEACHER)
+  @ApiOkResponse({
+    description: 'Find students full names (ПІБ) for dropdown filter',
+    type: GetUserDropdownResponseDto,
+  })
+  async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
+    return await this.usersService.dropdownStudent()
   }
 }

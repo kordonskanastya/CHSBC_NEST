@@ -10,6 +10,8 @@ import {
   Query,
   BadRequestException,
   UseGuards,
+  ValidationPipe,
+  UsePipes,
 } from '@nestjs/common'
 import { StudentColumns, StudentsService } from './students.service'
 import { CreateStudentDto } from './dto/create-student.dto'
@@ -55,6 +57,7 @@ export class StudentsController {
   }
 
   @Get()
+  @UsePipes(new ValidationPipe({ transform: false }))
   @MinRole(ROLE.TEACHER)
   @ApiPaginatedResponse(GetStudentResponseDto, {
     description: 'Find all students',

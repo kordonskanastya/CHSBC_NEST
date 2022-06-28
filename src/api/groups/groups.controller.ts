@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards, Request } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { GroupsColumns, GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { Entities } from '../common/enums'
@@ -22,6 +22,7 @@ import { RolesGuard } from '../../auth/roles/roles.guard'
 import { ApiPaginatedResponse } from '../../utils/paginate'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
 import { GetGroupResponseDto } from './dto/get-group-response.dto'
+import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
 
 @Controller(Entities.GROUPS)
 @ApiTags(capitalize(Entities.GROUPS))
@@ -116,7 +117,7 @@ export class GroupsController {
 
   @Get('dropdown/curators')
   @MinRole(ROLE.ADMIN)
-  @ApiPaginatedResponse(CreateGroupResponseDto, {
+  @ApiPaginatedResponse(GetUserDropdownResponseDto, {
     description: 'get dropdown list',
   })
   @ApiImplicitQueries([

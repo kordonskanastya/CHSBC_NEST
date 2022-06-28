@@ -97,7 +97,7 @@ export class GroupsService {
       query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
     }
     if (curatorId) {
-      query.where(`User.id=:curId`, { curId: curatorId })
+      query.andWhere(`User.id=:curId`, { curId: curatorId })
     }
     if (orderNumber) {
       query.andWhere(`LOWER(Group.orderNumber) LIKE LOWER(:orderNumber)`, { orderNumber: `%${orderNumber}%` })

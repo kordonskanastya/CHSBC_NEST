@@ -14,6 +14,8 @@ import { GetCourseDropdownResponseDto } from './dto/get-course-dropdown-response
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
+import { ROLE } from '../../auth/roles/role.enum'
+import { User } from '../users/entities/user.entity'
 
 export enum CourseColumns {
   ID = 'id',
@@ -35,9 +37,8 @@ export class CoursesService {
   constructor(
     @Inject(COURSE_REPOSITORY)
     private coursesRepository: Repository<Course>,
-    private usersService: UsersService,
   ) {}
-  async create(createCourseDto: CreateCourseDto, tokenDto?: TokenDto): Promise<CreateCourseResponseDto> {
+  async create(createCourseDto: CreateCourseDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
 
     if (
@@ -59,9 +60,12 @@ export class CoursesService {
       throw new BadRequestException(`This group with Id: ${createCourseDto.groups} doesn't exist.`)
     }
 
-    const teacher = await this.usersService.findOne(createCourseDto.teacher)
+    const teacher = await User.findOne(createCourseDto.teacher)
     if (!teacher) {
       throw new BadRequestException(`This teacher with Id: ${createCourseDto.teacher} doesn't exist.`)
+    }
+    if (teacher.role !== ROLE.TEACHER) {
+      throw new BadRequestException(`This teacher has role not teacher but: ${teacher.role}`)
     }
 
     const course = await this.coursesRepository
@@ -199,9 +203,12 @@ export class CoursesService {
     }
 
     if (updateCourseDto.teacher) {
-      const teacher = await this.usersService.findOne(updateCourseDto.teacher)
+      const teacher = await User.findOne(updateCourseDto.teacher)
       if (!teacher) {
         throw new BadRequestException(`This teacher with Id: ${updateCourseDto.teacher} doesn't exist.`)
+      }
+      if (teacher.role !== ROLE.TEACHER) {
+        throw new BadRequestException(`This teacher has role not teacher but: ${teacher.role}`)
       }
       Object.assign(course, { ...updateCourseDto, teacher })
     }

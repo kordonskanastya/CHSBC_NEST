@@ -10,6 +10,8 @@ import {
   Request,
   Query,
   BadRequestException,
+  ValidationPipe,
+  UsePipes,
 } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth, ApiUnauthorizedResponse, ApiForbiddenResponse, ApiOkResponse } from '@nestjs/swagger'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
@@ -40,11 +42,12 @@ export class CoursesController {
 
   @Post()
   @MinRole(ROLE.ADMIN)
-  async create(@Request() req, @Body() createCourseDto: CreateCourseDto): Promise<CreateCourseResponseDto> {
+  async create(@Request() req, @Body() createCourseDto: CreateCourseDto) {
     return await this.coursesService.create(createCourseDto, req.user)
   }
 
   @Get()
+  @UsePipes(new ValidationPipe({ transform: false }))
   @MinRole(ROLE.STUDENT)
   @ApiPaginatedResponse(GetCourseResponseDto, {
     description: 'Find all courses',

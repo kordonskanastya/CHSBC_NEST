@@ -7,7 +7,6 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import { CreateUserDto } from './dto/create-user.dto'
-import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { RefreshTokenList, User } from './entities/user.entity'
 import { Not, Repository, UpdateResult } from 'typeorm'
@@ -25,6 +24,7 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { checkColumnExist, enumToArray, enumToObject, getDatabaseCurrentTimestamp } from '../../utils/common'
 import { AuthService } from '../../auth/auth.service'
+import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { ROLE } from '../../auth/roles/role.enum'
 
@@ -110,7 +110,6 @@ export class UsersService {
     lastName: string,
     email: string,
     role: string,
-    token: TokenDto,
   ) {
     orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'
@@ -173,7 +172,7 @@ export class UsersService {
       throw new NotFoundException(`Not found user id: ${id}`)
     }
 
-    return plainToClass(GetUserResponseDto, user)
+    return plainToClass(GetUserResponseDto, user, { excludeExtraneousValues: true })
   }
 
   async findOneByEmail(email: string): Promise<User> {
@@ -187,16 +186,6 @@ export class UsersService {
     const userDto = {
       password: '',
       ...updateUserDto,
-    }
-
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
-        .andWhere({ id: Not(id) })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
     if (

@@ -141,7 +141,7 @@ export class StudentsService {
       throw new NotFoundException(`Not found student id: ${id}`)
     }
 
-    return plainToClass(GetStudentResponseDto, student)
+    return plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
   }
 
   async findOneByEdeboId(edeboId: string): Promise<GetStudentResponseDto> {
@@ -156,7 +156,9 @@ export class StudentsService {
       throw new NotFoundException(`Student with this edeboid: ${edeboId}, already exist`)
     }
 
-    return plainToClass(GetStudentResponseDto, student)
+    return plainToClass(GetStudentResponseDto, student, {
+      excludeExtraneousValues: true,
+    })
   }
 
   async findOneByUserId(userId: number): Promise<GetStudentResponseDto> {
@@ -171,7 +173,9 @@ export class StudentsService {
       throw new NotFoundException(`Student with this userId: ${userId}, doesn't exist`)
     }
 
-    return plainToClass(GetStudentResponseDto, student)
+    return plainToClass(GetStudentResponseDto, student, {
+      excludeExtraneousValues: true,
+    })
   }
 
   async update(
@@ -183,10 +187,15 @@ export class StudentsService {
       throw new BadRequestException(`This student edeboId: ${updateStudentDto.edeboId} already exist.`)
     }
 
+    if (user && user.role && user.role !== ROLE.STUDENT) {
+      throw new BadRequestException(`This student can't be updated because you update the role: ${user.role}`)
+    }
+
     const student = await this.studentsRepository.findOne(id)
     if (!student) {
       throw new NotFoundException(`Not found student id: ${id}`)
     }
+    Object.assign(student, updateStudentDto)
 
     const group = await Group.findOne(updateStudentDto.groupId)
     if (!group) {
@@ -205,7 +214,9 @@ export class StudentsService {
     Object.assign(student, updateStudentDto)
 
     try {
-      await this.usersService.update(userId, user, { sub, role })
+      if (user) {
+        await this.usersService.update(userId, user, { sub, role })
+      }
       await student.save({
         data: {
           id: sub,

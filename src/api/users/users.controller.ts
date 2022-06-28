@@ -85,8 +85,6 @@ export class UsersController {
     @Query('lastName') lastName: string,
     @Query('email') email: string,
     @Query('role') role: string,
-    @Query() props,
-    @Request() req,
   ) {
     if (limit <= 0) {
       throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
@@ -107,7 +105,6 @@ export class UsersController {
       lastName,
       email,
       role,
-      props.status,
     )
   }
 

@@ -199,16 +199,6 @@ export class UsersService {
       throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
     }
 
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: updateUserDto.email })
-        .andWhere({ id: Not(id) })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
-    }
-
     const user = await this.selectUsers().andWhere({ id }).getOne()
 
     if (!user) {

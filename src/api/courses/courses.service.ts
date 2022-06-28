@@ -38,7 +38,7 @@ export class CoursesService {
     private usersService: UsersService,
   ) {}
   async create(createCourseDto: CreateCourseDto, tokenDto?: TokenDto): Promise<CreateCourseResponseDto> {
-    const { sub, role } = tokenDto || {}
+    const { sub } = tokenDto || {}
 
     if (
       await this.coursesRepository
@@ -64,7 +64,9 @@ export class CoursesService {
       throw new BadRequestException(`This teacher with Id: ${createCourseDto.teacher} doesn't exist.`)
     }
 
-    const course = await this.coursesRepository.create({ ...createCourseDto, teacher, groups }).save()
+    const course = await this.coursesRepository
+      .create({ ...createCourseDto, teacher, groups })
+      .save({ data: { id: sub } })
 
     if (!course) {
       throw new BadRequestException(`Can't create course, some unexpected error`)
@@ -164,7 +166,7 @@ export class CoursesService {
   }
 
   async update(id: number, updateCourseDto: UpdateCourseDto, tokenDto?: TokenDto) {
-    const { sub, role } = tokenDto || {}
+    const { sub } = tokenDto || {}
 
     if (
       await this.coursesRepository
@@ -216,7 +218,7 @@ export class CoursesService {
   }
 
   async remove(id: number, tokenDto?: TokenDto) {
-    const { sub, role } = tokenDto || {}
+    const { sub } = tokenDto || {}
 
     const course = await this.coursesRepository.findOne(id)
     if (!course) {

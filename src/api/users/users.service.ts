@@ -110,7 +110,6 @@ export class UsersService {
     lastName: string,
     email: string,
     role: string,
-    token: TokenDto,
   ) {
     orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'

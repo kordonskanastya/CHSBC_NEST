@@ -1,4 +1,4 @@
-import { IsNumber, IsString, MaxLength, MinLength } from 'class-validator'
+import { IsNumber, IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
 import { TransformFnParams } from 'class-transformer/types/interfaces'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
@@ -22,6 +22,11 @@ export class CreateGroupDto {
   @ApiProperty({ required: true, example: 123456 })
   orderNumber: string
 
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: TransformFnParams) => value.toString().trim())
+  @MinLength(6)
+  @MaxLength(50)
   @ApiPropertyOptional({ required: false, example: 123456 })
   deletedOrderNumber?: string | null
 }

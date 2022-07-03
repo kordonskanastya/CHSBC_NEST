@@ -119,6 +119,7 @@ export class GroupsService {
     const group = await this.groupsRepository
       .createQueryBuilder('Group')
       .leftJoinAndSelect('Group.curator', 'User')
+      .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
       .andWhere({ id })
       .getOne()
     if (!group) {

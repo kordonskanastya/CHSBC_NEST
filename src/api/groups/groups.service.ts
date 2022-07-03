@@ -84,7 +84,6 @@ export class GroupsService {
       .leftJoinAndSelect('Group.curator', 'User')
       .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
       .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
-    console.log(await query.getMany())
     if (search) {
       query.where(
         // eslint-disable-next-line max-len

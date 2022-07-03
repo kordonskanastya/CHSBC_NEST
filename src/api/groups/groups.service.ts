@@ -82,8 +82,9 @@ export class GroupsService {
     const query = this.groupsRepository
       .createQueryBuilder('Group')
       .leftJoinAndSelect('Group.curator', 'User')
+      .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
       .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
-
+    console.log(await query.getMany())
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
@@ -172,16 +173,6 @@ export class GroupsService {
     return {
       success: true,
     }
-  }
-
-  async countStudents(id) {
-    return await this.groupsRepository
-      .createQueryBuilder()
-      .addSelect((subQuery) => {
-        return subQuery.select('COUNT(st.id)', 'quantity').from('students', 'st').where('st.groupId = :id', { id })
-      }, 'quantity')
-      .getRawOne()
-      .then((gr) => gr.quantity)
   }
 
   async dropdownName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', name: string) {

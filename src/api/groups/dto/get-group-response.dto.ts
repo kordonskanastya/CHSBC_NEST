@@ -19,4 +19,8 @@ export class GetGroupResponseDto {
   @Expose()
   @ApiProperty({ type: String })
   orderNumber: string
+
+  @Expose()
+  @ApiProperty({ type: Number })
+  students: number
 }

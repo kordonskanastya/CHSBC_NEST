@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { GradeColumns, GradesService } from './grades.service'
 import { CreateGradeDto } from './dto/create-grade.dto'
 import { UpdateGradeDto } from './dto/update-grade.dto'
@@ -21,6 +21,7 @@ import { ApiPaginatedResponse } from '../../utils/paginate'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
 import { PaginationTypeEnum } from 'nestjs-typeorm-paginate'
 import { GetGradeResponseDto } from './dto/get-grade-response.dto'
+import { CreateGroupResponseDto } from '../groups/dto/create-group-response.dto'
 
 @Controller(Entities.GRADES)
 @ApiTags(capitalize(Entities.GRADES))
@@ -81,20 +82,44 @@ export class GradesController {
     )
   }
 
-  @Get(':id')
-  @ApiImplicitQueries([{ name: 'id', required: false, description: 'Input student id' }])
-  async findOne(@Query('id') id: string) {
+  @Get('/student/:id([0-9]+)')
+  @MinRole(ROLE.STUDENT)
+  async findOne(@Param('id') id: string) {
     return await this.gradesService.findOne(+id)
   }
 
-  @Patch(':id')
-  @ApiImplicitQueries([{ name: 'id', required: false, description: 'Input student id' }])
-  async update(@Query('id') id: string, @Body() updateGradeDto: UpdateGradeDto) {
-    return await this.gradesService.update(+id, updateGradeDto)
+  @Patch('/student/:id([0-9]+)')
+  @MinRole(ROLE.TEACHER)
+  async update(@Request() req, @Param('id') id: string, @Body() updateGradeDto: UpdateGradeDto) {
+    return await this.gradesService.update(+id, updateGradeDto, req.user)
   }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return await this.gradesService.remove(+id)
+  @Get('dropdown/group-name')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(CreateGroupResponseDto, {
+    description: 'get dropdown list',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'groupName', required: false },
+  ])
+  async dropdownGroupName(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('groupName') groupName: string,
+  ) {
+    return await this.gradesService.dropdownGroup(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GRADES}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      groupName,
+    )
   }
 }

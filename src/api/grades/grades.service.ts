@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { CreateGradeDto } from './dto/create-grade.dto'
 import { UpdateGradeDto } from './dto/update-grade.dto'
 import { GRADE_REPOSITORY } from '../../constants'
@@ -75,7 +75,7 @@ export class GradesService {
       .createQueryBuilder('Grade')
       .leftJoinAndSelect('Grade.student', 'Student')
       .leftJoinAndSelect('Grade.course', 'Course')
-
+      .leftJoinAndSelect('Student.group', 'Group')
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
@@ -113,6 +113,7 @@ export class GradesService {
       .createQueryBuilder('Grade')
       .leftJoinAndSelect('Grade.student', 'Student')
       .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Student.group', 'Group')
       .andWhere('Student.id=:id', { id })
       .getMany()
     if (!grades) {
@@ -124,21 +125,42 @@ export class GradesService {
   }
 
   async update(id: number, updateGradeDto: UpdateGradeDto, tokenDto?: TokenDto) {
-    // const { sub, role } = tokenDto || {}
-    // const student = await this.gradeRepository
-    //   .createQueryBuilder('Grade')
-    //   .leftJoin('Grade.student', 'Student')
-    //   .leftJoinAndSelect('Grade.course', 'Course')
-    //   .andWhere('Student.id=:id', { id })
-    //   .getMany()
-    //
-    // if (!student) {
-    //   throw new BadRequestException(`This student id: ${id} not found.`)
-    // }
-    // console.log(updateGradeDto)
+    const { sub } = tokenDto || {}
+
+    const student = await Student.findOne(id)
+    const course = await Course.findOne(updateGradeDto.courseId)
+
+    if (!student) {
+      throw new BadRequestException(`This student id: ${id} not found.`)
+    }
+
+    if (!course) {
+      throw new BadRequestException(`This course id: ${updateGradeDto.courseId} not found.`)
+    }
+
+    const grade = await this.gradeRepository
+      .createQueryBuilder('Grade')
+      .where('Grade.studentId=:studentId', { studentId: id })
+      .andWhere('Grade.courseId=:courseId', { courseId: updateGradeDto.courseId })
+      .getOne()
+
+    Object.assign(grade, updateGradeDto)
+
+    try {
+      await grade.save({ data: { id: sub } })
+    } catch (e) {
+      throw new NotAcceptableException("Can't save grade. " + e.message)
+    }
+
+    return {
+      success: true,
+    }
   }
 
-  async remove(id: number) {
-    return await `This action removes a #${id} grade`
+  async dropdownGroup(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', groupName: string) {
+    const orderByColumn = GradeColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(GRADE_COLUMN_LIST, orderByColumn)
   }
 }

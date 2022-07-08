@@ -27,6 +27,10 @@ import { AuthService } from '../../auth/auth.service'
 import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { ROLE } from '../../auth/roles/role.enum'
+import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
+import { GroupsColumns } from '../groups/groups.service'
+import { Group } from '../groups/entities/group.entity'
+import { CreateGroupResponseDto } from '../groups/dto/create-group-response.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -313,13 +317,30 @@ export class UsersService {
     return resultArr
   }
 
-  async dropdownCurator(): Promise<GetUserDropdownResponseDto[]> {
-    const curators = await this.usersRepository
+  async dropdownCurator(
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    search: string,
+  ): Promise<GetUserDropdownResponseDto[]> {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    const curators = this.usersRepository
       .createQueryBuilder()
       .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.CURATOR })
-      .getMany()
 
-    const resultArr = curators.map((curator) => {
+    if (search) {
+      curators.andWhere(
+        // eslint-disable-next-line max-len
+        `concat_ws(' ', LOWER("firstName") , LOWER("lastName") , LOWER("patronymic")  ,LOWER(concat("firstName",' ', "lastName",' ',"patronymic"))) LIKE LOWER(:search)`,
+        {
+          search: `%${search}%`,
+        },
+      )
+    }
+    curators.orderBy(`User.${orderByColumn}`, orderBy)
+
+    return (await curators.getMany()).map((curator) => {
       return {
         id: curator.id,
         firstName: curator.firstName,
@@ -327,8 +348,6 @@ export class UsersService {
         patronymic: curator.patronymic,
       }
     })
-
-    return resultArr
   }
 
   async dropdownAdmin(): Promise<GetUserDropdownResponseDto[]> {
@@ -365,5 +384,39 @@ export class UsersService {
     })
 
     return resultArr
+  }
+
+  async getGroupsByCurator(options: IPaginationOptions, orderBy: 'ASC' | 'DESC') {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    const query = this.usersRepository
+      .createQueryBuilder('User')
+      .leftJoinAndSelect('User.groups', 'Group')
+      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
+      .andWhere('User.role=:role', { role: ROLE.CURATOR })
+
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
+
+    return await paginateAndPlainToClass(GetGroupsByCuratorDto, query, options)
+  }
+
+  async dropdownGroupName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', groupName: string) {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    const query = Group.createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.curator', 'User')
+      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
+
+    if (groupName) {
+      query
+        .andWhere("(Group.deletedOrderNumber  <> '') IS  TRUE")
+        .orWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${groupName}%` })
+    }
+
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
+
+    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
 }

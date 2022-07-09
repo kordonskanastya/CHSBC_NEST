@@ -1,17 +1,17 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Request,
-  Query,
   BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common'
-import { UserColumns, USER_COLUMN_LIST, UsersService } from './users.service'
+import { USER_COLUMN_LIST, UserColumns, UsersService } from './users.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import {
@@ -37,6 +37,7 @@ import { Entities } from '../common/enums'
 import { capitalize } from '../../utils/common'
 import { ApiPaginatedResponse } from '../../utils/paginate'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
+import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -168,8 +169,28 @@ export class UsersController {
     description: 'Find curators full names (ПІБ) for dropdown filter',
     type: GetUserDropdownResponseDto,
   })
-  async dropdownCurator(): Promise<GetUserDropdownResponseDto[]> {
-    return await this.usersService.dropdownCurator()
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'curatorName', required: false },
+  ])
+  async dropdownCurator(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('curatorName') curatorName: string,
+  ): Promise<GetUserDropdownResponseDto[]> {
+    return await this.usersService.dropdownCurator(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      curatorName,
+    )
   }
 
   @Get('dropdown/admin')
@@ -190,5 +211,60 @@ export class UsersController {
   })
   async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
     return await this.usersService.dropdownStudent()
+  }
+
+  @Get('/curator/groups')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetGroupResponseDto, {
+    description: 'Find all groups by curator',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+  ])
+  async findGroupByCurator(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+  ) {
+    return await this.usersService.getGroupsByCurator(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+    )
+  }
+
+  @Get('/curator/dropdown/groups')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetGroupResponseDto, {
+    description: 'Find all groups by curator',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'name', required: false, description: 'group name' },
+  ])
+  async curatorGroupNameDropdown(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('name') groupName: string,
+  ) {
+    return await this.usersService.dropdownGroupName(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      groupName,
+    )
   }
 }

@@ -31,6 +31,9 @@ import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
 import { GroupsColumns } from '../groups/groups.service'
 import { Group } from '../groups/entities/group.entity'
 import { CreateGroupResponseDto } from '../groups/dto/create-group-response.dto'
+import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
+import { CourseColumns } from '../courses/courses.service'
+import { GetTeacherCourseDropdownDto } from './dto/get-teacher-course-dropdown.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -299,13 +302,30 @@ export class UsersService {
     }
   }
 
-  async dropdownTeacher(): Promise<GetUserDropdownResponseDto[]> {
+  async dropdownTeacher(
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    search: string,
+  ): Promise<GetUserDropdownResponseDto[]> {
+    const orderByColumn = CourseColumns.ID
+    orderBy = orderBy || 'ASC'
+
     const teachers = await this.usersRepository
       .createQueryBuilder()
       .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
-      .getMany()
 
-    const resultArr = teachers.map((teacher) => {
+    if (search) {
+      teachers.andWhere(
+        // eslint-disable-next-line max-len
+        `concat_ws(' ', LOWER("firstName") , LOWER("lastName") , LOWER("patronymic")  ,LOWER(concat("firstName",' ', "lastName",' ',"patronymic"))) LIKE LOWER(:search)`,
+        {
+          search: `%${search}%`,
+        },
+      )
+    }
+    teachers.orderBy(`User.${orderByColumn}`, orderBy)
+
+    return (await teachers.getMany()).map((teacher) => {
       return {
         id: teacher.id,
         firstName: teacher.firstName,
@@ -313,8 +333,6 @@ export class UsersService {
         patronymic: teacher.patronymic,
       }
     })
-
-    return resultArr
   }
 
   async dropdownCurator(
@@ -415,8 +433,61 @@ export class UsersService {
         .orWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${groupName}%` })
     }
 
-    query.orderBy(`Group.${orderByColumn}`, orderBy)
+    query.orderBy(`User.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
+  }
+
+  async getCoursesByTeacher(options: IPaginationOptions, orderBy: 'ASC' | 'DESC') {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    const query = this.usersRepository
+      .createQueryBuilder('User')
+      .leftJoinAndSelect('User.courses', 'Course')
+      .leftJoinAndSelect('Course.groups', 'Group')
+      .andWhere('User.role=:role', { role: ROLE.TEACHER })
+
+    query.orderBy(`User.${orderByColumn}`, orderBy)
+    return await paginateAndPlainToClass(GetCoursesByTeacherDto, query, options)
+  }
+
+  async teacherDropdownCourseName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', courseName: string) {
+    const orderByColumn = CourseColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    const query = User.createQueryBuilder('User')
+      .leftJoinAndSelect('User.courses', 'Course')
+      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
+
+    if (courseName) {
+      query.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
+    }
+
+    query.orderBy(`User.${orderByColumn}`, orderBy)
+
+    return await paginateAndPlainToClass(GetTeacherCourseDropdownDto, query, options)
+  }
+
+  async teacherDropdownGroupName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', groupName: string) {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    const query = Group.createQueryBuilder('Group')
+      .leftJoin('Group.courses', 'Course')
+      .leftJoin('Course.teacher', 'User')
+      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
+    if (groupName) {
+      query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${groupName}%` })
+    }
+
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
+    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
+  }
+  async teacherDropdownCompulsory() {
+    return [
+      { id: 1, type: `Обов'язковий`, isCompulsory: true },
+      { id: 2, type: 'Вибірковий', isCompulsory: false },
+    ]
   }
 }

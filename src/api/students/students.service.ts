@@ -32,6 +32,7 @@ export const STUDENT_COLUMNS = enumToObject(StudentColumns)
 
 @Injectable()
 export class StudentsService {
+  User: any
   constructor(
     @Inject(STUDENT_REPOSITORY)
     private studentsRepository: Repository<Student>,
@@ -81,7 +82,11 @@ export class StudentsService {
     search: string,
     orderByColumn: StudentColumns,
     orderBy: 'ASC' | 'DESC',
-    group: string,
+    firstName: string,
+    lastName: string,
+    patronymic: string,
+    email: string,
+    group: number,
     orderNumber: string,
     edeboId: string,
     isFullTime: boolean,
@@ -96,6 +101,9 @@ export class StudentsService {
       .createQueryBuilder('student')
       .leftJoinAndSelect('student.user', 'user')
       .leftJoinAndSelect('student.group', 'group')
+      .where('user.role = :role', {
+        role: 'student',
+      })
 
     if (search) {
       query.andWhere(
@@ -107,8 +115,23 @@ export class StudentsService {
       )
     }
 
+    if (firstName) {
+      query.andWhere(`LOWER(user.firstName) LIKE LOWER('%${firstName}%')`)
+    }
+    if (lastName) {
+      query.andWhere(`LOWER(user.lastName) LIKE LOWER('%${lastName}%')`)
+    }
+    if (patronymic) {
+      query.andWhere(`LOWER(user.patronymic) LIKE LOWER('%${patronymic}%')`)
+    }
+    if (email) {
+      query.andWhere(`LOWER(user.email) LIKE LOWER('%${email}%')`)
+    }
+
     if (group) {
-      query.andWhere(`LOWER(student.group) LIKE LOWER('%${group}%')`)
+      query.andWhere('student.group = :group', {
+        group,
+      })
     }
 
     if (orderNumber) {

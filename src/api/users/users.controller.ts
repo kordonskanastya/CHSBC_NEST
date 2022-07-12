@@ -71,9 +71,9 @@ export class UsersController {
     { name: 'name', required: false },
     { name: 'firstName', required: false },
     { name: 'lastName', required: false },
+    { name: 'patronymic', required: false },
     { name: 'email', required: false },
     { name: 'role', required: false },
-    { name: 'status', required: false },
   ])
   async findAll(
     @Query('page') page = 1,
@@ -84,6 +84,7 @@ export class UsersController {
     @Query('name') name: string,
     @Query('firstName') firstName: string,
     @Query('lastName') lastName: string,
+    @Query('patronymic') patronymic: string,
     @Query('email') email: string,
     @Query('role') role: string,
   ) {
@@ -104,6 +105,7 @@ export class UsersController {
       name,
       firstName,
       lastName,
+      patronymic,
       email,
       role,
     )

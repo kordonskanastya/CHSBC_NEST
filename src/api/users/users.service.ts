@@ -112,6 +112,7 @@ export class UsersService {
     name: string,
     firstName: string,
     lastName: string,
+    patronymic: string,
     email: string,
     role: string,
   ) {
@@ -127,7 +128,7 @@ export class UsersService {
     if (search) {
       query.andWhere(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(User.firstName), LOWER(User.lastName), LOWER(User.firstName), LOWER(User.email)) LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(User.firstName), LOWER(User.lastName), LOWER(User.patronymic), LOWER(User.email)) LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
@@ -140,6 +141,10 @@ export class UsersService {
 
     if (lastName) {
       query.andWhere(`LOWER(User.lastName) LIKE LOWER('%${lastName}%')`)
+    }
+
+    if (patronymic) {
+      query.andWhere(`LOWER(User.patronymic) LIKE LOWER('%${patronymic}%')`)
     }
 
     if (name) {

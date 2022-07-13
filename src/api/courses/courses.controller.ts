@@ -1,19 +1,19 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Request,
-  Query,
   BadRequestException,
-  ValidationPipe,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
   UsePipes,
+  ValidationPipe,
 } from '@nestjs/common'
-import { ApiTags, ApiBearerAuth, ApiUnauthorizedResponse, ApiForbiddenResponse, ApiOkResponse } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
 import { PaginationTypeEnum } from 'nestjs-typeorm-paginate'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
@@ -25,7 +25,6 @@ import { ApiPaginatedResponse } from '../../utils/paginate'
 import { Entities } from '../common/enums'
 import { CourseColumns, CoursesService } from './courses.service'
 import { CreateCourseDto } from './dto/create-course.dto'
-import { GetCourseDropdownResponseDto } from './dto/get-course-dropdown-response.dto'
 import { GetCourseResponseDto } from './dto/get-course-response.dto'
 import { UpdateCourseDto } from './dto/update-course.dto'
 
@@ -125,7 +124,27 @@ export class CoursesController {
 
   @Get('course/dropdown')
   @ApiOkResponse({ type: GetCourseResponseDto, description: 'Get course dropdown' })
-  async getCoursesDropdown(): Promise<GetCourseDropdownResponseDto[]> {
-    return await this.coursesService.getCoursesDropdown()
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'courseName', required: false, description: 'course name' },
+  ])
+  async getCoursesDropdown(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('courseName') courseName: string,
+  ) {
+    return await this.coursesService.getCoursesDropdown(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.COURSES}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      courseName,
+    )
   }
 }

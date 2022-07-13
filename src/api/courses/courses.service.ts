@@ -5,7 +5,6 @@ import { TokenDto } from '../../auth/dto/token.dto'
 import { COURSE_REPOSITORY } from '../../constants'
 import { Group } from '../groups/entities/group.entity'
 import { CreateCourseResponseDto } from './dto/create-course-response.dto'
-import { UsersService } from '../users/users.service'
 import { CreateCourseDto } from './dto/create-course.dto'
 import { GetCourseResponseDto } from './dto/get-course-response.dto'
 import { UpdateCourseDto } from './dto/update-course.dto'
@@ -243,8 +242,17 @@ export class CoursesService {
     }
   }
 
-  async getCoursesDropdown(): Promise<GetCourseDropdownResponseDto[]> {
-    const courses = await this.coursesRepository.createQueryBuilder().getMany()
-    return plainToClass(GetCourseDropdownResponseDto, courses, { excludeExtraneousValues: true })
+  async getCoursesDropdown(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', courseName: string) {
+    const orderByColumn = CourseColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    const courses = await this.coursesRepository.createQueryBuilder('Course')
+
+    if (courseName) {
+      courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
+    }
+
+    courses.orderBy(`Course.${orderByColumn}`, orderBy)
+    return await paginateAndPlainToClass(GetCourseDropdownResponseDto, courses, options)
   }
 }

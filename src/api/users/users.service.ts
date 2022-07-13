@@ -482,6 +482,7 @@ export class UsersService {
       .leftJoin('Group.courses', 'Course')
       .leftJoin('Course.teacher', 'User')
       .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
+
     if (groupName) {
       query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${groupName}%` })
     }

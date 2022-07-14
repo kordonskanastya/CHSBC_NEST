@@ -174,7 +174,7 @@ export class UsersController {
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('teacherName') teacherName: string,
-  ): Promise<GetUserDropdownResponseDto[]> {
+  ) {
     return await this.usersService.dropdownTeacher(
       {
         page,

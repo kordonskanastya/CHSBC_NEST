@@ -307,11 +307,7 @@ export class UsersService {
     }
   }
 
-  async dropdownTeacher(
-    options: IPaginationOptions,
-    orderBy: 'ASC' | 'DESC',
-    search: string,
-  ): Promise<GetUserDropdownResponseDto[]> {
+  async dropdownTeacher(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', search: string) {
     const orderByColumn = CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
@@ -330,14 +326,7 @@ export class UsersService {
     }
     teachers.orderBy(`User.${orderByColumn}`, orderBy)
 
-    return (await teachers.getMany()).map((teacher) => {
-      return {
-        id: teacher.id,
-        firstName: teacher.firstName,
-        lastName: teacher.lastName,
-        patronymic: teacher.patronymic,
-      }
-    })
+    return await paginateAndPlainToClass(GetUserDropdownResponseDto, teachers, options)
   }
 
   async dropdownCurator(

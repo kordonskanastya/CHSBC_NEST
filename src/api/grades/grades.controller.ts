@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { GradeColumns, GradesService } from './grades.service'
 import { CreateGradeDto } from './dto/create-grade.dto'
 import { UpdateGradeDto } from './dto/update-grade.dto'
@@ -94,6 +94,12 @@ export class GradesController {
     return await this.gradesService.update(+id, updateGradeDto, req.user)
   }
 
+  @Delete(':id([0-9]+)')
+  @MinRole(ROLE.ADMIN)
+  async remove(@Request() req, @Param('id') id: string) {
+    return await this.gradesService.remove(+id, req.user)
+  }
+
   @Get('dropdown/group-name')
   @MinRole(ROLE.ADMIN)
   @ApiPaginatedResponse(CreateGroupResponseDto, {
@@ -115,7 +121,7 @@ export class GradesController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `/${Entities.GRADES}`,
+        route: `${Entities.GRADES}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       orderBy,

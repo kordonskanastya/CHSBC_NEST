@@ -13,6 +13,8 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetGradeResponseDto } from './dto/get-grade-response.dto'
+import { Group } from '../groups/entities/group.entity'
+import { GroupsColumns } from '../groups/groups.service'
 
 export enum GradeColumns {
   ID = 'Grade.id',
@@ -157,10 +159,33 @@ export class GradesService {
     }
   }
 
+  async remove(id: number, tokenDto?: TokenDto) {
+    const { sub } = tokenDto || {}
+    const grade = await this.gradeRepository.findOne(id)
+
+    if (!grade) {
+      throw new NotFoundException(`Not found grade id: ${id}`)
+    }
+
+    await this.gradeRepository.remove(grade, {
+      data: {
+        id: sub,
+      },
+    })
+
+    return {
+      success: true,
+    }
+  }
   async dropdownGroup(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', groupName: string) {
-    const orderByColumn = GradeColumns.ID
+    const orderByColumn = GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
-    checkColumnExist(GRADE_COLUMN_LIST, orderByColumn)
+    const query = Group.createQueryBuilder('Group').leftJoin('Group.courses', 'Course').groupBy('Group.id')
+    if (groupName) {
+      query.andWhere('LOWER(Group.name) LIKE LOWER(:name)', { name: `%${groupName}%` })
+    }
+    query.orderBy(`Group.${orderByColumn}`, orderBy).having('Count(Course.id)>0')
+    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
 }

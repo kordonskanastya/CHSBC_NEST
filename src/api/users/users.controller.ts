@@ -159,9 +159,8 @@ export class UsersController {
 
   @Get('dropdown/teacher')
   @MinRole(ROLE.TEACHER)
-  @ApiOkResponse({
+  @ApiPaginatedResponse(GetUserDropdownResponseDto, {
     description: 'Find teachers full names (ПІБ) for dropdown filter',
-    type: GetUserDropdownResponseDto,
   })
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },

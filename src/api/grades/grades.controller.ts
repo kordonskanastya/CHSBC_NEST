@@ -121,7 +121,7 @@ export class GradesController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `${Entities.GRADES}`,
+        route: `/${Entities.GRADES}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       orderBy,

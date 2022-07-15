@@ -46,7 +46,7 @@ export class CoursesService {
         .where(`LOWER(name) = LOWER(:name)`, { name: createCourseDto.name })
         .getOne()
     ) {
-      throw new BadRequestException(`This course name: ${createCourseDto.name} already exist.`)
+      throw new BadRequestException(`Предмет з таким ім'ям: ${createCourseDto.name} вже існує`)
     }
 
     const groupIds = Array.isArray(createCourseDto.groups) ? createCourseDto.groups : [createCourseDto.groups]
@@ -56,15 +56,15 @@ export class CoursesService {
       })
       .getMany()
     if (!groups || groups.length !== groupIds.length) {
-      throw new BadRequestException(`This group with Id: ${createCourseDto.groups} doesn't exist.`)
+      throw new BadRequestException(`Група з іd: ${createCourseDto.groups} не існує.`)
     }
 
     const teacher = await User.findOne(createCourseDto.teacher)
     if (!teacher) {
-      throw new BadRequestException(`This teacher with Id: ${createCourseDto.teacher} doesn't exist.`)
+      throw new BadRequestException(`Вчитель з іd: ${createCourseDto.teacher} не існує.`)
     }
     if (teacher.role !== ROLE.TEACHER) {
-      throw new BadRequestException(`This teacher has role not teacher but: ${teacher.role}`)
+      throw new BadRequestException(`Користувач має роль: ${teacher.role} не teacher`)
     }
 
     const course = await this.coursesRepository
@@ -72,7 +72,7 @@ export class CoursesService {
       .save({ data: { id: sub } })
 
     if (!course) {
-      throw new BadRequestException(`Can't create course, some unexpected error`)
+      throw new BadRequestException(`Не вишло створити предмет`)
     }
 
     return plainToClass(CreateCourseResponseDto, course, {
@@ -162,7 +162,7 @@ export class CoursesService {
       .getOne()
 
     if (!course) {
-      throw new NotFoundException(`Not found course id: ${id}`)
+      throw new NotFoundException(`Предмет з id: ${id} не існує`)
     }
 
     return plainToClass(GetCourseResponseDto, course, { excludeExtraneousValues: true })
@@ -177,12 +177,13 @@ export class CoursesService {
         .where(`LOWER(name) = LOWER(:name)`, { name: updateCourseDto.name })
         .getOne()
     ) {
-      throw new BadRequestException(`This course name: ${updateCourseDto.name} already exist.`)
+      throw new BadRequestException(`Предмет з назвлю : ${updateCourseDto.name} вже існує.`)
     }
 
     const course = await this.coursesRepository.findOne(id)
+
     if (!course) {
-      throw new NotFoundException(`Not found course id: ${id}`)
+      throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
     }
 
     Object.assign(course, updateCourseDto)
@@ -196,18 +197,19 @@ export class CoursesService {
         .getMany()
 
       if (!groups || groups.length !== groupIds.length) {
-        throw new BadRequestException(`This group with Id: ${updateCourseDto.groups} doesn't exist.`)
+        throw new BadRequestException(`Група з іd: ${updateCourseDto.groups} не існує .`)
       }
+
       Object.assign(course, { ...updateCourseDto, groups })
     }
 
     if (updateCourseDto.teacher) {
       const teacher = await User.findOne(updateCourseDto.teacher)
       if (!teacher) {
-        throw new BadRequestException(`This teacher with Id: ${updateCourseDto.teacher} doesn't exist.`)
+        throw new BadRequestException(`Вчитель з іd: ${updateCourseDto.teacher} не існує.`)
       }
       if (teacher.role !== ROLE.TEACHER) {
-        throw new BadRequestException(`This teacher has role not teacher but: ${teacher.role}`)
+        throw new BadRequestException(`Користувач має роль : ${teacher.role},не teacher`)
       }
       Object.assign(course, { ...updateCourseDto, teacher })
     }
@@ -215,7 +217,7 @@ export class CoursesService {
     try {
       await course.save({ data: { id: sub } })
     } catch (e) {
-      throw new NotAcceptableException("Can't save group. " + e.message)
+      throw new NotAcceptableException('Не вишло зберегти предмет.' + e.message)
     }
 
     return {
@@ -228,7 +230,7 @@ export class CoursesService {
 
     const course = await this.coursesRepository.findOne(id)
     if (!course) {
-      throw new NotFoundException(`Not found course id: ${id}`)
+      throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
     }
 
     await this.coursesRepository.remove(course, {

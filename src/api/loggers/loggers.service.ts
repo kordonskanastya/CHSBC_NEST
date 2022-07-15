@@ -78,7 +78,7 @@ export class LoggersService {
     const log = await this.selectLogs().andWhere({ id }).getOne()
 
     if (!log) {
-      throw new NotFoundException(`Not found log id: ${id}`)
+      throw new NotFoundException(`Лог з id: ${id} не знайдений`)
     }
 
     return plainToClass(GetLoggerOneResponseDto, log, {

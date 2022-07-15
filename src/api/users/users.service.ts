@@ -61,11 +61,8 @@ export class UsersService {
     private authService: AuthService,
   ) {}
 
-  transformToFullName = (lastName: string, firstName: string, patronymic: string): string =>
-    lastName + ' ' + firstName + ' ' + patronymic
-
   async create(createUserDto: CreateUserDto, tokenDto?: TokenDto): Promise<CreateUserResponseDto> {
-    const { sub, role } = tokenDto || {}
+    const { sub } = tokenDto || {}
 
     const registerDto = {
       password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 8),
@@ -88,7 +85,7 @@ export class UsersService {
     })
 
     if (!user) {
-      throw new BadRequestException(`Can't create user, some unexpected error`)
+      throw new BadRequestException(`Не вишло створити користувача`)
     }
 
     this.authService.sendMailCreatePassword({
@@ -181,7 +178,7 @@ export class UsersService {
     const user = await this.selectUsers().andWhere({ id }).getOne()
 
     if (!user) {
-      throw new NotFoundException(`Not found user id: ${id}`)
+      throw new NotFoundException(`Користувач з id: ${id} не існує `)
     }
 
     return plainToClass(GetUserResponseDto, user, { excludeExtraneousValues: true })
@@ -194,7 +191,7 @@ export class UsersService {
       .getOne()
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto, { sub, role }: TokenDto): Promise<UpdateResponseDto> {
+  async update(id: number, updateUserDto: UpdateUserDto, { sub }: TokenDto): Promise<UpdateResponseDto> {
     const userDto = {
       password: '',
       ...updateUserDto,
@@ -207,13 +204,13 @@ export class UsersService {
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${updateUserDto.email} already exist.`)
+      throw new BadRequestException(`Користвувач з такою електронною поштою: ${updateUserDto.email} вже існує.`)
     }
 
     const user = await this.selectUsers().andWhere({ id }).getOne()
 
     if (!user) {
-      throw new NotFoundException(`Not found user id: ${id}`)
+      throw new NotFoundException(`Користувач з id: ${id} не знайдений`)
     }
 
     Object.assign(user, updateUserDto)
@@ -229,7 +226,7 @@ export class UsersService {
         },
       })
     } catch (e) {
-      throw new NotAcceptableException("Can't save user. " + e.message)
+      throw new NotAcceptableException('Не вишло зберегти користувача. ' + e.message)
     }
 
     return {
@@ -293,7 +290,7 @@ export class UsersService {
     const user = await this.usersRepository.findOne(id)
 
     if (!user) {
-      throw new NotFoundException(`Not found user id: ${id}`)
+      throw new NotFoundException(`Користувач з id: ${id} не знайдений`)
     }
 
     await this.usersRepository.remove(user, {

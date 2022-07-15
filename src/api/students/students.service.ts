@@ -43,19 +43,19 @@ export class StudentsService {
     { user, ...createStudentDto }: CreateStudentDto,
     tokenDto?: TokenDto,
   ): Promise<CreateStudentResponseDto> {
-    const { sub, role } = tokenDto
+    const { sub } = tokenDto
 
     const group = await Group.findOne(createStudentDto.groupId)
     if (!group) {
-      throw new BadRequestException(`This group with Id: ${createStudentDto.groupId} doesn't exist.`)
+      throw new BadRequestException(`Групу з id: ${createStudentDto.groupId},не знайдено`)
     }
 
     if (await this.findOneByEdeboId(createStudentDto.edeboId)) {
-      throw new BadRequestException(`This student edeboId: ${createStudentDto.edeboId} already exist.`)
+      throw new BadRequestException(`Студент з таким ЕДЕБО : ${createStudentDto.edeboId} вже існує`)
     }
 
     if (user.role !== ROLE.STUDENT) {
-      throw new BadRequestException(`This user can't be registered as student because has role: ${user.role}`)
+      throw new BadRequestException(`Користувач не може бути зареєстрованим ,бо має роль: ${user.role}`)
     }
 
     const { id: userId } = await this.usersService.create(user, tokenDto)
@@ -161,7 +161,7 @@ export class StudentsService {
       .getOne()
 
     if (!student) {
-      throw new NotFoundException(`Not found student id: ${id}`)
+      throw new NotFoundException(`Студента з id: ${id} не знайдено`)
     }
 
     return plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
@@ -176,7 +176,7 @@ export class StudentsService {
       .getOne()
 
     if (student) {
-      throw new NotFoundException(`Student with this edeboid: ${edeboId}, already exist`)
+      throw new BadRequestException(`Студент з таким ЕДЕБО : ${edeboId} вже існує`)
     }
 
     return plainToClass(GetStudentResponseDto, student, {
@@ -193,7 +193,7 @@ export class StudentsService {
       .getOne()
 
     if (!student) {
-      throw new NotFoundException(`Student with this userId: ${userId}, doesn't exist`)
+      throw new NotFoundException(`Студента з id:${userId}, не існує`)
     }
 
     return plainToClass(GetStudentResponseDto, student, {
@@ -207,22 +207,22 @@ export class StudentsService {
     { sub, role }: TokenDto,
   ): Promise<UpdateResponseDto> {
     if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
-      throw new BadRequestException(`This student edeboId: ${updateStudentDto.edeboId} already exist.`)
+      throw new BadRequestException(`Студент з таким ЕДЕБО : ${updateStudentDto.edeboId} вже існує`)
     }
 
     if (user && user.role && user.role !== ROLE.STUDENT) {
-      throw new BadRequestException(`This student can't be updated because you update the role: ${user.role}`)
+      throw new BadRequestException(`Студент не може бути змінений , бо має роль :${user.role}`)
     }
 
     const student = await this.studentsRepository.findOne(id)
     if (!student) {
-      throw new NotFoundException(`Not found student id: ${id}`)
+      throw new NotFoundException(`Студент з id: ${id} не знайдений`)
     }
     Object.assign(student, updateStudentDto)
 
     const group = await Group.findOne(updateStudentDto.groupId)
     if (!group) {
-      throw new BadRequestException(`This group with Id: ${updateStudentDto.groupId} doesn't exist.`)
+      throw new BadRequestException(` Група з іd: ${updateStudentDto.groupId} не існує`)
     }
 
     const {
@@ -246,7 +246,7 @@ export class StudentsService {
         },
       })
     } catch (e) {
-      throw new NotAcceptableException("Can't save student. " + e.message)
+      throw new NotAcceptableException('Не вишло зберегти студента. ' + e.message)
     }
     return {
       success: true,
@@ -257,7 +257,7 @@ export class StudentsService {
     const student = await this.studentsRepository.findOne(id)
 
     if (!student) {
-      throw new NotFoundException(`Not found student id: ${id}`)
+      throw new NotFoundException(`Студент з id: ${id} не знайдений `)
     }
 
     const {
@@ -280,7 +280,7 @@ export class StudentsService {
 
       return { success: true }
     } catch (e) {
-      throw new NotAcceptableException("Can't delete student. " + e.message)
+      throw new NotAcceptableException('Не вишло видалити студента. ' + e.message)
     }
   }
 }

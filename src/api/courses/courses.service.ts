@@ -100,7 +100,7 @@ export class CoursesService {
     checkColumnExist(COURSE_COLUMN_LIST, orderByColumn)
 
     const query = this.coursesRepository
-      .createQueryBuilder()
+      .createQueryBuilder('Course')
       .leftJoinAndSelect('Course.groups', 'Group')
       .leftJoinAndSelect('Course.teacher', 'User')
 
@@ -129,7 +129,7 @@ export class CoursesService {
     }
 
     if (isActive) {
-      query.andWhere({ isActive })
+      query.andWhere('Course.isActive=:isActive', { isActive })
     }
 
     if (semester) {
@@ -145,7 +145,7 @@ export class CoursesService {
     }
 
     if (groups) {
-      query.andWhere({ groups })
+      query.andWhere('Group.id IN (:...groups)', { groups })
     }
 
     query.orderBy(`Course.${orderByColumn}`, orderBy)

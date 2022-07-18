@@ -37,8 +37,8 @@ export class GradesController {
   @MinRole(ROLE.TEACHER)
   @ApiCreatedResponse({ type: CreateGradeResponseDto })
   @ApiBadRequestResponse({ description: 'Bad request' })
-  async create(@Body() createGradeDto: CreateGradeDto): Promise<CreateGradeResponseDto> {
-    return await this.gradesService.create(createGradeDto)
+  async create(@Request() req, @Body() createGradeDto: CreateGradeDto): Promise<CreateGradeResponseDto> {
+    return await this.gradesService.create(createGradeDto, req.user)
   }
 
   @Get()

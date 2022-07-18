@@ -146,6 +146,10 @@ export class GradesService {
       .andWhere('Grade.courseId=:courseId', { courseId: updateGradeDto.courseId })
       .getOne()
 
+    if (!grade) {
+      throw new BadRequestException(`This grade  not found.`)
+    }
+
     Object.assign(grade, updateGradeDto)
 
     try {

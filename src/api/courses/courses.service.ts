@@ -145,9 +145,10 @@ export class CoursesService {
     }
 
     if (groups) {
-      query.andWhere('Group.id IN (:...groups)', { groups })
+      if (groups.length > 1) {
+        query.andWhere('Group.id IN (:...groups)', { groups })
+      } else query.andWhere('Group.id=:groupId', { groupId: groups })
     }
-
     query.orderBy(`Course.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetCourseResponseDto, query, options)

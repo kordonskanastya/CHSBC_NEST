@@ -37,6 +37,7 @@ export class CoursesService {
     @Inject(COURSE_REPOSITORY)
     private coursesRepository: Repository<Course>,
   ) {}
+
   async create(createCourseDto: CreateCourseDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
 
@@ -88,6 +89,7 @@ export class CoursesService {
     name: string,
     credits: number,
     lectureHours: number,
+    isExam: boolean,
     isActive: boolean,
     semester: number,
     isCompulsory: boolean,
@@ -117,40 +119,49 @@ export class CoursesService {
     }
 
     if (name) {
-      query.andWhere(`LOWER(Course.name) LIKE LOWER('%${name}%')`)
+      query.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${name}%` })
     }
 
     if (credits) {
-      query.andWhere({ credits })
+      query.andWhere('Course.credits=:credits', { credits })
     }
 
     if (lectureHours) {
-      query.andWhere({ lectureHours })
+      query.andWhere('Course.lectureHours=:lectureHours', { lectureHours })
     }
 
     if (isActive) {
       query.andWhere('Course.isActive=:isActive', { isActive })
+    } else {
+      query.andWhere('Course.isActive=:isActive', { isActive })
+    }
+
+    if (isExam) {
+      query.andWhere('Course.isExam=:isExam', { isExam })
     }
 
     if (semester) {
-      query.andWhere({ semester })
+      query.andWhere('Course.semester=:semester', { semester })
     }
 
     if (isCompulsory) {
-      query.andWhere({ isCompulsory })
+      query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
     }
 
     if (teacher) {
-      query.andWhere({ teacher })
+      query.andWhere('Course.teacherId=:teacher', { teacher })
     }
 
     if (groups) {
-      if (groups.length > 1) {
+      if (typeof groups === 'object') {
         query.andWhere('Group.id IN (:...groups)', { groups })
-      } else query.andWhere('Group.id=:groupId', { groupId: groups })
+      } else {
+        if (typeof groups === 'string') {
+          query.andWhere('Group.id=:groupId', { groupId: groups })
+        }
+      }
     }
     query.orderBy(`Course.${orderByColumn}`, orderBy)
-
     return await paginateAndPlainToClass(GetCourseResponseDto, query, options)
   }
 

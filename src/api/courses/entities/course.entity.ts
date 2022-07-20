@@ -1,4 +1,4 @@
-import { PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, BaseEntity, Entity, JoinTable } from 'typeorm'
+import { BaseEntity, Column, Entity, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { Entities } from '../../common/enums'
 import { Group } from '../../groups/entities/group.entity'
 import { User } from '../../users/entities/user.entity'
@@ -19,6 +19,9 @@ export class Course extends BaseEntity {
 
   @Column({ nullable: false })
   isActive: boolean
+
+  @Column({ nullable: false, default: false })
+  isExam: boolean
 
   @Column({ nullable: false })
   semester: number

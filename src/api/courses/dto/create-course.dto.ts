@@ -25,6 +25,10 @@ export class CreateCourseDto {
   @ApiProperty({ required: true, example: true })
   isActive: boolean
 
+  @IsBoolean()
+  @ApiProperty({ required: true, example: false })
+  isExam: boolean
+
   @IsEnum(SEMESTER)
   @ApiProperty({ required: true, example: SEMESTER.FIRST })
   semester: SEMESTER

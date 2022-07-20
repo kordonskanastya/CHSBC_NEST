@@ -21,7 +21,7 @@ export class GetCourseResponseDto {
   lectureHours: number
 
   @Expose()
-  @ApiProperty({ type: Number })
+  @ApiProperty({ type: Boolean })
   isActive: boolean
 
   @Expose()
@@ -29,8 +29,12 @@ export class GetCourseResponseDto {
   semester: number
 
   @Expose()
-  @ApiProperty({ type: Number })
+  @ApiProperty({ type: Boolean })
   isCompulsory: boolean
+
+  @Expose()
+  @ApiProperty({ type: Boolean })
+  isExam: boolean
 
   @Expose()
   @Type(() => GetUserResponseDto)

@@ -10,6 +10,8 @@ import {
   Query,
   BadRequestException,
   UseGuards,
+  ValidationPipe,
+  UsePipes,
 } from '@nestjs/common'
 import { StudentColumns, StudentsService } from './students.service'
 import { CreateStudentDto } from './dto/create-student.dto'
@@ -55,6 +57,8 @@ export class StudentsController {
   }
 
   @Get()
+  @UsePipes(new ValidationPipe({ transform: false }))
+  @MinRole(ROLE.TEACHER)
   @ApiPaginatedResponse(GetStudentResponseDto, {
     description: 'Find all students',
   })
@@ -64,6 +68,10 @@ export class StudentsController {
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: StudentColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'search', required: false },
+    { name: 'firstName', required: false },
+    { name: 'lastName', required: false },
+    { name: 'patronymic', required: false },
+    { name: 'email', required: false },
     { name: 'group', required: false },
     { name: 'orderNumber', required: false },
     { name: 'edeboId', required: false },
@@ -75,7 +83,11 @@ export class StudentsController {
     @Query('orderByColumn') orderByColumn: StudentColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('search') search: string,
-    @Query('group') group: string,
+    @Query('firstName') firstName: string,
+    @Query('lastName') lastName: string,
+    @Query('email') email: string,
+    @Query('patronymic') patronymic: string,
+    @Query('group') group: number,
     @Query('orderNumber') orderNumber: string,
     @Query('edeboId') edeboId: string,
     @Query('isFullTime') isFullTime: boolean,
@@ -95,6 +107,10 @@ export class StudentsController {
       search,
       orderByColumn,
       orderBy,
+      firstName,
+      lastName,
+      patronymic,
+      email,
       group,
       orderNumber,
       edeboId,

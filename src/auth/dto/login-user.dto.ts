@@ -13,8 +13,8 @@ export class LoginUserDto {
   email: string
 
   @IsString()
-  @MinLength(6, {
-    message: 'The string must be greater than 6 characters. No spaces are allowed at the beginning or end of a line.',
+  @MinLength(8, {
+    message: 'The string must be greater than 8 characters. No spaces are allowed at the beginning or end of a line.',
   })
   @ApiProperty({ required: true, example: 'admin@gmail.com' })
   password: string

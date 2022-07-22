@@ -1,8 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsBoolean, IsEmail, IsNumber, IsObject, IsOptional, IsString } from 'class-validator'
+import { IsOptional } from 'class-validator'
 import { Expose, Type } from 'class-transformer'
-import { Group } from '../../groups/entities/group.entity'
-import { User } from '../../users/entities/user.entity'
 import { GetUserResponseDto } from '../../users/dto/get-user-response.dto'
 import { GetGroupResponseDto } from '../../groups/dto/get-group-response.dto'
 
@@ -17,7 +15,7 @@ export class GetLoggerStudentDto {
   group: GetGroupResponseDto
 
   @Expose()
-  @ApiProperty({ type: GetGroupResponseDto })
+  @ApiProperty({ type: GetUserResponseDto })
   @Type(() => GetUserResponseDto)
   user: GetUserResponseDto
 

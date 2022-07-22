@@ -13,6 +13,7 @@ import { TokenDto } from '../../auth/dto/token.dto'
 import { GetGroupResponseDto } from './dto/get-group-response.dto'
 import { User } from '../users/entities/user.entity'
 import { ROLE } from '../../auth/roles/role.enum'
+import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
 
 export enum GroupsColumns {
   ID = 'id',
@@ -34,11 +35,21 @@ export class GroupsService {
     private groupsRepository: Repository<Group>,
   ) {}
 
-  async create(createGroupDto: CreateGroupDto) {
+  async create(createGroupDto: CreateGroupDto, tokenDto?: TokenDto) {
+    const { sub } = tokenDto || {}
     const curator = await User.findOne(createGroupDto.curatorId)
 
+    const checkName = await this.groupsRepository
+      .createQueryBuilder('group')
+      .andWhere(`LOWER(group.name) LIKE LOWER(:name)`, { name: `%${createGroupDto.name}%` })
+      .getOne()
+
+    if (checkName) {
+      throw new BadRequestException(`Група з назвою: ${createGroupDto.name} вже існує.`)
+    }
+
     if (!curator || curator.role !== ROLE.CURATOR) {
-      throw new BadRequestException(`This curator id: ${createGroupDto.curatorId} not found.`)
+      throw new BadRequestException(`Не знайдено куратора з id: ${createGroupDto.curatorId}`)
     }
 
     const group = await this.groupsRepository
@@ -46,7 +57,7 @@ export class GroupsService {
         ...createGroupDto,
         curator,
       })
-      .save()
+      .save({ data: { id: sub } })
 
     return plainToClass(CreateGroupResponseDto, group, {
       excludeExtraneousValues: true,
@@ -68,47 +79,60 @@ export class GroupsService {
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
 
-    const query = this.groupsRepository.createQueryBuilder('group').leftJoinAndSelect('group.curator', 'user')
+    const query = this.groupsRepository
+      .createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.curator', 'User')
+      .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
+      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER(name), LOWER(user.firstName) , LOWER(user.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorId","deletedOrderNumber") LIKE LOWER(:search)`,
+        `concat_ws(' ', LOWER(name), LOWER(User.firstName) , LOWER(User.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorId","deletedOrderNumber") LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
       )
     }
     if (name) {
-      query.andWhere(`LOWER(group.name) LIKE LOWER('%${name}%')`)
+      query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
     }
     if (curatorId) {
-      query.where(`user.id=${curatorId}`)
+      query.andWhere(`User.id=:curId`, { curId: curatorId })
     }
     if (orderNumber) {
-      query.andWhere(`LOWER(group.orderNumber) LIKE LOWER('%${orderNumber}%')`)
+      query.andWhere(`LOWER(Group.orderNumber) LIKE LOWER(:orderNumber)`, { orderNumber: `%${orderNumber}%` })
     }
     if (deletedOrderNumber) {
-      query.andWhere(`LOWER(group.deletedOrderNumber) LIKE '%NULL%'`)
+      query
+        .andWhere("(Group.deletedOrderNumber  <> '') IS  TRUE")
+        .orWhere(`LOWER(Group.deletedOrderNumber) LIKE :deletedOrderNumber`, {
+          deletedOrderNumber: `%${deletedOrderNumber}%`,
+        })
     }
-    query.orderBy(`group.${orderByColumn}`, orderBy)
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetGroupResponseDto> {
     const group = await this.groupsRepository
-      .createQueryBuilder('group')
-      .leftJoinAndSelect('group.curator', 'user')
+      .createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.curator', 'User')
+      .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
       .andWhere({ id })
       .getOne()
+
     if (!group) {
-      throw new NotFoundException(`Not found group id: ${id}`)
+      throw new NotFoundException(`Групу з id: ${id},не знайдено`)
     }
 
-    return plainToClass(GetGroupResponseDto, group)
+    return plainToClass(GetGroupResponseDto, group, {
+      excludeExtraneousValues: true,
+    })
   }
 
-  async update(id: number, updateGroupDto: UpdateExactFieldDto) {
+  async update(id: number, updateGroupDto: UpdateExactFieldDto, tokenDto?: TokenDto) {
+    const { sub } = tokenDto || {}
     if (
       await this.groupsRepository
         .createQueryBuilder()
@@ -116,27 +140,82 @@ export class GroupsService {
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This group name: ${updateGroupDto.name} already exist.`)
+      throw new BadRequestException(`Група з назвою: ${updateGroupDto.name} вже існує.`)
     }
 
     const group = await this.groupsRepository.findOne(id)
+
     if (!group) {
-      throw new NotFoundException(`Not found group id: ${id}`)
+      throw new NotFoundException(`Групу з id: ${id},не знайдено`)
+    }
+
+    if (updateGroupDto.curatorId) {
+      const curator = await User.findOne(updateGroupDto.curatorId)
+
+      if (!curator || curator.role !== ROLE.CURATOR) {
+        throw new BadRequestException(`Не знайдено куратора з id: ${updateGroupDto.curatorId}`)
+      }
+
+      if (!group) {
+        throw new NotFoundException(`Група з назвою: ${updateGroupDto.name} вже існує.`)
+      }
+
+      Object.assign(group, { ...updateGroupDto, curator })
     }
 
     Object.assign(group, updateGroupDto)
+
     try {
-      await group.save({
-        data: {
-          group,
-        },
-      })
+      await group.save({ data: { id: sub } })
     } catch (e) {
-      throw new NotAcceptableException("Can't save group. " + e.message)
+      throw new NotAcceptableException('Не вишло зберегти групу. ' + e.message)
     }
 
     return {
       success: true,
     }
+  }
+
+  async dropdownName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', name: string) {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
+
+    const query = this.groupsRepository
+      .createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.curator', 'User')
+      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
+
+    if (name) {
+      query
+        .andWhere("(Group.deletedOrderNumber  <> '') IS  TRUE")
+        .orWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
+    }
+
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
+
+    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
+  }
+
+  async dropdownCurators(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', search: string) {
+    const orderByColumn = GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
+
+    const query = User.createQueryBuilder().where('LOWER(User.role) = LOWER(:role)', { role: ROLE.CURATOR })
+
+    if (search) {
+      query.andWhere(
+        // eslint-disable-next-line max-len
+        `concat_ws(' ', LOWER("firstName") , LOWER("lastName")  ,LOWER(concat("firstName",' ', "lastName"))) LIKE LOWER(:search)`,
+        {
+          search: `%${search}%`,
+        },
+      )
+    }
+    query.orderBy(`User.${orderByColumn}`, orderBy)
+    return await paginateAndPlainToClass(GetUserDropdownResponseDto, query, options)
   }
 }

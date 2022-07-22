@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -11,6 +12,7 @@ import {
 import { Entities } from '../../common/enums'
 import { User } from '../../users/entities/user.entity'
 import { Student } from '../../students/entities/student.entity'
+import { Course } from '../../courses/entities/course.entity'
 
 @Entity({ name: Entities.GROUPS })
 export class Group extends BaseEntity {
@@ -35,6 +37,9 @@ export class Group extends BaseEntity {
   @OneToMany(() => Student, (student) => student.group)
   students: Student[]
 
-  @ManyToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User, (user) => user.groups)
   curator: User
+
+  @ManyToMany(() => Course, (course) => course.groups)
+  courses: Course[]
 }

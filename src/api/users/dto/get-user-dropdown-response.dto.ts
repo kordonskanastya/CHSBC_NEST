@@ -1,7 +1,7 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { ApiProperty } from '@nestjs/swagger'
 import { Expose } from 'class-transformer'
 
-export class GetUserResponseDto {
+export class GetUserDropdownResponseDto {
   @Expose()
   @ApiProperty({ type: Number })
   id: number
@@ -17,8 +17,4 @@ export class GetUserResponseDto {
   @Expose()
   @ApiProperty({ type: String })
   patronymic: string
-
-  @Expose()
-  @ApiPropertyOptional({ type: String })
-  email: string
 }

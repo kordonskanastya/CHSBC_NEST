@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { Transform, TransformFnParams } from 'class-transformer'
-import { IsBoolean, IsNumber, IsString, MaxLength, MinLength } from 'class-validator'
+import { IsBoolean, IsNumber, IsObject, IsString, MaxLength, MinLength } from 'class-validator'
+import { CreateUserDto } from '../../users/dto/create-user.dto'
 
 export class CreateStudentDto {
   @IsString()
@@ -14,9 +15,19 @@ export class CreateStudentDto {
   @ApiProperty({ required: true, example: 15, type: Number })
   groupId: number
 
-  @IsNumber()
-  @ApiProperty({ required: true, example: 10, type: Number })
-  userId: number
+  @IsObject()
+  @ApiProperty({
+    required: true,
+    example: {
+      firstName: 'Diego',
+      lastName: 'Carroll',
+      patronymic: 'Diegovych',
+      email: 'Delmer67@hotmail.com',
+      role: 'student',
+    },
+    type: Number,
+  })
+  user: CreateUserDto
 
   @IsString()
   @MinLength(6)

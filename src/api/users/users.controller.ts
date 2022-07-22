@@ -1,17 +1,17 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Request,
-  Query,
   BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common'
-import { UserColumns, USER_COLUMN_LIST, UsersService } from './users.service'
+import { USER_COLUMN_LIST, UserColumns, UsersService } from './users.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import {
@@ -36,6 +36,10 @@ import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorato
 import { Entities } from '../common/enums'
 import { capitalize } from '../../utils/common'
 import { ApiPaginatedResponse } from '../../utils/paginate'
+import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
+import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
+import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
+import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -56,6 +60,7 @@ export class UsersController {
   }
 
   @Get()
+  @MinRole(ROLE.TEACHER)
   @ApiPaginatedResponse(GetUserResponseDto, {
     description: 'Find all users',
   })
@@ -68,9 +73,9 @@ export class UsersController {
     { name: 'name', required: false },
     { name: 'firstName', required: false },
     { name: 'lastName', required: false },
+    { name: 'patronymic', required: false },
     { name: 'email', required: false },
     { name: 'role', required: false },
-    { name: 'status', required: false },
   ])
   async findAll(
     @Query('page') page = 1,
@@ -81,10 +86,9 @@ export class UsersController {
     @Query('name') name: string,
     @Query('firstName') firstName: string,
     @Query('lastName') lastName: string,
+    @Query('patronymic') patronymic: string,
     @Query('email') email: string,
     @Query('role') role: string,
-    @Query() props,
-    @Request() req,
   ) {
     if (limit <= 0) {
       throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
@@ -103,10 +107,9 @@ export class UsersController {
       name,
       firstName,
       lastName,
+      patronymic,
       email,
       role,
-      props.status,
-      req.user,
     )
   }
 
@@ -152,5 +155,229 @@ export class UsersController {
   @ApiOkResponse({ type: GetUserResponseDto, description: 'Get user profile' })
   async getProfile(@Request() req): Promise<GetUserResponseDto> {
     return await this.usersService.findOne(req.user.sub, req.user)
+  }
+
+  @Get('dropdown/teacher')
+  @MinRole(ROLE.TEACHER)
+  @ApiPaginatedResponse(GetUserDropdownResponseDto, {
+    description: 'Find teachers full names (ПІБ) for dropdown filter',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'teacherName', required: false },
+  ])
+  async dropdownTeacher(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('teacherName') teacherName: string,
+  ) {
+    return await this.usersService.dropdownTeacher(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      teacherName,
+    )
+  }
+
+  @Get('dropdown/curator')
+  @MinRole(ROLE.ADMIN)
+  @ApiOkResponse({
+    description: 'Find curators full names (ПІБ) for dropdown filter',
+    type: GetUserDropdownResponseDto,
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'curatorName', required: false },
+  ])
+  async dropdownCurator(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('curatorName') curatorName: string,
+  ): Promise<GetUserDropdownResponseDto[]> {
+    return await this.usersService.dropdownCurator(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      curatorName,
+    )
+  }
+
+  @Get('dropdown/admin')
+  @MinRole(ROLE.TEACHER)
+  @ApiOkResponse({
+    description: 'Find admins full names (ПІБ) for dropdown filter',
+    type: GetUserDropdownResponseDto,
+  })
+  async dropdownAdmin(): Promise<GetUserDropdownResponseDto[]> {
+    return await this.usersService.dropdownAdmin()
+  }
+
+  @Get('dropdown/student')
+  @MinRole(ROLE.TEACHER)
+  @ApiOkResponse({
+    description: 'Find students full names (ПІБ) for dropdown filter',
+    type: GetUserDropdownResponseDto,
+  })
+  async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
+    return await this.usersService.dropdownStudent()
+  }
+
+  @Get('/curator/groups')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetGroupResponseDto, {
+    description: 'Find all groups by curator',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+  ])
+  async findGroupByCurator(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+  ) {
+    return await this.usersService.getGroupsByCurator(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+    )
+  }
+
+  @Get('/curator/dropdown/groups')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetGroupResponseDto, {
+    description: 'Find all groups by curator',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'name', required: false, description: 'group name' },
+  ])
+  async curatorGroupNameDropdown(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('name') groupName: string,
+  ) {
+    return await this.usersService.dropdownGroupName(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      groupName,
+    )
+  }
+
+  @Get('/teacher/courses')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetCoursesByTeacherDto, {
+    description: 'Find all courses by teacher',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+  ])
+  async findCoursesByTeacher(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+  ) {
+    return await this.usersService.getCoursesByTeacher(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.USERS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+    )
+  }
+
+  @Get('/teacher/dropdown/courses')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetCourseResponseDto, {
+    description: 'Find all courses by teacher',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'courseName', required: false, description: 'course name' },
+  ])
+  async teacherCoursesNameDropdown(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('courseName') courseName: string,
+  ) {
+    return await this.usersService.teacherDropdownCourseName(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.COURSES}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      courseName,
+    )
+  }
+
+  @Get('/teacher/dropdown/groups')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetGroupResponseDto, {
+    description: 'Find all groups by teacher',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'name', required: false, description: 'group name' },
+  ])
+  async teacherGroupNameDropdown(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('name') groupName: string,
+  ) {
+    return await this.usersService.teacherDropdownGroupName(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      groupName,
+    )
+  }
+
+  @Get('/teacher/dropdown/compulsory')
+  @MinRole(ROLE.ADMIN)
+  async teacherCompulsoryDropdown() {
+    return await this.usersService.teacherDropdownCompulsory()
   }
 }

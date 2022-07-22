@@ -3,12 +3,14 @@ import { plainToClass } from 'class-transformer'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
+import { ROLE } from '../../auth/roles/role.enum'
 import { STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
 import { Group } from '../groups/entities/group.entity'
 import { User } from '../users/entities/user.entity'
+import { UsersService } from '../users/users.service'
 import { CreateStudentResponseDto } from './dto/create-student-response.dto'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
@@ -30,47 +32,39 @@ export const STUDENT_COLUMNS = enumToObject(StudentColumns)
 
 @Injectable()
 export class StudentsService {
+  User: any
   constructor(
     @Inject(STUDENT_REPOSITORY)
     private studentsRepository: Repository<Student>,
+    private usersService: UsersService,
   ) {}
 
-  async create(createStudentDto: CreateStudentDto, tokenDto?: TokenDto): Promise<CreateStudentResponseDto> {
-    const { sub, role } = tokenDto || {}
-
-    const user = await User.findOne(createStudentDto.userId)
-    if (!user) {
-      throw new BadRequestException(`This student with Id: ${createStudentDto.userId} doesn't exist.`)
-    }
+  async create(
+    { user, ...createStudentDto }: CreateStudentDto,
+    tokenDto?: TokenDto,
+  ): Promise<CreateStudentResponseDto> {
+    const { sub } = tokenDto
 
     const group = await Group.findOne(createStudentDto.groupId)
     if (!group) {
-      throw new BadRequestException(`This group with Id: ${createStudentDto.userId} doesn't exist.`)
+      throw new BadRequestException(`Групу з id: ${createStudentDto.groupId},не знайдено`)
     }
 
-    if (
-      await this.studentsRepository
-        .createQueryBuilder()
-        .where(`Student.edeboId = LOWER(:edeboId)`, { edeboId: createStudentDto.edeboId })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This student edeboId: ${createStudentDto.edeboId} already exist.`)
+    if (await this.findOneByEdeboId(createStudentDto.edeboId)) {
+      throw new BadRequestException(`Студент з таким ЕДЕБО : ${createStudentDto.edeboId} вже існує`)
     }
 
-    if (
-      await this.studentsRepository
-        .createQueryBuilder()
-        .where(`Student.userId = :userId`, { userId: createStudentDto.userId })
-        .getOne()
-    ) {
-      throw new BadRequestException(`This student user: ${createStudentDto.userId} already exist.`)
+    if (user.role !== ROLE.STUDENT) {
+      throw new BadRequestException(`Користувач не може бути зареєстрованим ,бо має роль: ${user.role}`)
     }
+
+    const { id: userId } = await this.usersService.create(user, tokenDto)
 
     const student = await this.studentsRepository
       .create({
         ...createStudentDto,
         group,
-        user,
+        user: await User.findOne(userId),
       })
       .save({
         data: {
@@ -88,7 +82,11 @@ export class StudentsService {
     search: string,
     orderByColumn: StudentColumns,
     orderBy: 'ASC' | 'DESC',
-    group: string,
+    firstName: string,
+    lastName: string,
+    patronymic: string,
+    email: string,
+    group: number,
     orderNumber: string,
     edeboId: string,
     isFullTime: boolean,
@@ -101,8 +99,11 @@ export class StudentsService {
 
     const query = this.studentsRepository
       .createQueryBuilder('student')
-      .leftJoinAndSelect('student.userId', 'user')
-      .leftJoinAndSelect('student.groupId', 'group')
+      .leftJoinAndSelect('student.user', 'user')
+      .leftJoinAndSelect('student.group', 'group')
+      .where('user.role = :role', {
+        role: 'student',
+      })
 
     if (search) {
       query.andWhere(
@@ -114,8 +115,23 @@ export class StudentsService {
       )
     }
 
+    if (firstName) {
+      query.andWhere(`LOWER(user.firstName) LIKE LOWER('%${firstName}%')`)
+    }
+    if (lastName) {
+      query.andWhere(`LOWER(user.lastName) LIKE LOWER('%${lastName}%')`)
+    }
+    if (patronymic) {
+      query.andWhere(`LOWER(user.patronymic) LIKE LOWER('%${patronymic}%')`)
+    }
+    if (email) {
+      query.andWhere(`LOWER(user.email) LIKE LOWER('%${email}%')`)
+    }
+
     if (group) {
-      query.andWhere(`LOWER(student.group) LIKE LOWER('%${group}%')`)
+      query.andWhere('student.group = :group', {
+        group,
+      })
     }
 
     if (orderNumber) {
@@ -126,7 +142,7 @@ export class StudentsService {
       query.andWhere(`LOWER(student.edeboId) LIKE LOWER('%${edeboId}%')`)
     }
 
-    if (isFullTime !== null) {
+    if (isFullTime !== undefined) {
       query.andWhere(`student.isFullTime = :isFullTime`, { isFullTime })
     }
 
@@ -136,7 +152,7 @@ export class StudentsService {
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetStudentResponseDto> {
-    const { sub, role } = token || {}
+    const { sub, role } = token
     const student = await this.studentsRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.user', 'User')
@@ -145,38 +161,92 @@ export class StudentsService {
       .getOne()
 
     if (!student) {
-      throw new NotFoundException(`Not found user id: ${id}`)
+      throw new NotFoundException(`Студента з id: ${id} не знайдено`)
     }
 
-    return plainToClass(GetStudentResponseDto, student)
+    return plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
   }
 
-  async update(id: number, updateStudentDto: UpdateStudentDto, { sub, role }: TokenDto): Promise<UpdateResponseDto> {
-    if (
-      await this.studentsRepository
-        .createQueryBuilder()
-        .where(`LOWER(Student.edeboId) LIKE LOWER('%${updateStudentDto.edeboId}%')`)
-        .getOne()
-    ) {
-      throw new BadRequestException(`This student edeboId: ${updateStudentDto.edeboId} already exist.`)
+  async findOneByEdeboId(edeboId: string): Promise<GetStudentResponseDto> {
+    const student = await this.studentsRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .where({ edeboId })
+      .getOne()
+
+    if (student) {
+      throw new BadRequestException(`Студент з таким ЕДЕБО : ${edeboId} вже існує`)
+    }
+
+    return plainToClass(GetStudentResponseDto, student, {
+      excludeExtraneousValues: true,
+    })
+  }
+
+  async findOneByUserId(userId: number): Promise<GetStudentResponseDto> {
+    const student = await this.studentsRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .where({ user: userId })
+      .getOne()
+
+    if (!student) {
+      throw new NotFoundException(`Студента з id:${userId}, не існує`)
+    }
+
+    return plainToClass(GetStudentResponseDto, student, {
+      excludeExtraneousValues: true,
+    })
+  }
+
+  async update(
+    id: number,
+    { user, ...updateStudentDto }: UpdateStudentDto,
+    { sub, role }: TokenDto,
+  ): Promise<UpdateResponseDto> {
+    if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
+      throw new BadRequestException(`Студент з таким ЕДЕБО : ${updateStudentDto.edeboId} вже існує`)
+    }
+
+    if (user && user.role && user.role !== ROLE.STUDENT) {
+      throw new BadRequestException(`Студент не може бути змінений , бо має роль :${user.role}`)
     }
 
     const student = await this.studentsRepository.findOne(id)
-
     if (!student) {
-      throw new NotFoundException(`Not found student id: ${id}`)
+      throw new NotFoundException(`Студент з id: ${id} не знайдений`)
     }
+    Object.assign(student, updateStudentDto)
+
+    const group = await Group.findOne(updateStudentDto.groupId)
+    if (!group) {
+      throw new BadRequestException(` Група з іd: ${updateStudentDto.groupId} не існує`)
+    }
+
+    const {
+      user: { id: userId },
+    } = await this.studentsRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .andWhere({ id })
+      .getOne()
 
     Object.assign(student, updateStudentDto)
 
     try {
+      if (user) {
+        await this.usersService.update(userId, user, { sub, role })
+      }
       await student.save({
         data: {
-          student,
+          id: sub,
         },
       })
     } catch (e) {
-      throw new NotAcceptableException("Can't save student. " + e.message)
+      throw new NotAcceptableException('Не вишло зберегти студента. ' + e.message)
     }
     return {
       success: true,
@@ -187,17 +257,30 @@ export class StudentsService {
     const student = await this.studentsRepository.findOne(id)
 
     if (!student) {
-      throw new NotFoundException(`Not found student id: ${id}`)
+      throw new NotFoundException(`Студент з id: ${id} не знайдений `)
     }
 
-    await this.studentsRepository.remove(student, {
-      data: {
-        id: userId,
-      },
-    })
+    const {
+      user: { id: userIdDeleted },
+    } = await this.studentsRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .andWhere({ id })
+      .getOne()
 
-    return {
-      success: true,
+    try {
+      await this.studentsRepository.remove(student, {
+        data: {
+          id: userId,
+        },
+      })
+
+      await this.usersService.remove(userIdDeleted, userId)
+
+      return { success: true }
+    } catch (e) {
+      throw new NotAcceptableException('Не вишло видалити студента. ' + e.message)
     }
   }
 }

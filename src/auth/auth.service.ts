@@ -23,6 +23,7 @@ import * as bcrypt from 'bcrypt'
 import { plainToClass } from 'class-transformer'
 import { TokenDto } from './dto/token.dto'
 import { SendMailDto } from './dto/send-mail.dto'
+import { AuthUserDto } from './dto/auth-user.dto'
 
 @Injectable()
 export class AuthService {
@@ -61,7 +62,7 @@ export class AuthService {
     )
   }
 
-  async login({ id, role }: CreateUserResponseDto) {
+  async login({ id, role }: AuthUserDto) {
     const refreshToken = this.createRefreshToken(id)
 
     await this.usersService.addRefreshToken(id, refreshToken)
@@ -92,7 +93,7 @@ export class AuthService {
     const user = await this.usersService.findOne(id)
 
     return this.login(
-      plainToClass(CreateUserResponseDto, user, {
+      plainToClass(AuthUserDto, user, {
         excludeExtraneousValues: true,
       }),
     )
@@ -100,10 +101,6 @@ export class AuthService {
 
   async register(data: RegisterDto): Promise<LoginUserResultDto> {
     const user = await this.usersService.create(data)
-
-    // If STUDENT REGISTER to Student table
-    // const student = await this.studentsService.create({ ...data.studentData })
-
     return await this.login(user)
   }
 
@@ -150,7 +147,7 @@ export class AuthService {
       )
     }
 
-    const password = Buffer.from(Math.random().toString()).toString('base64').substring(0, 7)
+    const password = Buffer.from(Math.random().toString()).toString('base64').substring(0, 8)
 
     user.password = password
 

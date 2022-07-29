@@ -183,15 +183,6 @@ export class CoursesService {
   async update(id: number, updateCourseDto: UpdateCourseDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
 
-    if (
-      await this.coursesRepository
-        .createQueryBuilder()
-        .where(`LOWER(name) = LOWER(:name)`, { name: updateCourseDto.name })
-        .getOne()
-    ) {
-      throw new BadRequestException(`Предмет з назвлю : ${updateCourseDto.name} вже існує.`)
-    }
-
     const course = await this.coursesRepository.findOne(id)
 
     if (!course) {

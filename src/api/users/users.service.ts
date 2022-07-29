@@ -395,7 +395,7 @@ export class UsersService {
     return resultArr
   }
 
-  async getGroupsByCurator(options: IPaginationOptions, orderBy: 'ASC' | 'DESC') {
+  async getGroupsByCurator(options: IPaginationOptions, groupName: string, curatorId: number, orderBy: 'ASC' | 'DESC') {
     const orderByColumn = GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
@@ -404,6 +404,14 @@ export class UsersService {
       .leftJoinAndSelect('User.groups', 'Group')
       .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
       .andWhere('User.role=:role', { role: ROLE.CURATOR })
+
+    if (groupName) {
+      query.andWhere('Group.name LIKE :name', { name: `%${groupName}%` })
+    }
+
+    if (curatorId) {
+      query.andWhere('Group.curatorId = :curatorId', { curatorId })
+    }
 
     query.orderBy(`Group.${orderByColumn}`, orderBy)
 

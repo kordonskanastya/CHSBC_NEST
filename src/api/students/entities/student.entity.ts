@@ -39,7 +39,7 @@ export class Student extends BaseEntity {
   @ManyToOne(() => Group, (group) => group.students)
   group: Group
 
-  @OneToOne(() => User, (user) => user.id)
+  @OneToOne(() => User, (user) => user.id, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn()
   user: User
 }

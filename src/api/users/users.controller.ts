@@ -242,11 +242,15 @@ export class UsersController {
     description: 'Find all groups by curator',
   })
   @ApiImplicitQueries([
+    { name: 'curatorId', required: false, description: 'curator`s id' },
+    { name: 'groupName', required: false, description: 'group`s name' },
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
   ])
   async findGroupByCurator(
+    @Query('curatorId') curatorId: number,
+    @Query('groupName') groupName: string,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
@@ -258,6 +262,8 @@ export class UsersController {
         route: `/${Entities.GROUPS}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      groupName,
+      curatorId,
       orderBy,
     )
   }

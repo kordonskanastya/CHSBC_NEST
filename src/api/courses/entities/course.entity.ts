@@ -29,7 +29,7 @@ export class Course extends BaseEntity {
   @Column({ nullable: false })
   isCompulsory: boolean
 
-  @ManyToOne(() => User, (user) => user.courses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.courses)
   teacher: User
 
   @ManyToMany(() => Group, (group) => group.courses)

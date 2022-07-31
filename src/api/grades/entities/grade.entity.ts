@@ -8,7 +8,7 @@ export class Grade extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => Student)
   @JoinColumn()
   student: Student
 

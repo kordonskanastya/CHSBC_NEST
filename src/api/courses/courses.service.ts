@@ -130,13 +130,19 @@ export class CoursesService {
       query.andWhere('Course.lectureHours=:lectureHours', { lectureHours })
     }
 
-    if (isActive) {
-      query.andWhere('Course.isActive=:isActive', { isActive })
-    } else {
+    if (isActive === false) {
       query.andWhere('Course.isActive=:isActive', { isActive })
     }
 
-    if (isExam) {
+    if (isActive === true) {
+      query.andWhere('Course.isActive=:isActive', { isActive })
+    }
+
+    if (isExam === true) {
+      query.andWhere('Course.isExam=:isExam', { isExam })
+    }
+
+    if (isExam === false) {
       query.andWhere('Course.isExam=:isExam', { isExam })
     }
 
@@ -144,7 +150,11 @@ export class CoursesService {
       query.andWhere('Course.semester=:semester', { semester })
     }
 
-    if (isCompulsory) {
+    if (isCompulsory === true) {
+      query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
+    }
+
+    if (isCompulsory === false) {
       query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
     }
 
@@ -251,7 +261,7 @@ export class CoursesService {
     const orderByColumn = CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
-    const courses = await this.coursesRepository.createQueryBuilder('Course')
+    const courses = await this.coursesRepository.createQueryBuilder('Course').where('Course.isActive=true')
 
     if (courseName) {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })

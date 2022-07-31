@@ -37,7 +37,7 @@ export class Group extends BaseEntity {
   @OneToMany(() => Student, (student) => student.group)
   students: Student[]
 
-  @ManyToOne(() => User, (user) => user.groups)
+  @ManyToOne(() => User, (user) => user.groups, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   curator: User
 
   @ManyToMany(() => Course, (course) => course.groups)

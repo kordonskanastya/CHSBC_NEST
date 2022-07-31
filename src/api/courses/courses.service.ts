@@ -199,9 +199,7 @@ export class CoursesService {
       throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
     }
 
-    Object.assign(course, updateCourseDto)
-
-    if (updateCourseDto.groups) {
+    if (updateCourseDto.groups && updateCourseDto.teacher) {
       const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
       const groups = await Group.createQueryBuilder()
         .where(`Group.id IN (:...ids)`, {
@@ -213,18 +211,46 @@ export class CoursesService {
         throw new BadRequestException(`Група з іd: ${updateCourseDto.groups} не існує .`)
       }
 
-      Object.assign(course, { ...updateCourseDto, groups })
-    }
-
-    if (updateCourseDto.teacher) {
       const teacher = await User.findOne(updateCourseDto.teacher)
+
       if (!teacher) {
         throw new BadRequestException(`Вчитель з іd: ${updateCourseDto.teacher} не існує.`)
       }
+
       if (teacher.role !== ROLE.TEACHER) {
         throw new BadRequestException(`Користувач має роль : ${teacher.role},не teacher`)
       }
-      Object.assign(course, { ...updateCourseDto, teacher })
+
+      Object.assign(course, { ...updateCourseDto, teacher, groups })
+    } else {
+      if (updateCourseDto.groups) {
+        const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
+        const groups = await Group.createQueryBuilder()
+          .where(`Group.id IN (:...ids)`, {
+            ids: groupIds,
+          })
+          .getMany()
+
+        if (!groups || groups.length !== groupIds.length) {
+          throw new BadRequestException(`Група з іd: ${updateCourseDto.groups} не існує .`)
+        }
+
+        Object.assign(course, { ...updateCourseDto, groups })
+      } else {
+        if (updateCourseDto.teacher) {
+          const teacher = await User.findOne(updateCourseDto.teacher)
+
+          if (!teacher) {
+            throw new BadRequestException(`Вчитель з іd: ${updateCourseDto.teacher} не існує.`)
+          }
+
+          if (teacher.role !== ROLE.TEACHER) {
+            throw new BadRequestException(`Користувач має роль : ${teacher.role},не teacher`)
+          }
+
+          Object.assign(course, { ...updateCourseDto, teacher })
+        }
+      }
     }
 
     try {

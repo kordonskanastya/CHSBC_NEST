@@ -40,6 +40,8 @@ import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto
 import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
 import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
 import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
+import { UpdateTeacherDto } from './dto/update-teacher.dto'
+import { CreateTeacherDto } from './dto/create-teacher.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -59,6 +61,14 @@ export class UsersController {
     return await this.usersService.create(createUserDto, req.user)
   }
 
+  @Post('teacher/create')
+  @MinRole(ROLE.ADMIN)
+  @ApiCreatedResponse({ type: CreateUserResponseDto })
+  @ApiBadRequestResponse({ description: 'Bad request' })
+  async createTeacher(@Request() req, @Body() createUserDto: CreateTeacherDto) {
+    return await this.usersService.createTeacher(createUserDto, req.user)
+  }
+
   @Get()
   @MinRole(ROLE.TEACHER)
   @ApiPaginatedResponse(GetUserResponseDto, {
@@ -70,6 +80,7 @@ export class UsersController {
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'search', required: false },
+    { name: 'id', required: false },
     { name: 'name', required: false },
     { name: 'firstName', required: false },
     { name: 'lastName', required: false },
@@ -83,6 +94,7 @@ export class UsersController {
     @Query('orderByColumn') orderByColumn: UserColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('search') search: string,
+    @Query('id') id: number,
     @Query('name') name: string,
     @Query('firstName') firstName: string,
     @Query('lastName') lastName: string,
@@ -104,6 +116,7 @@ export class UsersController {
       search,
       orderByColumn,
       orderBy,
+      id,
       name,
       firstName,
       lastName,
@@ -222,8 +235,28 @@ export class UsersController {
     description: 'Find admins full names (ПІБ) for dropdown filter',
     type: GetUserDropdownResponseDto,
   })
-  async dropdownAdmin(): Promise<GetUserDropdownResponseDto[]> {
-    return await this.usersService.dropdownAdmin()
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+  ])
+  async dropdownAdmin(
+    @Query('page') page = 1,
+    @Query('orderByColumn') orderByColumn: UserColumns,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+  ) {
+    return await this.usersService.dropdownAdmin(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+    )
   }
 
   @Get('dropdown/student')
@@ -242,11 +275,15 @@ export class UsersController {
     description: 'Find all groups by curator',
   })
   @ApiImplicitQueries([
+    { name: 'curatorId', required: false, description: 'curator`s id' },
+    { name: 'groupName', required: false, description: 'group`s name' },
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
   ])
   async findGroupByCurator(
+    @Query('curatorId') curatorId: number,
+    @Query('groupName') groupName: string,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
@@ -258,6 +295,8 @@ export class UsersController {
         route: `/${Entities.GROUPS}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      groupName,
+      curatorId,
       orderBy,
     )
   }
@@ -297,11 +336,17 @@ export class UsersController {
     description: 'Find all courses by teacher',
   })
   @ApiImplicitQueries([
+    { name: 'teacherId', required: false },
+    { name: 'groups', required: false, type: 'array' },
+    { name: 'courses', required: false, type: 'array' },
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
   ])
   async findCoursesByTeacher(
+    @Query('teacherId') teacherId: number,
+    @Query('groups') groups: number[],
+    @Query('courses') courses: number[],
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
@@ -314,6 +359,9 @@ export class UsersController {
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       orderBy,
+      teacherId,
+      groups,
+      courses,
     )
   }
 
@@ -379,5 +427,15 @@ export class UsersController {
   @MinRole(ROLE.ADMIN)
   async teacherCompulsoryDropdown() {
     return await this.usersService.teacherDropdownCompulsory()
+  }
+
+  @Patch('/teacher/:id([0-9]+)')
+  @MinRole(ROLE.ADMIN)
+  async updateTeacher(
+    @Request() req,
+    @Param('id') id: number,
+    @Body() updateTeacherDto: UpdateTeacherDto,
+  ): Promise<UpdateResponseDto> {
+    return await this.usersService.updateTeacher(+id, updateTeacherDto, req.user)
   }
 }

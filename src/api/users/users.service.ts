@@ -34,6 +34,9 @@ import { CreateGroupResponseDto } from '../groups/dto/create-group-response.dto'
 import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
 import { CourseColumns } from '../courses/courses.service'
 import { GetTeacherCourseDropdownDto } from './dto/get-teacher-course-dropdown.dto'
+import { UpdateTeacherDto } from './dto/update-teacher.dto'
+import { Course } from '../courses/entities/course.entity'
+import { CreateTeacherDto } from './dto/create-teacher.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -100,6 +103,60 @@ export class UsersService {
     })
   }
 
+  async createTeacher(createTeacherDto: CreateTeacherDto, tokenDto?: TokenDto) {
+    const { sub } = tokenDto || {}
+    const registerDto = {
+      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 8),
+      email: createTeacherDto.email,
+      role: ROLE.TEACHER,
+      firstName: createTeacherDto.firstName,
+      lastName: createTeacherDto.lastName,
+      patronymic: createTeacherDto.patronymic,
+    }
+
+    if (
+      await this.usersRepository
+        .createQueryBuilder()
+        .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
+        .getOne()
+    ) {
+      throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
+    }
+    const courseIds = Array.isArray(createTeacherDto.courses) ? createTeacherDto.courses : [createTeacherDto.courses]
+    const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
+      ids: courseIds,
+    })
+
+    if (!courses || (await courses.getMany()).length !== courseIds.length) {
+      throw new BadRequestException(`Предмет з іd: ${createTeacherDto.courses} не існує .`)
+    }
+    const user = await this.usersRepository.create(registerDto).save({
+      data: {
+        id: sub,
+      },
+    })
+
+    if (!user) {
+      throw new BadRequestException(`Не вишло створити користувача`)
+    }
+    courses
+      .update(Course)
+      .set({
+        teacher: user,
+      })
+      .execute()
+    this.authService.sendMailCreatePassword({
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      password: registerDto.password,
+      email: registerDto.email,
+    })
+
+    return plainToClass(GetCoursesByTeacherDto, user, {
+      excludeExtraneousValues: true,
+    })
+  }
+
   selectUsers() {
     return this.usersRepository.createQueryBuilder()
   }
@@ -109,6 +166,7 @@ export class UsersService {
     search: string,
     orderByColumn: UserColumns,
     orderBy: 'ASC' | 'DESC',
+    id: number,
     name: string,
     firstName: string,
     lastName: string,
@@ -133,6 +191,10 @@ export class UsersService {
           search: `%${search}%`,
         },
       )
+    }
+
+    if (id) {
+      query.andWhere(`User.id=:id`, { id })
     }
 
     if (firstName) {
@@ -231,6 +293,60 @@ export class UsersService {
 
     return {
       success: true,
+    }
+  }
+  async updateTeacher(id: number, updateTeacherDto: UpdateTeacherDto, { sub }: TokenDto): Promise<UpdateResponseDto> {
+    if (
+      await this.usersRepository
+        .createQueryBuilder()
+        .where(`LOWER(email) = LOWER(:email)`, { email: updateTeacherDto.email })
+        .andWhere({ id: Not(id) })
+        .getOne()
+    ) {
+      throw new BadRequestException(`Користувач з такою електронною поштою: ${updateTeacherDto.email} вже існує.`)
+    }
+
+    const teacher = await this.selectUsers().andWhere({ id }).getOne()
+
+    if (!teacher) {
+      throw new NotFoundException(`Вчитель з id: ${id} не знайдений`)
+    }
+    if (teacher.role !== ROLE.TEACHER) {
+      throw new BadRequestException(`Користувач не є вчителем ,він є ${teacher.role}`)
+    }
+
+    Object.assign(teacher, updateTeacherDto)
+
+    if (updateTeacherDto.courses) {
+      const courseIds = Array.isArray(updateTeacherDto.courses) ? updateTeacherDto.courses : [updateTeacherDto.courses]
+      const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
+        ids: courseIds,
+      })
+
+      if (!courses || (await courses.getMany()).length !== courseIds.length) {
+        throw new BadRequestException(`Предмет з іd: ${updateTeacherDto.courses} не існує .`)
+      }
+
+      courses
+        .update(Course)
+        .set({
+          teacher: teacher,
+        })
+        .execute()
+
+      try {
+        await teacher.save({
+          data: {
+            id: sub,
+          },
+        })
+      } catch (e) {
+        throw new NotAcceptableException('Не вишло зберегти користувача. ' + e.message)
+      }
+
+      return {
+        success: true,
+      }
     }
   }
 
@@ -359,22 +475,16 @@ export class UsersService {
     })
   }
 
-  async dropdownAdmin(): Promise<GetUserDropdownResponseDto[]> {
+  async dropdownAdmin(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: UserColumns) {
+    orderByColumn = orderByColumn || UserColumns.ID
+
     const administrators = await this.usersRepository
       .createQueryBuilder()
       .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.ADMIN })
-      .getMany()
 
-    const resultArr = administrators.map((admin) => {
-      return {
-        id: admin.id,
-        firstName: admin.firstName,
-        lastName: admin.lastName,
-        patronymic: admin.patronymic,
-      }
-    })
+    administrators.orderBy(`User.${orderByColumn}`, orderBy)
 
-    return resultArr
+    return paginateAndPlainToClass(GetUserDropdownResponseDto, administrators, options)
   }
 
   async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
@@ -395,7 +505,7 @@ export class UsersService {
     return resultArr
   }
 
-  async getGroupsByCurator(options: IPaginationOptions, orderBy: 'ASC' | 'DESC') {
+  async getGroupsByCurator(options: IPaginationOptions, groupName: string, curatorId: number, orderBy: 'ASC' | 'DESC') {
     const orderByColumn = GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
@@ -404,6 +514,14 @@ export class UsersService {
       .leftJoinAndSelect('User.groups', 'Group')
       .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
       .andWhere('User.role=:role', { role: ROLE.CURATOR })
+
+    if (groupName) {
+      query.andWhere('Group.name LIKE :name', { name: `%${groupName}%` })
+    }
+
+    if (curatorId) {
+      query.andWhere('Group.curatorId = :curatorId', { curatorId })
+    }
 
     query.orderBy(`Group.${orderByColumn}`, orderBy)
 
@@ -429,7 +547,13 @@ export class UsersService {
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
 
-  async getCoursesByTeacher(options: IPaginationOptions, orderBy: 'ASC' | 'DESC') {
+  async getCoursesByTeacher(
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    teacherId: number,
+    groups: number[],
+    courses: number[],
+  ) {
     const orderByColumn = GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
@@ -438,6 +562,30 @@ export class UsersService {
       .leftJoinAndSelect('User.courses', 'Course')
       .leftJoinAndSelect('Course.groups', 'Group')
       .andWhere('User.role=:role', { role: ROLE.TEACHER })
+
+    if (teacherId) {
+      query.andWhere('User.id=:teacherId', { teacherId })
+    }
+
+    if (groups) {
+      if (typeof groups === 'object') {
+        query.andWhere('Group.id IN (:...groups)', { groups })
+      } else {
+        if (typeof groups === 'string') {
+          query.andWhere('Group.id=:groupId', { groupId: groups })
+        }
+      }
+    }
+
+    if (courses) {
+      if (typeof courses === 'object') {
+        query.andWhere('Course.id IN (:...courses)', { courses })
+      } else {
+        if (typeof courses === 'string') {
+          query.andWhere('Course.id=:courseId', { courseId: courses })
+        }
+      }
+    }
 
     query.orderBy(`User.${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetCoursesByTeacherDto, query, options)

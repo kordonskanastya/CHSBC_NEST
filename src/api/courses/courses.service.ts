@@ -130,13 +130,19 @@ export class CoursesService {
       query.andWhere('Course.lectureHours=:lectureHours', { lectureHours })
     }
 
-    if (isActive) {
-      query.andWhere('Course.isActive=:isActive', { isActive })
-    } else {
+    if (isActive === false) {
       query.andWhere('Course.isActive=:isActive', { isActive })
     }
 
-    if (isExam) {
+    if (isActive === true) {
+      query.andWhere('Course.isActive=:isActive', { isActive })
+    }
+
+    if (isExam === true) {
+      query.andWhere('Course.isExam=:isExam', { isExam })
+    }
+
+    if (isExam === false) {
       query.andWhere('Course.isExam=:isExam', { isExam })
     }
 
@@ -144,7 +150,11 @@ export class CoursesService {
       query.andWhere('Course.semester=:semester', { semester })
     }
 
-    if (isCompulsory) {
+    if (isCompulsory === true) {
+      query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
+    }
+
+    if (isCompulsory === false) {
       query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
     }
 
@@ -183,24 +193,13 @@ export class CoursesService {
   async update(id: number, updateCourseDto: UpdateCourseDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
 
-    if (
-      await this.coursesRepository
-        .createQueryBuilder()
-        .where(`LOWER(name) = LOWER(:name)`, { name: updateCourseDto.name })
-        .getOne()
-    ) {
-      throw new BadRequestException(`Предмет з назвлю : ${updateCourseDto.name} вже існує.`)
-    }
-
     const course = await this.coursesRepository.findOne(id)
 
     if (!course) {
       throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
     }
 
-    Object.assign(course, updateCourseDto)
-
-    if (updateCourseDto.groups) {
+    if (updateCourseDto.groups && updateCourseDto.teacher) {
       const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
       const groups = await Group.createQueryBuilder()
         .where(`Group.id IN (:...ids)`, {
@@ -212,18 +211,46 @@ export class CoursesService {
         throw new BadRequestException(`Група з іd: ${updateCourseDto.groups} не існує .`)
       }
 
-      Object.assign(course, { ...updateCourseDto, groups })
-    }
-
-    if (updateCourseDto.teacher) {
       const teacher = await User.findOne(updateCourseDto.teacher)
+
       if (!teacher) {
         throw new BadRequestException(`Вчитель з іd: ${updateCourseDto.teacher} не існує.`)
       }
+
       if (teacher.role !== ROLE.TEACHER) {
         throw new BadRequestException(`Користувач має роль : ${teacher.role},не teacher`)
       }
-      Object.assign(course, { ...updateCourseDto, teacher })
+
+      Object.assign(course, { ...updateCourseDto, teacher, groups })
+    } else {
+      if (updateCourseDto.groups) {
+        const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
+        const groups = await Group.createQueryBuilder()
+          .where(`Group.id IN (:...ids)`, {
+            ids: groupIds,
+          })
+          .getMany()
+
+        if (!groups || groups.length !== groupIds.length) {
+          throw new BadRequestException(`Група з іd: ${updateCourseDto.groups} не існує .`)
+        }
+
+        Object.assign(course, { ...updateCourseDto, groups })
+      } else {
+        if (updateCourseDto.teacher) {
+          const teacher = await User.findOne(updateCourseDto.teacher)
+
+          if (!teacher) {
+            throw new BadRequestException(`Вчитель з іd: ${updateCourseDto.teacher} не існує.`)
+          }
+
+          if (teacher.role !== ROLE.TEACHER) {
+            throw new BadRequestException(`Користувач має роль : ${teacher.role},не teacher`)
+          }
+
+          Object.assign(course, { ...updateCourseDto, teacher })
+        }
+      }
     }
 
     try {
@@ -260,7 +287,7 @@ export class CoursesService {
     const orderByColumn = CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
-    const courses = await this.coursesRepository.createQueryBuilder('Course')
+    const courses = await this.coursesRepository.createQueryBuilder('Course').where('Course.isActive=true')
 
     if (courseName) {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })

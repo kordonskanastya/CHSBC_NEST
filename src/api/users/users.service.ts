@@ -36,6 +36,7 @@ import { CourseColumns } from '../courses/courses.service'
 import { GetTeacherCourseDropdownDto } from './dto/get-teacher-course-dropdown.dto'
 import { UpdateTeacherDto } from './dto/update-teacher.dto'
 import { Course } from '../courses/entities/course.entity'
+import { CreateTeacherDto } from './dto/create-teacher.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -98,6 +99,60 @@ export class UsersService {
     })
 
     return plainToClass(CreateUserResponseDto, user, {
+      excludeExtraneousValues: true,
+    })
+  }
+
+  async createTeacher(createTeacherDto: CreateTeacherDto, tokenDto?: TokenDto) {
+    const { sub } = tokenDto || {}
+    const registerDto = {
+      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 8),
+      email: createTeacherDto.email,
+      role: ROLE.TEACHER,
+      firstName: createTeacherDto.firstName,
+      lastName: createTeacherDto.lastName,
+      patronymic: createTeacherDto.patronymic,
+    }
+
+    if (
+      await this.usersRepository
+        .createQueryBuilder()
+        .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
+        .getOne()
+    ) {
+      throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
+    }
+    const courseIds = Array.isArray(createTeacherDto.courses) ? createTeacherDto.courses : [createTeacherDto.courses]
+    const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
+      ids: courseIds,
+    })
+
+    if (!courses || (await courses.getMany()).length !== courseIds.length) {
+      throw new BadRequestException(`Предмет з іd: ${createTeacherDto.courses} не існує .`)
+    }
+    const user = await this.usersRepository.create(registerDto).save({
+      data: {
+        id: sub,
+      },
+    })
+
+    if (!user) {
+      throw new BadRequestException(`Не вишло створити користувача`)
+    }
+    courses
+      .update(Course)
+      .set({
+        teacher: user,
+      })
+      .execute()
+    this.authService.sendMailCreatePassword({
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      password: registerDto.password,
+      email: registerDto.email,
+    })
+
+    return plainToClass(GetCoursesByTeacherDto, user, {
       excludeExtraneousValues: true,
     })
   }
@@ -509,7 +564,7 @@ export class UsersService {
       .andWhere('User.role=:role', { role: ROLE.TEACHER })
 
     if (teacherId) {
-      query.andWhere('Course.teacherId=:teacherId', { teacherId })
+      query.andWhere('User.id=:teacherId', { teacherId })
     }
 
     if (groups) {

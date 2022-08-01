@@ -41,6 +41,7 @@ import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
 import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
 import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
 import { UpdateTeacherDto } from './dto/update-teacher.dto'
+import { CreateTeacherDto } from './dto/create-teacher.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -58,6 +59,14 @@ export class UsersController {
   @ApiBadRequestResponse({ description: 'Bad request' })
   async create(@Request() req, @Body() createUserDto: CreateUserDto): Promise<CreateUserResponseDto> {
     return await this.usersService.create(createUserDto, req.user)
+  }
+
+  @Post('teacher/create')
+  @MinRole(ROLE.ADMIN)
+  @ApiCreatedResponse({ type: CreateUserResponseDto })
+  @ApiBadRequestResponse({ description: 'Bad request' })
+  async createTeacher(@Request() req, @Body() createUserDto: CreateTeacherDto) {
+    return await this.usersService.createTeacher(createUserDto, req.user)
   }
 
   @Get()

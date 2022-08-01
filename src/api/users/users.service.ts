@@ -111,6 +111,7 @@ export class UsersService {
     search: string,
     orderByColumn: UserColumns,
     orderBy: 'ASC' | 'DESC',
+    id: number,
     name: string,
     firstName: string,
     lastName: string,
@@ -135,6 +136,10 @@ export class UsersService {
           search: `%${search}%`,
         },
       )
+    }
+
+    if (id) {
+      query.andWhere(`User.id=:id`, { id })
     }
 
     if (firstName) {

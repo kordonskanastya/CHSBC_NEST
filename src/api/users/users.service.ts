@@ -295,6 +295,7 @@ export class UsersService {
       success: true,
     }
   }
+
   async updateTeacher(id: number, updateTeacherDto: UpdateTeacherDto, { sub }: TokenDto): Promise<UpdateResponseDto> {
     if (
       await this.usersRepository
@@ -487,18 +488,6 @@ export class UsersService {
     return paginateAndPlainToClass(GetUserDropdownResponseDto, administrators, options)
   }
 
-  async dropdownStudent(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: UserColumns) {
-    orderByColumn = orderByColumn || UserColumns.ID
-
-    const students = await this.usersRepository
-      .createQueryBuilder()
-      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.STUDENT })
-
-    students.orderBy(`User.${orderByColumn}`, orderBy)
-
-    return paginateAndPlainToClass(GetUserDropdownResponseDto, students, options)
-  }
-
   async getGroupsByCurator(options: IPaginationOptions, groupName: string, curatorId: number, orderBy: 'ASC' | 'DESC') {
     const orderByColumn = GroupsColumns.ID
     orderBy = orderBy || 'ASC'
@@ -618,10 +607,25 @@ export class UsersService {
     query.orderBy(`Group.${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
+
   async teacherDropdownCompulsory() {
     return [
       { id: 1, type: `Обов'язковий`, isCompulsory: true },
       { id: 2, type: 'Вибірковий', isCompulsory: false },
     ]
+  }
+
+  async findOneTeacher(id: number, token?: TokenDto) {
+    const user = this.selectUsers()
+      .leftJoinAndSelect('User.courses', 'Course')
+      .andWhere('User.id=:id', { id })
+      .andWhere('User.role=:role', { role: ROLE.TEACHER })
+      .getOne()
+
+    if (!user) {
+      throw new NotFoundException(`Користувач з id: ${id} не існує `)
+    }
+
+    return plainToClass(GetCoursesByTeacherDto, user, { excludeExtraneousValues: true })
   }
 }

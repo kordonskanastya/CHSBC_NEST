@@ -259,36 +259,6 @@ export class UsersController {
     )
   }
 
-  @Get('dropdown/student')
-  @MinRole(ROLE.TEACHER)
-  @ApiOkResponse({
-    description: 'Find students full names (ПІБ) for dropdown filter',
-    type: GetUserDropdownResponseDto,
-  })
-  @ApiImplicitQueries([
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
-  ])
-  async dropdownStudent(
-    @Query('page') page = 1,
-    @Query('orderByColumn') orderByColumn: UserColumns,
-    @Query('limit') limit = 10,
-    @Query('orderBy') orderBy: 'ASC' | 'DESC',
-  ) {
-    return await this.usersService.dropdownStudent(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.USERS}/dropdown/students`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
-      orderBy,
-      orderByColumn,
-    )
-  }
-
   @Get('/curator/groups')
   @MinRole(ROLE.ADMIN)
   @ApiPaginatedResponse(GetGroupResponseDto, {
@@ -457,5 +427,11 @@ export class UsersController {
     @Body() updateTeacherDto: UpdateTeacherDto,
   ): Promise<UpdateResponseDto> {
     return await this.usersService.updateTeacher(+id, updateTeacherDto, req.user)
+  }
+
+  @Get('/teacher/:id([0-9]+)')
+  @MinRole(ROLE.ADMIN)
+  async findOneTeacher(@Request() req, @Param('id') id: number) {
+    return await this.usersService.findOneTeacher(+id, req.user)
   }
 }

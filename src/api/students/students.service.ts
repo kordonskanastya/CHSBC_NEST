@@ -298,8 +298,10 @@ export class StudentsService {
   async dropdownStudent(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: StudentColumns) {
     orderByColumn = orderByColumn || StudentColumns.ID
 
-    const students = await this.studentsRepository.createQueryBuilder().leftJoinAndSelect('Student.user', 'User')
-    console.log(await students.getMany())
+    const students = await this.studentsRepository
+      .createQueryBuilder()
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('User.role=:role', { role: ROLE.STUDENT })
 
     students.orderBy(`Student.${orderByColumn}`, orderBy)
 

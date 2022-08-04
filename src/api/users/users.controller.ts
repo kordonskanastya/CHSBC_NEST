@@ -103,7 +103,7 @@ export class UsersController {
     @Query('role') role: string,
   ) {
     if (limit <= 0) {
-      throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
+      throw new BadRequestException('Неправильний ліміт. Має бути від 1 до 100.')
     }
 
     return await this.usersService.findAll(
@@ -265,8 +265,28 @@ export class UsersController {
     description: 'Find students full names (ПІБ) for dropdown filter',
     type: GetUserDropdownResponseDto,
   })
-  async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
-    return await this.usersService.dropdownStudent()
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+  ])
+  async dropdownStudent(
+    @Query('page') page = 1,
+    @Query('orderByColumn') orderByColumn: UserColumns,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+  ) {
+    return await this.usersService.dropdownStudent(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.USERS}/dropdown/students`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+    )
   }
 
   @Get('/curator/groups')

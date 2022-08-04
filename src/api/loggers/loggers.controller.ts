@@ -1,5 +1,5 @@
 import { BadRequestException, Controller, Get, Param, Query, UseGuards } from '@nestjs/common'
-import { LOGGER_COLUMN_LIST, LOGGER_COLUMNS, LoggerColumns, LoggersService } from './loggers.service'
+import { LOGGER_COLUMN_LIST, LoggerColumns, LoggersService } from './loggers.service'
 import {
   ApiBearerAuth,
   ApiExtraModels,
@@ -60,7 +60,7 @@ export class LoggersController {
     @Query('userId') userId: number,
   ) {
     if (limit <= 0) {
-      throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
+      throw new BadRequestException('Неправильний ліміт. Має бути від 1 до 100.')
     }
 
     return await this.loggersService.findAll(

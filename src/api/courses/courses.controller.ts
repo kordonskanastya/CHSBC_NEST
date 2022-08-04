@@ -80,7 +80,7 @@ export class CoursesController {
     @Query('groups') groups: number[],
   ) {
     if (limit <= 0) {
-      throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
+      throw new BadRequestException('Не правильний ліміт має бути 1 - 100.')
     }
     return await this.coursesService.findAll(
       {

@@ -206,9 +206,9 @@ export class StudentsService {
     { user, ...updateStudentDto }: UpdateStudentDto,
     { sub, role }: TokenDto,
   ): Promise<UpdateResponseDto> {
-    if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
-      throw new BadRequestException(`Студент з таким ЕДЕБО : ${updateStudentDto.edeboId} вже існує`)
-    }
+    // if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
+    //   throw new BadRequestException(`Студент з таким ЕДЕБО : ${updateStudentDto.edeboId} вже існує`)
+    // }
 
     if (user && user.role && user.role !== ROLE.STUDENT) {
       throw new BadRequestException(`Студент не може бути змінений , бо має роль :${user.role}`)

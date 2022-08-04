@@ -16,6 +16,7 @@ import { CreateStudentDto } from './dto/create-student.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { Student } from './entities/student.entity'
+import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
 
 export enum StudentColumns {
   ID = 'id',
@@ -25,6 +26,8 @@ export enum StudentColumns {
   ORDER_NUMBER = 'orderNumber',
   EDEBO_ID = 'edeboId',
   IS_FULL_TIME = 'isFullTime',
+  UPDATED = 'updated',
+  CREATED = 'created',
 }
 
 export const STUDENT_COLUMN_LIST = enumToArray(StudentColumns)
@@ -33,6 +36,7 @@ export const STUDENT_COLUMNS = enumToObject(StudentColumns)
 @Injectable()
 export class StudentsService {
   User: any
+
   constructor(
     @Inject(STUDENT_REPOSITORY)
     private studentsRepository: Repository<Student>,
@@ -82,6 +86,7 @@ export class StudentsService {
     search: string,
     orderByColumn: StudentColumns,
     orderBy: 'ASC' | 'DESC',
+    id: number,
     firstName: string,
     lastName: string,
     patronymic: string,
@@ -90,7 +95,6 @@ export class StudentsService {
     orderNumber: string,
     edeboId: string,
     isFullTime: boolean,
-    token: TokenDto,
   ) {
     orderByColumn = orderByColumn || StudentColumns.ID
     orderBy = orderBy || 'ASC'
@@ -115,15 +119,22 @@ export class StudentsService {
       )
     }
 
+    if (id) {
+      query.andWhere('Student.id=:id', { id })
+    }
+
     if (firstName) {
       query.andWhere(`LOWER(user.firstName) LIKE LOWER('%${firstName}%')`)
     }
+
     if (lastName) {
       query.andWhere(`LOWER(user.lastName) LIKE LOWER('%${lastName}%')`)
     }
+
     if (patronymic) {
       query.andWhere(`LOWER(user.patronymic) LIKE LOWER('%${patronymic}%')`)
     }
+
     if (email) {
       query.andWhere(`LOWER(user.email) LIKE LOWER('%${email}%')`)
     }
@@ -282,5 +293,16 @@ export class StudentsService {
     } catch (e) {
       throw new NotAcceptableException('Не вишло видалити студента. ' + e.message)
     }
+  }
+
+  async dropdownStudent(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: StudentColumns) {
+    orderByColumn = orderByColumn || StudentColumns.ID
+
+    const students = await this.studentsRepository.createQueryBuilder().leftJoinAndSelect('Student.user', 'User')
+    console.log(await students.getMany())
+
+    students.orderBy(`Student.${orderByColumn}`, orderBy)
+
+    return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
   }
 }

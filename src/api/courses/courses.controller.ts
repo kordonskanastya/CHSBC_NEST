@@ -10,8 +10,6 @@ import {
   Query,
   Request,
   UseGuards,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
@@ -45,7 +43,6 @@ export class CoursesController {
   }
 
   @Get()
-  @UsePipes(new ValidationPipe({ transform: false }))
   @MinRole(ROLE.STUDENT)
   @ApiPaginatedResponse(GetCourseResponseDto, {
     description: 'Find all courses',

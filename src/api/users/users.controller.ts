@@ -292,7 +292,7 @@ export class UsersController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `/${Entities.USERS}`,
+        route: `/${Entities.USERS}/curator/groups`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       groupName,

@@ -78,7 +78,7 @@ export class UsersService {
         .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
+      throw new BadRequestException(`Користувач з емейлом : ${registerDto.email} Вже існує.`)
     }
 
     const user = await this.usersRepository.create(registerDto).save({
@@ -120,7 +120,7 @@ export class UsersService {
         .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
+      throw new BadRequestException(`Користувач з емейлом : ${registerDto.email} Вже існує.`)
     }
     const courseIds = Array.isArray(createTeacherDto.courses) ? createTeacherDto.courses : [createTeacherDto.courses]
     const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
@@ -487,22 +487,16 @@ export class UsersService {
     return paginateAndPlainToClass(GetUserDropdownResponseDto, administrators, options)
   }
 
-  async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
+  async dropdownStudent(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: UserColumns) {
+    orderByColumn = orderByColumn || UserColumns.ID
+
     const students = await this.usersRepository
       .createQueryBuilder()
       .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.STUDENT })
-      .getMany()
 
-    const resultArr = students.map((student) => {
-      return {
-        id: student.id,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        patronymic: student.patronymic,
-      }
-    })
+    students.orderBy(`User.${orderByColumn}`, orderBy)
 
-    return resultArr
+    return paginateAndPlainToClass(GetUserDropdownResponseDto, students, options)
   }
 
   async getGroupsByCurator(options: IPaginationOptions, groupName: string, curatorId: number, orderBy: 'ASC' | 'DESC') {

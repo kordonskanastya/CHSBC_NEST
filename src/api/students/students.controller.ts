@@ -1,29 +1,29 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Request,
-  Query,
   BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
   UseGuards,
-  ValidationPipe,
   UsePipes,
+  ValidationPipe,
 } from '@nestjs/common'
 import { StudentColumns, StudentsService } from './students.service'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { MinRole } from '../../auth/roles/roles.decorator'
 import {
-  ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiTags,
-  ApiBearerAuth,
-  ApiForbiddenResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger'
 import { ROLE } from '../../auth/roles/role.enum'
@@ -94,7 +94,7 @@ export class StudentsController {
     @Request() req,
   ) {
     if (limit <= 0) {
-      throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
+      throw new BadRequestException('Неправильний ліміт. Має бути від 1 до 100.')
     }
 
     return this.studentsService.findAll(

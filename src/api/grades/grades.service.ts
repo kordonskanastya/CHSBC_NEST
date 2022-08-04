@@ -39,11 +39,11 @@ export class GradesService {
     const course = await Course.findOne(createGradeDto.courseId)
 
     if (!student) {
-      throw new BadRequestException(`This student id: ${createGradeDto.studentId} not found.`)
+      throw new BadRequestException(`Студента з id: ${createGradeDto.studentId} не знайдено.`)
     }
 
     if (!course) {
-      throw new BadRequestException(`This course id: ${createGradeDto.courseId} not found.`)
+      throw new BadRequestException(`Предмета з  id: ${createGradeDto.courseId} не знайдено .`)
     }
 
     const grade = await this.gradeRepository
@@ -108,7 +108,7 @@ export class GradesService {
     const student = await Student.findOne(id)
 
     if (!student) {
-      throw new BadRequestException(`This student id: ${id} not found.`)
+      throw new BadRequestException(`Студента з  id: ${id} не знайдено.`)
     }
 
     const grades = await this.gradeRepository
@@ -133,11 +133,11 @@ export class GradesService {
     const course = await Course.findOne(updateGradeDto.courseId)
 
     if (!student) {
-      throw new BadRequestException(`This student id: ${id} not found.`)
+      throw new BadRequestException(`Студента з id: ${id} не знайдено .`)
     }
 
     if (!course) {
-      throw new BadRequestException(`This course id: ${updateGradeDto.courseId} not found.`)
+      throw new BadRequestException(`Предмета з id: ${updateGradeDto.courseId} не знайдено.`)
     }
 
     const grade = await this.gradeRepository

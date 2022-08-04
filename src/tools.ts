@@ -3,7 +3,7 @@ import { configService } from './config/config.service'
 
 export default function setupHooks(app: INestApplication) {
   const options: ValidationPipeOptions = {
-    transform: true,
+    transform: false,
     enableDebugMessages: !configService.isProduction(),
     skipUndefinedProperties: false,
     skipNullProperties: true,

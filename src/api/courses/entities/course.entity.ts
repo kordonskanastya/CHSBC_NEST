@@ -32,7 +32,7 @@ export class Course extends BaseEntity {
   @ManyToOne(() => User, (user) => user.courses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   teacher: User
 
-  @ManyToMany(() => Group, (group) => group.courses)
+  @ManyToMany(() => Group, (group) => group.courses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinTable()
   groups: Group[]
 }

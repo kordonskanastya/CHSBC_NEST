@@ -228,7 +228,7 @@ export class UsersController {
     )
   }
 
-  @Get('/curator/')
+  @Get('/curator')
   @MinRole(ROLE.ADMIN)
   @ApiPaginatedResponse(GetGroupResponseDto, {
     description: 'Find all groups by curator',
@@ -251,7 +251,7 @@ export class UsersController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `/${Entities.USERS}/curator/groups`,
+        route: `/${Entities.USERS}/curator`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       groupName,
@@ -260,7 +260,7 @@ export class UsersController {
     )
   }
 
-  @Get('/teacher/')
+  @Get('/teacher')
   @MinRole(ROLE.ADMIN)
   @ApiPaginatedResponse(GetCoursesByTeacherDto, {
     description: 'Find all courses by teacher',
@@ -285,7 +285,7 @@ export class UsersController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `/${Entities.USERS}`,
+        route: `/${Entities.USERS}/teacher`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       orderBy,

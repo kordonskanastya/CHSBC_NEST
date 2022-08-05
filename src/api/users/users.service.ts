@@ -469,9 +469,6 @@ export class UsersService {
       query.andWhere('Group.curatorId = :curatorId', { curatorId })
     }
 
-    if (options.limit) {
-      throw new BadRequestException(options.limit)
-    }
     query.orderBy(`Group.${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetGroupsByCuratorDto, query, options)
   }

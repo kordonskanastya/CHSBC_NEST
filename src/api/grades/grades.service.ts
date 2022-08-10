@@ -1,5 +1,4 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
-import { CreateGradeDto } from './dto/create-grade.dto'
 import { UpdateGradeDto } from './dto/update-grade.dto'
 import { GRADE_REPOSITORY } from '../../constants'
 import { Repository } from 'typeorm'
@@ -32,32 +31,6 @@ export class GradesService {
     @Inject(GRADE_REPOSITORY)
     private gradeRepository: Repository<Grade>,
   ) {}
-
-  async create(createGradeDto: CreateGradeDto, tokenDto?: TokenDto) {
-    const { sub } = tokenDto || {}
-    const student = await Student.findOne(createGradeDto.studentId)
-    const course = await Course.findOne(createGradeDto.courseId)
-
-    if (!student) {
-      throw new BadRequestException(`Студента з id: ${createGradeDto.studentId} не знайдено.`)
-    }
-
-    if (!course) {
-      throw new BadRequestException(`Предмета з  id: ${createGradeDto.courseId} не знайдено .`)
-    }
-
-    const grade = await this.gradeRepository
-      .create({
-        ...createGradeDto,
-        student,
-        course,
-      })
-      .save({ data: { id: sub } })
-
-    return plainToClass(CreateGroupResponseDto, grade, {
-      excludeExtraneousValues: true,
-    })
-  }
 
   async findAll(
     options: IPaginationOptions,

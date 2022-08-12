@@ -1,9 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { GradeColumns, GradesService } from './grades.service'
+import { CreateGradeDto } from './dto/create-grade.dto'
 import { UpdateGradeDto } from './dto/update-grade.dto'
 import { MinRole } from '../../auth/roles/roles.decorator'
 import { ROLE } from '../../auth/roles/role.enum'
-import { ApiBearerAuth, ApiForbiddenResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger'
+import { CreateGradeResponseDto } from './dto/create-grade-response.dto'
 import { Entities } from '../common/enums'
 import { capitalize } from '../../utils/common'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
@@ -23,6 +32,14 @@ import { CreateGroupResponseDto } from '../groups/dto/create-group-response.dto'
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class GradesController {
   constructor(private readonly gradesService: GradesService) {}
+
+  @Post()
+  @MinRole(ROLE.TEACHER)
+  @ApiCreatedResponse({ type: CreateGradeResponseDto })
+  @ApiBadRequestResponse({ description: 'Bad request' })
+  async create(@Request() req, @Body() createGradeDto: CreateGradeDto): Promise<CreateGradeResponseDto> {
+    return await this.gradesService.create(createGradeDto, req.user)
+  }
 
   @Get()
   @MinRole(ROLE.TEACHER)

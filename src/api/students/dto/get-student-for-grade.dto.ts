@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { Expose, Type } from 'class-transformer'
-import { GetCourseGradeDto } from '../../courses/dto/get-course-grade.dto'
+import { GetUserResponseDto } from '../../users/dto/get-user-response.dto'
+import { CreateGroupResponseDto } from '../../groups/dto/create-group-response.dto'
 
 export class GetStudentForGradeDto {
   @Expose()
@@ -8,12 +9,12 @@ export class GetStudentForGradeDto {
   id: number
 
   @Expose()
-  @Type(() => GetCourseGradeDto)
-  @ApiProperty({ type: GetCourseGradeDto })
-  courses: GetCourseGradeDto
+  @Type(() => CreateGroupResponseDto)
+  @ApiProperty({ type: CreateGroupResponseDto })
+  group: CreateGroupResponseDto
 
-  // @Expose()
-  // @Type(() => GetUserResponseDto)
-  // @ApiProperty({ type: GetUserResponseDto })
-  // user: GetUserResponseDto
+  @Expose()
+  @Type(() => GetUserResponseDto)
+  @ApiProperty({ type: GetUserResponseDto })
+  user: GetUserResponseDto
 }

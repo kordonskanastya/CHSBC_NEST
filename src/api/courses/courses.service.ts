@@ -67,6 +67,7 @@ export class CoursesService {
     }
 
     const teacher = await User.findOne(createCourseDto.teacher)
+
     if (!teacher) {
       throw new BadRequestException(`Вчитель з іd: ${createCourseDto.teacher} не існує.`)
     }

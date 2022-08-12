@@ -195,15 +195,15 @@ export class UsersService {
     }
 
     if (firstName) {
-      query.andWhere(`LOWER(User.firstName) LIKE LOWER('%${firstName}%')`)
+      query.andWhere(`LOWER(User.firstName) LIKE LOWER(:firstname)`, { firstname: `%${firstName}%` })
     }
 
     if (lastName) {
-      query.andWhere(`LOWER(User.lastName) LIKE LOWER('%${lastName}%')`)
+      query.andWhere(`LOWER(User.lastName) LIKE LOWER(':lastname)`, { lastname: `%${lastName}%` })
     }
 
     if (patronymic) {
-      query.andWhere(`LOWER(User.patronymic) LIKE LOWER('%${patronymic}%')`)
+      query.andWhere(`LOWER(User.patronymic) LIKE LOWER(':patronymic')`, { patronymic: `%${patronymic}%` })
     }
 
     if (name) {

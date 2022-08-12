@@ -49,12 +49,6 @@ export class GradesService {
 
     checkColumnExist(GRADE_COLUMN_LIST, orderByColumn)
 
-    // const query = this.gradeRepository
-    //   .createQueryBuilder('Grade')
-    //   .leftJoinAndSelect('Grade.student', 'Student')
-    //   .leftJoinAndSelect('Grade.course', 'Course')
-    //   .leftJoinAndSelect('Student.group', 'Group')
-
     const query = this.studentRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.courses', 'Course')
@@ -100,9 +94,11 @@ export class GradesService {
       .leftJoinAndSelect('Student.group', 'Group')
       .andWhere('Student.id=:id', { id })
       .getMany()
+
     if (!grades) {
       throw new NotFoundException(`Not found grades id: ${id}`)
     }
+
     return plainToClass(GetGradeResponseDto, grades, {
       excludeExtraneousValues: true,
     })

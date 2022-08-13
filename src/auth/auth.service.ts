@@ -18,7 +18,6 @@ import { LoginUserResultDto } from './dto/result/login-user.dto'
 import { MailerService } from '@nestjs-modules/mailer'
 import { SentMessageInfo } from 'nodemailer'
 import { RegisterDto } from './dto/register.dto'
-import { CreateUserResponseDto } from '../api/users/dto/create-user-response.dto'
 import * as bcrypt from 'bcrypt'
 import { plainToClass } from 'class-transformer'
 import { TokenDto } from './dto/token.dto'
@@ -40,14 +39,14 @@ export class AuthService {
     const user: User = await this.usersService.findOneByEmail(email)
 
     if (!user) {
-      throw new UnauthorizedException('The username you entered is not correct, please check your entry and try again.')
+      throw new UnauthorizedException('Логін введено невірно,перевірте і спробуйте знову.')
     }
 
     if (user && (await bcrypt.compare(pass, user.password))) {
       return user
     }
 
-    throw new UnauthorizedException('The password you entered is not correct, please check your entry and try again.')
+    throw new UnauthorizedException('Пароль введено невірно,перевірте і спробуйте знову.')
   }
 
   createRefreshToken(id: number) {
@@ -137,14 +136,11 @@ export class AuthService {
     const user = await this.usersService.findOneByEmail(forgotPasswordDto.email)
 
     if (!user) {
-      throw new NotFoundException('User with this email not found. Contact your manager for assistance.')
+      throw new NotFoundException('Користувача з таким email не знайдено')
     }
 
     if (!user.email) {
-      throw new BadRequestException(
-        'Email not found. We did not find any emails associated with this Username. ' +
-          'Contact your manager for assistance.',
-      )
+      throw new BadRequestException('Не знайдено жодної електронної адреси для цього користувача.')
     }
 
     const password = Buffer.from(Math.random().toString()).toString('base64').substring(0, 8)

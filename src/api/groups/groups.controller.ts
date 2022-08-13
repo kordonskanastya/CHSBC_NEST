@@ -94,12 +94,15 @@ export class GroupsController {
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GroupsColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'name', required: false },
   ])
   async dropdownName(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('orderByColumn') orderByColumn: GroupsColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('name') name: string,
   ) {
@@ -107,9 +110,10 @@ export class GroupsController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `/${Entities.GROUPS}`,
+        route: `/${Entities.GROUPS}/dropdown/name`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      orderByColumn,
       orderBy,
       name,
     )
@@ -123,12 +127,14 @@ export class GroupsController {
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GroupsColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'curatorName', required: false },
   ])
   async dropdownCurator(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('orderByColumn') orderByColumn: GroupsColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('curatorName') curatorName: string,
   ) {
@@ -139,6 +145,7 @@ export class GroupsController {
         route: `/${Entities.GROUPS}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      orderByColumn,
       orderBy,
       curatorName,
     )

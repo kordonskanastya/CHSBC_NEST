@@ -118,6 +118,7 @@ export class CoursesService {
   async findAll(
     options: IPaginationOptions,
     search: string,
+    id: number,
     orderByColumn: CourseColumns,
     orderBy: 'ASC' | 'DESC',
     name: string,
@@ -150,6 +151,10 @@ export class CoursesService {
           search: `%${search}%`,
         },
       )
+    }
+
+    if (id) {
+      query.andWhere(`Course.id=:id`, { id })
     }
 
     if (name) {

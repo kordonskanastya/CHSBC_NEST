@@ -84,6 +84,7 @@ export class GroupsService {
       .leftJoinAndSelect('Group.curator', 'User')
       .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
       .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
+
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
@@ -176,8 +177,8 @@ export class GroupsService {
     }
   }
 
-  async dropdownName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', name: string) {
-    const orderByColumn = GroupsColumns.ID
+  async dropdownName(options: IPaginationOptions, orderByColumn: GroupsColumns, orderBy: 'ASC' | 'DESC', name: string) {
+    orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
@@ -198,8 +199,13 @@ export class GroupsService {
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
 
-  async dropdownCurators(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', search: string) {
-    const orderByColumn = GroupsColumns.ID
+  async dropdownCurators(
+    options: IPaginationOptions,
+    orderByColumn: GroupsColumns,
+    orderBy: 'ASC' | 'DESC',
+    search: string,
+  ) {
+    orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)

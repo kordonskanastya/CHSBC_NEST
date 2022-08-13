@@ -3,9 +3,9 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  ManyToOne,
 } from 'typeorm'
 import { Entities } from '../../common/enums'
 import { User } from '../../users/entities/user.entity'
@@ -40,7 +40,7 @@ export class Logger extends BaseEntity {
   @Column({ nullable: true })
   entityId: number
 
-  @ManyToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User, (user) => user.id, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   user: User
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })

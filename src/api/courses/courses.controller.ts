@@ -31,7 +31,7 @@ import { UpdateCourseDto } from './dto/update-course.dto'
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Unauthorized' })
 @ApiForbiddenResponse({ description: 'Forbidden resource. Check user role' })
-@MinRole(ROLE.TEACHER)
+@MinRole(ROLE.STUDENT)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
@@ -143,7 +143,7 @@ export class CoursesController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `/${Entities.COURSES}`,
+        route: `/${Entities.COURSES}/course/dropdown`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       orderBy,

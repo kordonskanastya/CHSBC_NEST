@@ -4,7 +4,7 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { ROLE } from '../../auth/roles/role.enum'
-import { STUDENT_REPOSITORY } from '../../constants'
+import { GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
@@ -17,6 +17,9 @@ import { GetStudentResponseDto } from './dto/get-student-response.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { Student } from './entities/student.entity'
 import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
+import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
+import { Course } from '../courses/entities/course.entity'
+import { Grade } from '../grades/entities/grade.entity'
 
 export enum StudentColumns {
   ID = 'id',
@@ -41,6 +44,8 @@ export class StudentsService {
     @Inject(STUDENT_REPOSITORY)
     private studentsRepository: Repository<Student>,
     private usersService: UsersService,
+    @Inject(GRADE_REPOSITORY)
+    private gradeRepository: Repository<Grade>,
   ) {}
 
   async create(
@@ -75,6 +80,28 @@ export class StudentsService {
           id: sub,
         },
       })
+
+    if (!student) {
+      throw new BadRequestException('Не вишло створити студента')
+    } else {
+      const courses = plainToClass(GetCourseResponseDto, await Course.createQueryBuilder().getMany(), {
+        excludeExtraneousValues: true,
+      })
+      const students = await plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
+      for (const course of courses) {
+        const candidate_course = await Course.findOne(course.id)
+        for (const student of [students]) {
+          const candidate_student = await Student.findOne(student.id)
+          await this.gradeRepository
+            .create({
+              grade: 0,
+              student: candidate_student,
+              course: candidate_course,
+            })
+            .save({ data: { id: sub } })
+        }
+      }
+    }
 
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,

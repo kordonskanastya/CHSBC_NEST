@@ -13,6 +13,7 @@ import { Group } from '../../groups/entities/group.entity'
 import { User } from '../../users/entities/user.entity'
 import { Student } from '../../students/entities/student.entity'
 import { Grade } from '../../grades/entities/grade.entity'
+import { Vote } from '../../voting/entities/voting.entity'
 
 @Entity({ name: Entities.COURSES })
 export class Course extends BaseEntity {
@@ -52,4 +53,10 @@ export class Course extends BaseEntity {
 
   @OneToMany(() => Grade, (grade) => grade.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   grades: Grade[]
+
+  @ManyToOne(() => Vote, (vote) => vote.requiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  voteRequiredCourses: Vote
+
+  @ManyToOne(() => Vote, (vote) => vote.notRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  voteNotRequiredCourses: Vote
 }

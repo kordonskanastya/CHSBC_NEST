@@ -1,0 +1,65 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common'
+import { VotingService } from './voting.service'
+import { CreateVotingDto } from './dto/create-voting.dto'
+import { UpdateVotingDto } from './dto/update-voting.dto'
+import { Entities } from '../common/enums'
+import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
+import { capitalize } from '../../utils/common'
+import { MinRole } from '../../auth/roles/roles.decorator'
+import { ROLE } from '../../auth/roles/role.enum'
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
+import { RolesGuard } from '../../auth/roles/roles.guard'
+import { ApiPaginatedResponse } from '../../utils/paginate'
+import { GetVotingDto } from './dto/get-voting.dto'
+import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
+
+@Controller(Entities.VOTING)
+@ApiTags(capitalize(Entities.VOTING))
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Unauthorized' })
+@ApiForbiddenResponse({ description: 'Forbidden resource. Check user role' })
+@MinRole(ROLE.STUDENT)
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class VotingController {
+  constructor(private readonly votingService: VotingService) {}
+
+  @Post()
+  @MinRole(ROLE.ADMIN)
+  async create(@Request() req, @Body() createVotingDto: CreateVotingDto) {
+    return await this.votingService.create(createVotingDto, req.user)
+  }
+
+  @Get()
+  @MinRole(ROLE.STUDENT)
+  @ApiPaginatedResponse(GetVotingDto, {
+    description: 'Find all courses',
+  })
+  @ApiImplicitQueries([
+    { name: 'groups', required: false, type: 'array' },
+    { name: 'startDate', required: false, type: 'startDate' },
+    { name: 'endDate', required: false, type: 'endDate' },
+    { name: 'requiredCourses', required: false, type: 'array' },
+    { name: 'notRequiredCourses', required: false, type: 'array' },
+  ])
+  async findAll() {
+    return await this.votingService.findAll()
+  }
+
+  @Get(':id([0-9]+)')
+  @MinRole(ROLE.STUDENT)
+  async findOne(@Param('id') id: string) {
+    return await this.votingService.findOne(+id)
+  }
+
+  @Patch(':id([0-9]+)')
+  @ApiOkResponse({ description: 'Update voting', type: UpdateVotingDto })
+  async update(@Request() req, @Param('id') id: string, @Body() updateVotingDto: UpdateVotingDto) {
+    return await this.votingService.update(+id, updateVotingDto, req.user)
+  }
+
+  @Delete(':id([0-9]+)')
+  @MinRole(ROLE.ADMIN)
+  async remove(@Request() req, @Param('id') id: string) {
+    return await this.votingService.remove(+id, req.user)
+  }
+}

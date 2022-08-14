@@ -9,6 +9,22 @@ import { Group } from '../groups/entities/group.entity'
 import { Course } from '../courses/entities/course.entity'
 import { plainToClass } from 'class-transformer'
 import { CreateCourseResponseDto } from '../courses/dto/create-course-response.dto'
+import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
+import { IPaginationOptions } from 'nestjs-typeorm-paginate'
+import { paginateAndPlainToClass } from '../../utils/paginate'
+import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
+
+export enum VotingColumns {
+  ID = 'id',
+  GROUPS = 'groups',
+  START_DATE = 'startDate',
+  END_DATE = 'endDate',
+  REQUIRED_COURSES = 'requiredCourses',
+  NOT_REQUIRES_COURSES = 'notRequiredCourses',
+}
+
+export const VOTING_COLUMN_LIST = enumToArray(VotingColumns)
+export const VOTING_COLUMNS = enumToObject(VotingColumns)
 
 @Injectable()
 export class VotingService {
@@ -73,8 +89,68 @@ export class VotingService {
     })
   }
 
-  async findAll() {
-    return await `This action returns all voting`
+  async findAll(
+    options: IPaginationOptions,
+    search: string,
+    id: number,
+    orderByColumn: VotingColumns,
+    orderBy: 'ASC' | 'DESC',
+    name: string, //EST
+    groups: number[], //EST
+    startDate: string, //EST
+    endDate: string, //EST
+    requiredCourses: number[], //EST
+    notRequiredCourses: number[], //EST
+  ) {
+    orderByColumn = orderByColumn || VotingColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(VOTING_COLUMNS, orderByColumn)
+    const query = this.votingRepository.createQueryBuilder()
+
+    if (name) {
+      query.andWhere('Voting.name=:name', { name })
+    }
+
+    if (startDate) {
+      query.andWhere('Voting.startDate=:startDate', { startDate })
+    }
+
+    if (endDate) {
+      query.andWhere('Voting.endDate=:endDate', { endDate })
+    }
+
+    if (groups) {
+      if (typeof groups === 'object') {
+        query.andWhere('Group.id IN (:...groups)', { groups })
+      } else {
+        if (typeof groups === 'string') {
+          query.andWhere('Group.id=:groupId', { groupId: groups })
+        }
+      }
+    }
+
+    if (requiredCourses) {
+      if (typeof requiredCourses === 'object') {
+        query.andWhere('Course.id IN (:...requiredCourses)', { requiredCourses })
+      } else {
+        if (typeof requiredCourses === 'string') {
+          query.andWhere('Course.id=:requiredCourseId', { requiredCourseId: requiredCourses })
+        }
+      }
+    }
+
+    if (notRequiredCourses) {
+      if (typeof notRequiredCourses === 'object') {
+        query.andWhere('Course.id IN (:...notRequiredCourses)', { notRequiredCourses })
+      } else {
+        if (typeof notRequiredCourses === 'string') {
+          query.andWhere('Course.id=:notRequiredCourseId', { notRequiredCourseId: notRequiredCourses })
+        }
+      }
+    }
+    query.orderBy(`Course.${orderByColumn}`, orderBy)
+    return await paginateAndPlainToClass(GetCourseResponseDto, query, options)
   }
 
   async findOne(id: number) {

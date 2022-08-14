@@ -75,7 +75,7 @@ export class GradesService {
       query.andWhere(`Student.id=:studentId`, { studentId })
     }
 
-    query.orderBy(`Grade.${orderByColumn}`, orderBy)
+    query.orderBy(`${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetStudentForGradeDto, query, options)
   }

@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFou
 import { plainToClass } from 'class-transformer'
 import { Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
-import { COURSE_REPOSITORY } from '../../constants'
+import { COURSE_REPOSITORY, GRADE_REPOSITORY } from '../../constants'
 import { Group } from '../groups/entities/group.entity'
 import { CreateCourseResponseDto } from './dto/create-course-response.dto'
 import { CreateCourseDto } from './dto/create-course.dto'
@@ -15,6 +15,9 @@ import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { ROLE } from '../../auth/roles/role.enum'
 import { User } from '../users/entities/user.entity'
+import { Grade } from '../grades/entities/grade.entity'
+import { Student } from '../students/entities/student.entity'
+import { GetStudentResponseDto } from '../students/dto/get-student-response.dto'
 
 export enum CourseColumns {
   ID = 'id',
@@ -36,6 +39,8 @@ export class CoursesService {
   constructor(
     @Inject(COURSE_REPOSITORY)
     private coursesRepository: Repository<Course>,
+    @Inject(GRADE_REPOSITORY)
+    private gradeRepository: Repository<Grade>,
   ) {}
 
   async create(createCourseDto: CreateCourseDto, tokenDto?: TokenDto) {
@@ -56,14 +61,17 @@ export class CoursesService {
         ids: groupIds,
       })
       .getMany()
+
     if (!groups || groups.length !== groupIds.length) {
       throw new BadRequestException(`Група з іd: ${createCourseDto.groups} не існує.`)
     }
 
     const teacher = await User.findOne(createCourseDto.teacher)
+
     if (!teacher) {
       throw new BadRequestException(`Вчитель з іd: ${createCourseDto.teacher} не існує.`)
     }
+
     if (teacher.role !== ROLE.TEACHER) {
       throw new BadRequestException(`Користувач має роль: ${teacher.role} не teacher`)
     }
@@ -74,6 +82,32 @@ export class CoursesService {
 
     if (!course) {
       throw new BadRequestException(`Не вишло створити предмет`)
+    } else {
+      const students = plainToClass(GetStudentResponseDto, await Student.createQueryBuilder().getMany(), {
+        excludeExtraneousValues: true,
+      })
+
+      students.map(async (student) => {
+        const { sub } = tokenDto || {}
+        const candidate_student = await Student.findOne(student.id)
+        const candidate_course = await Course.findOne(course.id)
+
+        if (!candidate_student) {
+          throw new BadRequestException(`Студента з id: ${candidate_student.id} не знайдено.`)
+        }
+
+        if (!candidate_course) {
+          throw new BadRequestException(`Предмета з  id: ${candidate_course.id} не знайдено .`)
+        }
+
+        await this.gradeRepository
+          .create({
+            grade: null,
+            student: candidate_student,
+            course: candidate_course,
+          })
+          .save({ data: { id: sub } })
+      })
     }
 
     return plainToClass(CreateCourseResponseDto, course, {
@@ -84,6 +118,7 @@ export class CoursesService {
   async findAll(
     options: IPaginationOptions,
     search: string,
+    id: number,
     orderByColumn: CourseColumns,
     orderBy: 'ASC' | 'DESC',
     name: string,
@@ -118,6 +153,10 @@ export class CoursesService {
       )
     }
 
+    if (id) {
+      query.andWhere(`Course.id=:id`, { id })
+    }
+
     if (name) {
       query.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${name}%` })
     }
@@ -130,19 +169,11 @@ export class CoursesService {
       query.andWhere('Course.lectureHours=:lectureHours', { lectureHours })
     }
 
-    if (isActive === false) {
+    if (isActive) {
       query.andWhere('Course.isActive=:isActive', { isActive })
     }
 
-    if (isActive === true) {
-      query.andWhere('Course.isActive=:isActive', { isActive })
-    }
-
-    if (isExam === true) {
-      query.andWhere('Course.isExam=:isExam', { isExam })
-    }
-
-    if (isExam === false) {
+    if (isExam) {
       query.andWhere('Course.isExam=:isExam', { isExam })
     }
 
@@ -150,11 +181,7 @@ export class CoursesService {
       query.andWhere('Course.semester=:semester', { semester })
     }
 
-    if (isCompulsory === true) {
-      query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
-    }
-
-    if (isCompulsory === false) {
+    if (isCompulsory) {
       query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
     }
 
@@ -287,7 +314,7 @@ export class CoursesService {
     const orderByColumn = CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
-    const courses = await this.coursesRepository.createQueryBuilder('Course').where('Course.isActive=true')
+    const courses = await this.coursesRepository.createQueryBuilder('Course')
 
     if (courseName) {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })

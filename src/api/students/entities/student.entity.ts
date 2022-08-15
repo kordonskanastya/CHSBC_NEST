@@ -5,6 +5,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -12,6 +13,7 @@ import {
 import { Entities } from '../../common/enums'
 import { Group } from '../../groups/entities/group.entity'
 import { User } from '../../users/entities/user.entity'
+import { Course } from '../../courses/entities/course.entity'
 
 @Entity({ name: Entities.STUDENTS })
 export class Student extends BaseEntity {
@@ -36,10 +38,13 @@ export class Student extends BaseEntity {
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
 
-  @ManyToOne(() => Group, (group) => group.students)
+  @ManyToOne(() => Group, (group) => group.students, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   group: Group
 
   @OneToOne(() => User, (user) => user.id, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn()
   user: User
+
+  @OneToMany(() => Course, (course) => course.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  courses: Course[]
 }

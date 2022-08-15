@@ -1,7 +1,19 @@
-import { BaseEntity, Column, Entity, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import {
+  BaseEntity,
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm'
 import { Entities } from '../../common/enums'
 import { Group } from '../../groups/entities/group.entity'
 import { User } from '../../users/entities/user.entity'
+import { Student } from '../../students/entities/student.entity'
+import { Grade } from '../../grades/entities/grade.entity'
+import { Vote } from '../../voting/entities/voting.entity'
 
 @Entity({ name: Entities.COURSES })
 export class Course extends BaseEntity {
@@ -32,7 +44,19 @@ export class Course extends BaseEntity {
   @ManyToOne(() => User, (user) => user.courses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   teacher: User
 
-  @ManyToMany(() => Group, (group) => group.courses)
+  @ManyToMany(() => Group, (group) => group.courses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinTable()
   groups: Group[]
+
+  @ManyToOne(() => Student, (student) => student.courses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  student: Student
+
+  @OneToMany(() => Grade, (grade) => grade.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  grades: Grade[]
+
+  @ManyToOne(() => Vote, (vote) => vote.requiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  voteRequiredCourses: Vote
+
+  @ManyToOne(() => Vote, (vote) => vote.notRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  voteNotRequiredCourses: Vote
 }

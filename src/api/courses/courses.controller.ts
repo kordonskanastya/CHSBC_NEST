@@ -10,8 +10,6 @@ import {
   Query,
   Request,
   UseGuards,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
@@ -33,7 +31,7 @@ import { UpdateCourseDto } from './dto/update-course.dto'
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Unauthorized' })
 @ApiForbiddenResponse({ description: 'Forbidden resource. Check user role' })
-@MinRole(ROLE.TEACHER)
+@MinRole(ROLE.STUDENT)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
@@ -45,7 +43,6 @@ export class CoursesController {
   }
 
   @Get()
-  @UsePipes(new ValidationPipe({ transform: false }))
   @MinRole(ROLE.STUDENT)
   @ApiPaginatedResponse(GetCourseResponseDto, {
     description: 'Find all courses',
@@ -56,6 +53,7 @@ export class CoursesController {
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: CourseColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'search', required: false },
+    { name: 'id', required: false },
     { name: 'name', required: false },
     { name: 'credits', required: false },
     { name: 'lectureHours', required: false },
@@ -72,6 +70,7 @@ export class CoursesController {
     @Query('orderByColumn') orderByColumn: CourseColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('search') search: string,
+    @Query('id') id: number,
     @Query('name') name: string,
     @Query('credits') credits: number,
     @Query('lectureHours') lectureHours: number,
@@ -83,7 +82,7 @@ export class CoursesController {
     @Query('groups') groups: number[],
   ) {
     if (limit <= 0) {
-      throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
+      throw new BadRequestException('Не правильний ліміт має бути 1 - 100.')
     }
     return await this.coursesService.findAll(
       {
@@ -93,6 +92,7 @@ export class CoursesController {
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       search,
+      id,
       orderByColumn,
       orderBy,
       name,
@@ -143,7 +143,7 @@ export class CoursesController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `/${Entities.COURSES}`,
+        route: `/${Entities.COURSES}/course/dropdown`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       orderBy,

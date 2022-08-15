@@ -12,10 +12,9 @@ export class Grade extends BaseEntity {
   @JoinColumn()
   student: Student
 
-  @ManyToOne(() => Course)
-  @JoinColumn()
-  course: Course
-
   @Column({ default: 0, nullable: false })
   grade: number
+
+  @ManyToOne(() => Course, (course) => course.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  course: Course
 }

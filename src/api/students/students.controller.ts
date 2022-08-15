@@ -1,29 +1,29 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Request,
-  Query,
   BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
   UseGuards,
-  ValidationPipe,
   UsePipes,
+  ValidationPipe,
 } from '@nestjs/common'
 import { StudentColumns, StudentsService } from './students.service'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { MinRole } from '../../auth/roles/roles.decorator'
 import {
-  ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiTags,
-  ApiBearerAuth,
-  ApiForbiddenResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger'
 import { ROLE } from '../../auth/roles/role.enum'
@@ -37,6 +37,8 @@ import { DeleteResponseDto } from '../common/dto/delete-response.dto'
 import { capitalize } from '../../utils/common'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { RolesGuard } from '../../auth/roles/roles.guard'
+import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
+import { UserColumns } from '../users/users.service'
 
 @Controller(Entities.STUDENTS)
 @ApiTags(capitalize(Entities.STUDENTS))
@@ -68,6 +70,7 @@ export class StudentsController {
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: StudentColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'search', required: false },
+    { name: 'id', required: false },
     { name: 'firstName', required: false },
     { name: 'lastName', required: false },
     { name: 'patronymic', required: false },
@@ -83,6 +86,7 @@ export class StudentsController {
     @Query('orderByColumn') orderByColumn: StudentColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('search') search: string,
+    @Query('id') id: number,
     @Query('firstName') firstName: string,
     @Query('lastName') lastName: string,
     @Query('email') email: string,
@@ -91,10 +95,9 @@ export class StudentsController {
     @Query('orderNumber') orderNumber: string,
     @Query('edeboId') edeboId: string,
     @Query('isFullTime') isFullTime: boolean,
-    @Request() req,
   ) {
     if (limit <= 0) {
-      throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
+      throw new BadRequestException('Неправильний ліміт. Має бути від 1 до 100.')
     }
 
     return this.studentsService.findAll(
@@ -107,6 +110,7 @@ export class StudentsController {
       search,
       orderByColumn,
       orderBy,
+      id,
       firstName,
       lastName,
       patronymic,
@@ -115,7 +119,6 @@ export class StudentsController {
       orderNumber,
       edeboId,
       isFullTime,
-      req.user,
     )
   }
 
@@ -139,5 +142,35 @@ export class StudentsController {
   @ApiOkResponse({ description: 'Remove student (only admin)' })
   async remove(@Request() req, @Param('id') id: string): Promise<DeleteResponseDto> {
     return this.studentsService.remove(+id, req.user.sub)
+  }
+
+  @Get('dropdown/name')
+  @MinRole(ROLE.TEACHER)
+  @ApiOkResponse({
+    description: 'Find students full names (ПІБ) for dropdown filter',
+    type: GetUserDropdownResponseDto,
+  })
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+  ])
+  async dropdownStudent(
+    @Query('page') page = 1,
+    @Query('orderByColumn') orderByColumn: StudentColumns,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+  ) {
+    return await this.studentsService.dropdownStudent(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.STUDENTS}/dropdown/name`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+    )
   }
 }

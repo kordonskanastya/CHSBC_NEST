@@ -53,10 +53,10 @@ export class User extends BaseEntity {
   @Column({ type: 'jsonb', nullable: true })
   refreshTokenList: RefreshTokenList
 
-  @OneToMany(() => Course, (course) => course.teacher)
+  @OneToMany(() => Course, (course) => course.teacher, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   courses: Course[]
 
-  @OneToMany(() => Group, (group) => group.curator)
+  @OneToMany(() => Group, (group) => group.curator, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   groups: Group[]
 
   @BeforeInsert()

@@ -34,12 +34,12 @@ export class Group extends BaseEntity {
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
 
-  @OneToMany(() => Student, (student) => student.group)
+  @OneToMany(() => Student, (student) => student.group, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   students: Student[]
 
   @ManyToOne(() => User, (user) => user.groups, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   curator: User
 
-  @ManyToMany(() => Course, (course) => course.groups)
+  @ManyToMany(() => Course, (course) => course.groups, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   courses: Course[]
 }

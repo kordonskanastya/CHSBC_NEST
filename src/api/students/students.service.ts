@@ -4,7 +4,7 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { ROLE } from '../../auth/roles/role.enum'
-import { STUDENT_REPOSITORY } from '../../constants'
+import { GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
@@ -16,6 +16,10 @@ import { CreateStudentDto } from './dto/create-student.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { Student } from './entities/student.entity'
+import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
+import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
+import { Course } from '../courses/entities/course.entity'
+import { Grade } from '../grades/entities/grade.entity'
 
 export enum StudentColumns {
   ID = 'id',
@@ -25,6 +29,8 @@ export enum StudentColumns {
   ORDER_NUMBER = 'orderNumber',
   EDEBO_ID = 'edeboId',
   IS_FULL_TIME = 'isFullTime',
+  UPDATED = 'updated',
+  CREATED = 'created',
 }
 
 export const STUDENT_COLUMN_LIST = enumToArray(StudentColumns)
@@ -33,10 +39,13 @@ export const STUDENT_COLUMNS = enumToObject(StudentColumns)
 @Injectable()
 export class StudentsService {
   User: any
+
   constructor(
     @Inject(STUDENT_REPOSITORY)
     private studentsRepository: Repository<Student>,
     private usersService: UsersService,
+    @Inject(GRADE_REPOSITORY)
+    private gradeRepository: Repository<Grade>,
   ) {}
 
   async create(
@@ -72,6 +81,28 @@ export class StudentsService {
         },
       })
 
+    if (!student) {
+      throw new BadRequestException('Не вишло створити студента')
+    } else {
+      const courses = plainToClass(GetCourseResponseDto, await Course.createQueryBuilder().getMany(), {
+        excludeExtraneousValues: true,
+      })
+      const students = await plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
+      for (const course of courses) {
+        const candidate_course = await Course.findOne(course.id)
+        for (const student of [students]) {
+          const candidate_student = await Student.findOne(student.id)
+          await this.gradeRepository
+            .create({
+              grade: 0,
+              student: candidate_student,
+              course: candidate_course,
+            })
+            .save({ data: { id: sub } })
+        }
+      }
+    }
+
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,
     })
@@ -82,6 +113,7 @@ export class StudentsService {
     search: string,
     orderByColumn: StudentColumns,
     orderBy: 'ASC' | 'DESC',
+    id: number,
     firstName: string,
     lastName: string,
     patronymic: string,
@@ -90,7 +122,6 @@ export class StudentsService {
     orderNumber: string,
     edeboId: string,
     isFullTime: boolean,
-    token: TokenDto,
   ) {
     orderByColumn = orderByColumn || StudentColumns.ID
     orderBy = orderBy || 'ASC'
@@ -115,15 +146,22 @@ export class StudentsService {
       )
     }
 
+    if (id) {
+      query.andWhere('Student.id=:id', { id })
+    }
+
     if (firstName) {
       query.andWhere(`LOWER(user.firstName) LIKE LOWER('%${firstName}%')`)
     }
+
     if (lastName) {
       query.andWhere(`LOWER(user.lastName) LIKE LOWER('%${lastName}%')`)
     }
+
     if (patronymic) {
       query.andWhere(`LOWER(user.patronymic) LIKE LOWER('%${patronymic}%')`)
     }
+
     if (email) {
       query.andWhere(`LOWER(user.email) LIKE LOWER('%${email}%')`)
     }
@@ -206,9 +244,9 @@ export class StudentsService {
     { user, ...updateStudentDto }: UpdateStudentDto,
     { sub, role }: TokenDto,
   ): Promise<UpdateResponseDto> {
-    if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
-      throw new BadRequestException(`Студент з таким ЕДЕБО : ${updateStudentDto.edeboId} вже існує`)
-    }
+    // if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
+    //   throw new BadRequestException(`Студент з таким ЕДЕБО : ${updateStudentDto.edeboId} вже існує`)
+    // }
 
     if (user && user.role && user.role !== ROLE.STUDENT) {
       throw new BadRequestException(`Студент не може бути змінений , бо має роль :${user.role}`)
@@ -282,5 +320,18 @@ export class StudentsService {
     } catch (e) {
       throw new NotAcceptableException('Не вишло видалити студента. ' + e.message)
     }
+  }
+
+  async dropdownStudent(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: StudentColumns) {
+    orderByColumn = orderByColumn || StudentColumns.ID
+
+    const students = await this.studentsRepository
+      .createQueryBuilder()
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('User.role=:role', { role: ROLE.STUDENT })
+
+    students.orderBy(`Student.${orderByColumn}`, orderBy)
+
+    return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
   }
 }

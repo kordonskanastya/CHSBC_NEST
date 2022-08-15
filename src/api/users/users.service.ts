@@ -29,11 +29,8 @@ import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto
 import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
 import { GroupsColumns } from '../groups/groups.service'
-import { Group } from '../groups/entities/group.entity'
-import { CreateGroupResponseDto } from '../groups/dto/create-group-response.dto'
 import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
 import { CourseColumns } from '../courses/courses.service'
-import { GetTeacherCourseDropdownDto } from './dto/get-teacher-course-dropdown.dto'
 import { UpdateTeacherDto } from './dto/update-teacher.dto'
 import { Course } from '../courses/entities/course.entity'
 import { CreateTeacherDto } from './dto/create-teacher.dto'
@@ -78,7 +75,7 @@ export class UsersService {
         .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
+      throw new BadRequestException(`Користувач з емейлом : ${registerDto.email} Вже існує.`)
     }
 
     const user = await this.usersRepository.create(registerDto).save({
@@ -120,7 +117,7 @@ export class UsersService {
         .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
         .getOne()
     ) {
-      throw new BadRequestException(`This user email: ${registerDto.email} already exist.`)
+      throw new BadRequestException(`Користувач з емейлом : ${registerDto.email} Вже існує.`)
     }
     const courseIds = Array.isArray(createTeacherDto.courses) ? createTeacherDto.courses : [createTeacherDto.courses]
     const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
@@ -198,15 +195,15 @@ export class UsersService {
     }
 
     if (firstName) {
-      query.andWhere(`LOWER(User.firstName) LIKE LOWER('%${firstName}%')`)
+      query.andWhere(`LOWER(User.firstName) LIKE LOWER(:firstname)`, { firstname: `%${firstName}%` })
     }
 
     if (lastName) {
-      query.andWhere(`LOWER(User.lastName) LIKE LOWER('%${lastName}%')`)
+      query.andWhere(`LOWER(User.lastName) LIKE LOWER(':lastname)`, { lastname: `%${lastName}%` })
     }
 
     if (patronymic) {
-      query.andWhere(`LOWER(User.patronymic) LIKE LOWER('%${patronymic}%')`)
+      query.andWhere(`LOWER(User.patronymic) LIKE LOWER(':patronymic')`, { patronymic: `%${patronymic}%` })
     }
 
     if (name) {
@@ -236,7 +233,6 @@ export class UsersService {
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetUserResponseDto> {
-    const { sub, role } = token || {}
     const user = await this.selectUsers().andWhere({ id }).getOne()
 
     if (!user) {
@@ -295,6 +291,7 @@ export class UsersService {
       success: true,
     }
   }
+
   async updateTeacher(id: number, updateTeacherDto: UpdateTeacherDto, { sub }: TokenDto): Promise<UpdateResponseDto> {
     if (
       await this.usersRepository
@@ -442,39 +439,6 @@ export class UsersService {
     return await paginateAndPlainToClass(GetUserDropdownResponseDto, teachers, options)
   }
 
-  async dropdownCurator(
-    options: IPaginationOptions,
-    orderBy: 'ASC' | 'DESC',
-    search: string,
-  ): Promise<GetUserDropdownResponseDto[]> {
-    const orderByColumn = GroupsColumns.ID
-    orderBy = orderBy || 'ASC'
-
-    const curators = this.usersRepository
-      .createQueryBuilder()
-      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.CURATOR })
-
-    if (search) {
-      curators.andWhere(
-        // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER("firstName") , LOWER("lastName") , LOWER("patronymic")  ,LOWER(concat("firstName",' ', "lastName",' ',"patronymic"))) LIKE LOWER(:search)`,
-        {
-          search: `%${search}%`,
-        },
-      )
-    }
-    curators.orderBy(`User.${orderByColumn}`, orderBy)
-
-    return (await curators.getMany()).map((curator) => {
-      return {
-        id: curator.id,
-        firstName: curator.firstName,
-        lastName: curator.lastName,
-        patronymic: curator.patronymic,
-      }
-    })
-  }
-
   async dropdownAdmin(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: UserColumns) {
     orderByColumn = orderByColumn || UserColumns.ID
 
@@ -485,24 +449,6 @@ export class UsersService {
     administrators.orderBy(`User.${orderByColumn}`, orderBy)
 
     return paginateAndPlainToClass(GetUserDropdownResponseDto, administrators, options)
-  }
-
-  async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
-    const students = await this.usersRepository
-      .createQueryBuilder()
-      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.STUDENT })
-      .getMany()
-
-    const resultArr = students.map((student) => {
-      return {
-        id: student.id,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        patronymic: student.patronymic,
-      }
-    })
-
-    return resultArr
   }
 
   async getGroupsByCurator(options: IPaginationOptions, groupName: string, curatorId: number, orderBy: 'ASC' | 'DESC') {
@@ -524,27 +470,7 @@ export class UsersService {
     }
 
     query.orderBy(`Group.${orderByColumn}`, orderBy)
-
     return await paginateAndPlainToClass(GetGroupsByCuratorDto, query, options)
-  }
-
-  async dropdownGroupName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', groupName: string) {
-    const orderByColumn = GroupsColumns.ID
-    orderBy = orderBy || 'ASC'
-
-    const query = Group.createQueryBuilder('Group')
-      .leftJoinAndSelect('Group.curator', 'User')
-      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
-
-    if (groupName) {
-      query
-        .andWhere("(Group.deletedOrderNumber  <> '') IS  TRUE")
-        .orWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${groupName}%` })
-    }
-
-    query.orderBy(`User.${orderByColumn}`, orderBy)
-
-    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
 
   async getCoursesByTeacher(
@@ -591,43 +517,17 @@ export class UsersService {
     return await paginateAndPlainToClass(GetCoursesByTeacherDto, query, options)
   }
 
-  async teacherDropdownCourseName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', courseName: string) {
-    const orderByColumn = CourseColumns.ID
-    orderBy = orderBy || 'ASC'
-
-    const query = User.createQueryBuilder('User')
+  async findOneTeacher(id: number, token?: TokenDto) {
+    const user = this.selectUsers()
       .leftJoinAndSelect('User.courses', 'Course')
-      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
+      .andWhere('User.id=:id', { id })
+      .andWhere('User.role=:role', { role: ROLE.TEACHER })
+      .getOne()
 
-    if (courseName) {
-      query.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
+    if (!user) {
+      throw new NotFoundException(`Користувач з id: ${id} не існує `)
     }
 
-    query.orderBy(`User.${orderByColumn}`, orderBy)
-
-    return await paginateAndPlainToClass(GetTeacherCourseDropdownDto, query, options)
-  }
-
-  async teacherDropdownGroupName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', groupName: string) {
-    const orderByColumn = GroupsColumns.ID
-    orderBy = orderBy || 'ASC'
-
-    const query = Group.createQueryBuilder('Group')
-      .leftJoin('Group.courses', 'Course')
-      .leftJoin('Course.teacher', 'User')
-      .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
-
-    if (groupName) {
-      query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${groupName}%` })
-    }
-
-    query.orderBy(`Group.${orderByColumn}`, orderBy)
-    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
-  }
-  async teacherDropdownCompulsory() {
-    return [
-      { id: 1, type: `Обов'язковий`, isCompulsory: true },
-      { id: 2, type: 'Вибірковий', isCompulsory: false },
-    ]
+    return plainToClass(GetCoursesByTeacherDto, user, { excludeExtraneousValues: true })
   }
 }

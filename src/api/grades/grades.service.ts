@@ -1,7 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
-import { CreateGradeDto } from './dto/create-grade.dto'
 import { UpdateGradeDto } from './dto/update-grade.dto'
-import { GRADE_REPOSITORY } from '../../constants'
+import { GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { Repository } from 'typeorm'
 import { Grade } from './entities/grade.entity'
 import { plainToClass } from 'class-transformer'
@@ -15,6 +14,7 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetGradeResponseDto } from './dto/get-grade-response.dto'
 import { Group } from '../groups/entities/group.entity'
 import { GroupsColumns } from '../groups/groups.service'
+import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto'
 
 export enum GradeColumns {
   ID = 'Grade.id',
@@ -31,33 +31,9 @@ export class GradesService {
   constructor(
     @Inject(GRADE_REPOSITORY)
     private gradeRepository: Repository<Grade>,
+    @Inject(STUDENT_REPOSITORY)
+    private studentRepository: Repository<Student>,
   ) {}
-
-  async create(createGradeDto: CreateGradeDto, tokenDto?: TokenDto) {
-    const { sub } = tokenDto || {}
-    const student = await Student.findOne(createGradeDto.studentId)
-    const course = await Course.findOne(createGradeDto.courseId)
-
-    if (!student) {
-      throw new BadRequestException(`This student id: ${createGradeDto.studentId} not found.`)
-    }
-
-    if (!course) {
-      throw new BadRequestException(`This course id: ${createGradeDto.courseId} not found.`)
-    }
-
-    const grade = await this.gradeRepository
-      .create({
-        ...createGradeDto,
-        student,
-        course,
-      })
-      .save({ data: { id: sub } })
-
-    return plainToClass(CreateGroupResponseDto, grade, {
-      excludeExtraneousValues: true,
-    })
-  }
 
   async findAll(
     options: IPaginationOptions,
@@ -73,22 +49,22 @@ export class GradesService {
 
     checkColumnExist(GRADE_COLUMN_LIST, orderByColumn)
 
-    const query = this.gradeRepository
-      .createQueryBuilder('Grade')
-      .leftJoinAndSelect('Grade.student', 'Student')
-      .leftJoinAndSelect('Grade.course', 'Course')
-      .leftJoinAndSelect('Student.group', 'Group')
+    const query = this.studentRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.courses', 'Course')
+      .leftJoinAndSelect('Course.grades', 'Grade')
+
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
-        `concat_ws(' ',"studentId","courseId","grade") LIKE LOWER(:search)`,
+        `concat_ws(' ',"Student.id","Course.id") LIKE LOWER(:search)`,
         {
           search: `%${search}%`,
         },
       )
     }
     if (grade) {
-      query.andWhere(`grade = :grade`, { grade })
+      query.andWhere(`Grade.grade = :grade`, { grade })
     }
 
     if (courseId) {
@@ -101,14 +77,14 @@ export class GradesService {
 
     query.orderBy(`${orderByColumn}`, orderBy)
 
-    return await paginateAndPlainToClass(GetGradeResponseDto, query, options)
+    return await paginateAndPlainToClass(GetStudentForGradeDto, query, options)
   }
 
   async findOne(id: number) {
     const student = await Student.findOne(id)
 
     if (!student) {
-      throw new BadRequestException(`This student id: ${id} not found.`)
+      throw new BadRequestException(`Студента з  id: ${id} не знайдено.`)
     }
 
     const grades = await this.gradeRepository
@@ -118,9 +94,11 @@ export class GradesService {
       .leftJoinAndSelect('Student.group', 'Group')
       .andWhere('Student.id=:id', { id })
       .getMany()
+
     if (!grades) {
       throw new NotFoundException(`Not found grades id: ${id}`)
     }
+
     return plainToClass(GetGradeResponseDto, grades, {
       excludeExtraneousValues: true,
     })
@@ -133,11 +111,11 @@ export class GradesService {
     const course = await Course.findOne(updateGradeDto.courseId)
 
     if (!student) {
-      throw new BadRequestException(`This student id: ${id} not found.`)
+      throw new BadRequestException(`Студента з id: ${id} не знайдено .`)
     }
 
     if (!course) {
-      throw new BadRequestException(`This course id: ${updateGradeDto.courseId} not found.`)
+      throw new BadRequestException(`Предмета з id: ${updateGradeDto.courseId} не знайдено.`)
     }
 
     const grade = await this.gradeRepository
@@ -181,6 +159,7 @@ export class GradesService {
       success: true,
     }
   }
+
   async dropdownGroup(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', groupName: string) {
     const orderByColumn = GroupsColumns.ID
     orderBy = orderBy || 'ASC'

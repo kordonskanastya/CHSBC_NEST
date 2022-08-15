@@ -105,7 +105,8 @@ export class VotingService {
     orderByColumn = orderByColumn || VotingColumns.ID
     orderBy = orderBy || 'ASC'
 
-    checkColumnExist(VOTING_COLUMNS, orderByColumn)
+    checkColumnExist(VOTING_COLUMN_LIST, orderByColumn)
+
     const query = this.votingRepository.createQueryBuilder()
 
     if (name) {
@@ -149,7 +150,7 @@ export class VotingService {
         }
       }
     }
-    query.orderBy(`Course.${orderByColumn}`, orderBy)
+    query.orderBy(`Voting.${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetCourseResponseDto, query, options)
   }
 

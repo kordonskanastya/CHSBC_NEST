@@ -48,14 +48,18 @@ export class VotingController {
     description: 'Find all courses',
   })
   @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: VotingColumns },
+    { name: 'search', required: false },
+    { name: 'id', required: false },
+    { name: 'name', required: false },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'groups', required: false, type: 'array' },
     { name: 'startDate', required: false, type: 'startDate' },
     { name: 'endDate', required: false, type: 'endDate' },
     { name: 'requiredCourses', required: false, type: 'array' },
     { name: 'notRequiredCourses', required: false, type: 'array' },
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
   ])
   async findAll(
     @Query('page') page = 1,

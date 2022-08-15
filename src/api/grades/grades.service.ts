@@ -11,7 +11,6 @@ import { Student } from '../students/entities/student.entity'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
-import { GetGradeResponseDto } from './dto/get-grade-response.dto'
 import { Group } from '../groups/entities/group.entity'
 import { GroupsColumns } from '../groups/groups.service'
 import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto'
@@ -53,7 +52,6 @@ export class GradesService {
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.courses', 'Course')
       .leftJoinAndSelect('Course.grades', 'Grade')
-
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
@@ -87,19 +85,17 @@ export class GradesService {
       throw new BadRequestException(`Студента з  id: ${id} не знайдено.`)
     }
 
-    const grades = await this.gradeRepository
-      .createQueryBuilder('Grade')
-      .leftJoinAndSelect('Grade.student', 'Student')
-      .leftJoinAndSelect('Grade.course', 'Course')
-      .leftJoinAndSelect('Student.group', 'Group')
+    const grades = await this.studentRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.courses', 'Course')
+      .leftJoinAndSelect('Course.grades', 'Grade')
       .andWhere('Student.id=:id', { id })
       .getMany()
 
     if (!grades) {
       throw new NotFoundException(`Not found grades id: ${id}`)
     }
-
-    return plainToClass(GetGradeResponseDto, grades, {
+    return plainToClass(GetStudentForGradeDto, grades, {
       excludeExtraneousValues: true,
     })
   }

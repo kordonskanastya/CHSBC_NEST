@@ -1,9 +1,10 @@
-import { Expose, Type } from 'class-transformer'
+import { Expose } from 'class-transformer'
 import { ApiProperty } from '@nestjs/swagger'
 
 export class GetGradeResponseDto {
   @Expose()
-  @Type(() => GetGradeResponseDto)
+  id: number
+  @Expose()
   @ApiProperty({ type: Number })
-  grade: GetGradeResponseDto
+  grade: number
 }

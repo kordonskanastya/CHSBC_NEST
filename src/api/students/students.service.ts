@@ -17,9 +17,9 @@ import { GetStudentResponseDto } from './dto/get-student-response.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { Student } from './entities/student.entity'
 import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
-import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
-import { Course } from '../courses/entities/course.entity'
 import { Grade } from '../grades/entities/grade.entity'
+import { Course } from '../courses/entities/course.entity'
+import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
 
 export enum StudentColumns {
   ID = 'id',
@@ -87,22 +87,24 @@ export class StudentsService {
       const courses = plainToClass(GetCourseResponseDto, await Course.createQueryBuilder().getMany(), {
         excludeExtraneousValues: true,
       })
-      const students = await plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
-      for (const course of courses) {
-        const candidate_course = await Course.findOne(course.id)
-        for (const student of [students]) {
-          const candidate_student = await Student.findOne(student.id)
-          await this.gradeRepository
-            .create({
-              grade: 0,
-              student: candidate_student,
-              course: candidate_course,
-            })
-            .save({ data: { id: sub } })
+      if (await Grade.createQueryBuilder().where('Grade.studentId=:studentId', { studentId: student.id })) {
+        const students = await plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
+        for (const course of courses) {
+          const candidate_course = await Course.findOne(course.id)
+          for (const student of [students]) {
+            await Course.createQueryBuilder().update(Course).set({ student: students }).execute()
+            const candidate_student = await Student.findOne(student.id)
+            await this.gradeRepository
+              .create({
+                grade: 0,
+                student: candidate_student,
+                course: candidate_course,
+              })
+              .save({ data: { id: sub } })
+          }
         }
       }
     }
-
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,
     })

@@ -83,33 +83,42 @@ export class CoursesService {
     if (!course) {
       throw new BadRequestException(`Не вишло створити предмет`)
     } else {
+      const studArrayId = []
       const students = plainToClass(GetStudentResponseDto, await Student.createQueryBuilder().getMany(), {
         excludeExtraneousValues: true,
       })
-
-      students.map(async (student) => {
-        const { sub } = tokenDto || {}
-        const candidate_student = await Student.findOne(student.id)
-        const candidate_course = await Course.findOne(course.id)
-
-        if (!candidate_student) {
-          throw new BadRequestException(`Студента з id: ${candidate_student.id} не знайдено.`)
-        }
-
-        if (!candidate_course) {
-          throw new BadRequestException(`Предмета з  id: ${candidate_course.id} не знайдено .`)
-        }
-
-        await this.gradeRepository
-          .create({
-            grade: null,
-            student: candidate_student,
-            course: candidate_course,
+      students.map((studentId) => studArrayId.push(studentId.id))
+      console.log(studArrayId)
+      if (
+        await Grade.createQueryBuilder()
+          .where('Grade.courseId=:courseId', {
+            courseId: course.id,
           })
-          .save({ data: { id: sub } })
-      })
-    }
+          .andWhere('Grade.studentId IN (...:studentId)', { studentId: studArrayId })
+      ) {
+      } else {
+        students.map(async (student) => {
+          const { sub } = tokenDto || {}
+          const candidate_student = await Student.findOne(student.id)
+          const candidate_course = await Course.findOne(course.id)
+          if (!candidate_student) {
+            throw new BadRequestException(`Студента з id: ${candidate_student.id} не знайдено.`)
+          }
 
+          if (!candidate_course) {
+            throw new BadRequestException(`Предмета з  id: ${candidate_course.id} не знайдено .`)
+          }
+          await Course.createQueryBuilder().update(Course).set({ student: candidate_student }).execute()
+          await this.gradeRepository
+            .create({
+              grade: 0,
+              student: candidate_student,
+              course: candidate_course,
+            })
+            .save({ data: { id: sub } })
+        })
+      }
+    }
     return plainToClass(CreateCourseResponseDto, course, {
       excludeExtraneousValues: true,
     })

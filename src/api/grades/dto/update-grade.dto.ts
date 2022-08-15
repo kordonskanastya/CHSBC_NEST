@@ -1,4 +1,4 @@
-import { IsNumber, Max, Min } from 'class-validator'
+import { IsNumber, IsString, Max, Min } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger'
 
 export class UpdateGradeDto {
@@ -11,4 +11,8 @@ export class UpdateGradeDto {
   @Max(100)
   @ApiProperty({ example: 1 })
   grade: number
+
+  @IsString()
+  @ApiProperty({ example: 'Просто захотелось' })
+  reasonForChange: string
 }

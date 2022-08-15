@@ -11,9 +11,4 @@ export class GetStudentForGradeDto {
   @Type(() => GetCourseGradeDto)
   @ApiProperty({ type: GetCourseGradeDto })
   courses: GetCourseGradeDto
-
-  // @Expose()
-  // @Type(() => GetUserResponseDto)
-  // @ApiProperty({ type: GetUserResponseDto })
-  // user: GetUserResponseDto
 }

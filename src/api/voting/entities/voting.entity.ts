@@ -7,10 +7,10 @@ export class Vote extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
 
-  @Column()
+  @Column({ nullable: true })
   startDate: string
 
-  @Column()
+  @Column({ nullable: true })
   endDate: string
 
   @OneToMany(() => Course, (course) => course.voteRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })

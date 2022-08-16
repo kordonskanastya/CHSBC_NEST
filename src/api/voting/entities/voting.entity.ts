@@ -1,6 +1,7 @@
 import { BaseEntity, Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import { Entities } from '../../common/enums'
 import { Course } from '../../courses/entities/course.entity'
+import { Group } from '../../groups/entities/group.entity'
 
 @Entity({ name: Entities.VOTING })
 export class Vote extends BaseEntity {
@@ -12,6 +13,9 @@ export class Vote extends BaseEntity {
 
   @Column({ nullable: true })
   endDate: string
+
+  @OneToMany(() => Group, (group) => group.vote, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  groups: Group[]
 
   @OneToMany(() => Course, (course) => course.voteRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   requiredCourses: Course[]

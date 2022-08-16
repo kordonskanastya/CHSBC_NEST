@@ -12,7 +12,7 @@ import { CreateCourseResponseDto } from '../courses/dto/create-course-response.d
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { paginateAndPlainToClass } from '../../utils/paginate'
-import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
+import { GetVotingDto } from './dto/get-voting.dto'
 
 export enum VotingColumns {
   ID = 'id',
@@ -82,7 +82,13 @@ export class VotingService {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.notRequiredCourses} не існує.`)
     }
 
-    const vote = await this.votingRepository.create().save({ data: { id: sub } })
+    const vote = await this.votingRepository
+      .create({
+        ...createVotingDto,
+        requiredCourses,
+        notRequiredCourses,
+      })
+      .save({ data: { id: sub } })
 
     return plainToClass(CreateCourseResponseDto, vote, {
       excludeExtraneousValues: true,
@@ -95,19 +101,23 @@ export class VotingService {
     id: number,
     orderByColumn: VotingColumns,
     orderBy: 'ASC' | 'DESC',
-    name: string, //EST
-    groups: number[], //EST
-    startDate: string, //EST
-    endDate: string, //EST
-    requiredCourses: number[], //EST
-    notRequiredCourses: number[], //EST
+    name: string,
+    groups: number[],
+    startDate: string,
+    endDate: string,
+    requiredCourses: number[],
+    notRequiredCourses: number[],
   ) {
     orderByColumn = orderByColumn || VotingColumns.ID
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(VOTING_COLUMN_LIST, orderByColumn)
 
-    const query = this.votingRepository.createQueryBuilder()
+    const query = this.votingRepository
+      .createQueryBuilder()
+      //.leftJoinAndSelect('Vote.groups,', 'Group')
+      .leftJoinAndSelect('Vote.requiredCourses', 'RequiredCourses')
+      .leftJoinAndSelect('Vote.notRequiredCourses', 'NotRequiredCourses')
 
     if (name) {
       query.andWhere('Voting.name=:name', { name })
@@ -150,8 +160,8 @@ export class VotingService {
         }
       }
     }
-    query.orderBy(`Voting.${orderByColumn}`, orderBy)
-    return await paginateAndPlainToClass(GetCourseResponseDto, query, options)
+    query.orderBy(`Vote.${orderByColumn}`, orderBy)
+    return await paginateAndPlainToClass(GetVotingDto, query, options)
   }
 
   async findOne(id: number) {

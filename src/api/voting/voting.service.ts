@@ -115,6 +115,7 @@ export class VotingService {
     checkColumnExist(VOTING_COLUMN_LIST, orderByColumn)
 
     const query = this.votingRepository
+
       .createQueryBuilder('Vote')
       .leftJoinAndSelect('Vote.groups', 'Group')
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')

@@ -52,6 +52,7 @@ export class GradesService {
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.courses', 'Course')
       .leftJoinAndSelect('Course.grades', 'Grade')
+      .leftJoinAndSelect('Student.user', 'User')
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
@@ -74,7 +75,6 @@ export class GradesService {
     }
 
     query.orderBy(`${orderByColumn}`, orderBy)
-
     return await paginateAndPlainToClass(GetStudentForGradeDto, query, options)
   }
 
@@ -85,12 +85,13 @@ export class GradesService {
       throw new BadRequestException(`Студента з  id: ${id} не знайдено.`)
     }
 
-    const grades = await this.studentRepository
+    const grades = this.studentRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.courses', 'Course')
       .leftJoinAndSelect('Course.grades', 'Grade')
+      .leftJoinAndSelect('Student.user', 'User')
       .andWhere('Student.id=:id', { id })
-      .getMany()
+      .getOne()
 
     if (!grades) {
       throw new NotFoundException(`Not found grades id: ${id}`)

@@ -469,8 +469,23 @@ export class UsersService {
       query.andWhere('Group.curatorId = :curatorId', { curatorId })
     }
 
-    query.orderBy(`Group.${orderByColumn}`, orderBy)
-    return await paginateAndPlainToClass(GetGroupsByCuratorDto, query, options)
+    query.orderBy('User.id', orderBy)
+
+    const sortFunction =
+      orderBy === 'DESC'
+        ? ({ [orderByColumn]: a }, { [orderByColumn]: b }) => (a > b ? -1 : a < b ? 1 : 0)
+        : ({ [orderByColumn]: a }, { [orderByColumn]: b }) => (a < b ? -1 : a > b ? 1 : 0)
+
+    return await paginateAndPlainToClass(GetGroupsByCuratorDto, query, options, ({ items, ...query }) => ({
+      items: items.map((data: { groups: { id: number }[] }) => {
+        if (data.groups && data.groups.length) {
+          data.groups.sort(sortFunction)
+        }
+
+        return data
+      }),
+      ...query,
+    }))
   }
 
   async getCoursesByTeacher(

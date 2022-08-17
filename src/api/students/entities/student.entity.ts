@@ -14,6 +14,7 @@ import { Entities } from '../../common/enums'
 import { Group } from '../../groups/entities/group.entity'
 import { User } from '../../users/entities/user.entity'
 import { Course } from '../../courses/entities/course.entity'
+import { GradeHistory } from '../../grades-history/entities/grades-history.entity'
 import { Vote } from '../../voting/entities/voting.entity'
 
 @Entity({ name: Entities.STUDENTS })
@@ -48,6 +49,9 @@ export class Student extends BaseEntity {
 
   @OneToMany(() => Course, (course) => course.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   courses: Course[]
+
+  @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  gradesHistories: GradeHistory[]
 
   @ManyToOne(() => Vote, (vote) => vote.students, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   vote: Vote

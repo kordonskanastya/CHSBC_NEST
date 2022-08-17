@@ -15,6 +15,7 @@ import { GroupsModule } from './api/groups/groups.module'
 import { CoursesModule } from './api/courses/courses.module'
 import { GradesModule } from './api/grades/grades.module'
 import { VotingModule } from './api/voting/voting.module'
+import { GradesHistoryModule } from './api/grades-history/grades-history.module'
 
 const stream = configService.getEnvName() === 'local' ? process.stdout : fs.createWriteStream('my-file.log')
 const logLevel = configService.getEnvName() === 'local' ? 'debug' : 'error'
@@ -44,6 +45,7 @@ const logLevel = configService.getEnvName() === 'local' ? 'debug' : 'error'
     StudentsModule,
     CoursesModule,
     GradesModule,
+    GradesHistoryModule,
     VotingModule,
   ],
   controllers: [AppController],

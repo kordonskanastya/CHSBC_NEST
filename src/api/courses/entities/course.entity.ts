@@ -16,6 +16,7 @@ import { User } from '../../users/entities/user.entity'
 import { Student } from '../../students/entities/student.entity'
 import { Grade } from '../../grades/entities/grade.entity'
 import { Vote } from '../../voting/entities/voting.entity'
+import { GradeHistory } from '../../grades-history/entities/grades-history.entity'
 
 @Entity({ name: Entities.COURSES })
 export class Course extends BaseEntity {
@@ -67,4 +68,7 @@ export class Course extends BaseEntity {
 
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
+
+  @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.course, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  gradesHistories: GradeHistory[]
 }

@@ -39,8 +39,6 @@ import { ApiPaginatedResponse } from '../../utils/paginate'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
 import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
-import { UpdateTeacherDto } from './dto/update-teacher.dto'
-import { CreateTeacherDto } from './dto/create-teacher.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -58,14 +56,6 @@ export class UsersController {
   @ApiBadRequestResponse({ description: 'Bad request' })
   async create(@Request() req, @Body() createUserDto: CreateUserDto): Promise<CreateUserResponseDto> {
     return await this.usersService.create(createUserDto, req.user)
-  }
-
-  @Post('teacher/create')
-  @MinRole(ROLE.ADMIN)
-  @ApiCreatedResponse({ type: CreateUserResponseDto })
-  @ApiBadRequestResponse({ description: 'Bad request' })
-  async createTeacher(@Request() req, @Body() createUserDto: CreateTeacherDto) {
-    return await this.usersService.createTeacher(createUserDto, req.user)
   }
 
   @Get()
@@ -293,21 +283,5 @@ export class UsersController {
       groups,
       courses,
     )
-  }
-
-  @Patch('/teacher/:id([0-9]+)')
-  @MinRole(ROLE.ADMIN)
-  async updateTeacher(
-    @Request() req,
-    @Param('id') id: number,
-    @Body() updateTeacherDto: UpdateTeacherDto,
-  ): Promise<UpdateResponseDto> {
-    return await this.usersService.updateTeacher(+id, updateTeacherDto, req.user)
-  }
-
-  @Get('/teacher/:id([0-9]+)')
-  @MinRole(ROLE.ADMIN)
-  async findOneTeacher(@Request() req, @Param('id') id: number) {
-    return await this.usersService.findOneTeacher(+id, req.user)
   }
 }

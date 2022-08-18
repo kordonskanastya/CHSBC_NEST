@@ -84,7 +84,8 @@ export class VotingService {
 
     const vote = await this.votingRepository
       .create({
-        ...createVotingDto,
+        startDate: new Date(createVotingDto.startDate).toISOString(),
+        endDate: new Date(createVotingDto.endDate).toISOString(),
         requiredCourses,
         notRequiredCourses,
         groups,
@@ -162,8 +163,13 @@ export class VotingService {
         }
       }
     }
-    query.loadRelationCountAndMap('Vote.allStudents', 'Group.students', 'allStudents')
+
+    query
+      .leftJoin('Group.students', 'Student')
+      .loadRelationCountAndMap('Vote.students', 'Group.students')
+      .addSelect((qb) => qb.select('Sum(Vote.students)').from('Group.students', 'l'))
     query.orderBy(`Vote.${orderByColumn}`, orderBy)
+    console.log(await query.getMany())
     return await paginateAndPlainToClass(GetVotingDto, query, options)
   }
 

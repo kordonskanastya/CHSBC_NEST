@@ -39,14 +39,14 @@ export class AuthService {
     const user: User = await this.usersService.findOneByEmail(email)
 
     if (!user) {
-      throw new UnauthorizedException('Логін введено невірно,перевірте і спробуйте знову.')
+      throw new UnauthorizedException('Логін або пароль введено невірно,перевірте і спробуйте знову.')
     }
 
     if (user && (await bcrypt.compare(pass, user.password))) {
       return user
     }
 
-    throw new UnauthorizedException('Пароль введено невірно,перевірте і спробуйте знову.')
+    throw new UnauthorizedException('Логін або пароль введено невірно,перевірте і спробуйте знову.')
   }
 
   createRefreshToken(id: number) {
@@ -191,7 +191,15 @@ export class AuthService {
     }
   }
 
-  async changePassword(userId: number, { password }: ChangePasswordDto, userData: TokenDto) {
-    return await this.usersService.update(userId, { password }, userData)
+  async changePassword(changePasswordDto: ChangePasswordDto, userData: TokenDto) {
+    const user = await this.usersService.findOneByEmail(changePasswordDto.email)
+    if (!user) {
+      throw new BadRequestException(`Користувача з email ${changePasswordDto.email} не знайдено`)
+    }
+    if (await bcrypt.compare(changePasswordDto.oldPassword, user.password)) {
+      return await this.usersService.update(user.id, { password: changePasswordDto.newPassword }, userData)
+    } else {
+      throw new BadRequestException('Старий пароль не співпадає')
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Request, Body, Patch, Get, HttpCode, BadRequestException } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Get, HttpCode, Patch, Post, Request, UseGuards } from '@nestjs/common'
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -71,6 +71,6 @@ export class AuthController {
   @MinRole(ROLE.STUDENT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
-    return await this.authService.changePassword(+req.user.sub, changePasswordDto, req.user)
+    return await this.authService.changePassword(changePasswordDto, req.user)
   }
 }

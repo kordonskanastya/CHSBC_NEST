@@ -7,11 +7,11 @@ export class CreateVotingDto {
   groups: number[]
 
   @IsString()
-  @ApiProperty({ required: true, example: '2022-08-13 19:12:57' })
+  @ApiProperty({ required: true, example: '2022-08-13T17:12:57.000Z' })
   startDate: string
 
   @IsString()
-  @ApiProperty({ required: true, example: '2022-08-14 19:12:57' })
+  @ApiProperty({ required: true, example: '2022-08-14T17:12:57.000Z' })
   endDate: string
 
   @IsArray()

@@ -31,9 +31,6 @@ import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
 import { GroupsColumns } from '../groups/groups.service'
 import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
 import { CourseColumns } from '../courses/courses.service'
-import { UpdateTeacherDto } from './dto/update-teacher.dto'
-import { Course } from '../courses/entities/course.entity'
-import { CreateTeacherDto } from './dto/create-teacher.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -96,60 +93,6 @@ export class UsersService {
     })
 
     return plainToClass(CreateUserResponseDto, user, {
-      excludeExtraneousValues: true,
-    })
-  }
-
-  async createTeacher(createTeacherDto: CreateTeacherDto, tokenDto?: TokenDto) {
-    const { sub } = tokenDto || {}
-    const registerDto = {
-      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 8),
-      email: createTeacherDto.email,
-      role: ROLE.TEACHER,
-      firstName: createTeacherDto.firstName,
-      lastName: createTeacherDto.lastName,
-      patronymic: createTeacherDto.patronymic,
-    }
-
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
-        .getOne()
-    ) {
-      throw new BadRequestException(`Користувач з емейлом : ${registerDto.email} Вже існує.`)
-    }
-    const courseIds = Array.isArray(createTeacherDto.courses) ? createTeacherDto.courses : [createTeacherDto.courses]
-    const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
-      ids: courseIds,
-    })
-
-    if (!courses || (await courses.getMany()).length !== courseIds.length) {
-      throw new BadRequestException(`Предмет з іd: ${createTeacherDto.courses} не існує .`)
-    }
-    const user = await this.usersRepository.create(registerDto).save({
-      data: {
-        id: sub,
-      },
-    })
-
-    if (!user) {
-      throw new BadRequestException(`Не вишло створити користувача`)
-    }
-    courses
-      .update(Course)
-      .set({
-        teacher: user,
-      })
-      .execute()
-    this.authService.sendMailCreatePassword({
-      firstName: registerDto.firstName,
-      lastName: registerDto.lastName,
-      password: registerDto.password,
-      email: registerDto.email,
-    })
-
-    return plainToClass(GetCoursesByTeacherDto, user, {
       excludeExtraneousValues: true,
     })
   }
@@ -289,61 +232,6 @@ export class UsersService {
 
     return {
       success: true,
-    }
-  }
-
-  async updateTeacher(id: number, updateTeacherDto: UpdateTeacherDto, { sub }: TokenDto): Promise<UpdateResponseDto> {
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: updateTeacherDto.email })
-        .andWhere({ id: Not(id) })
-        .getOne()
-    ) {
-      throw new BadRequestException(`Користувач з такою електронною поштою: ${updateTeacherDto.email} вже існує.`)
-    }
-
-    const teacher = await this.selectUsers().andWhere({ id }).getOne()
-
-    if (!teacher) {
-      throw new NotFoundException(`Вчитель з id: ${id} не знайдений`)
-    }
-    if (teacher.role !== ROLE.TEACHER) {
-      throw new BadRequestException(`Користувач не є вчителем ,він є ${teacher.role}`)
-    }
-
-    Object.assign(teacher, updateTeacherDto)
-
-    if (updateTeacherDto.courses) {
-      const courseIds = Array.isArray(updateTeacherDto.courses) ? updateTeacherDto.courses : [updateTeacherDto.courses]
-      const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
-        ids: courseIds,
-      })
-
-      if (!courses || (await courses.getMany()).length !== courseIds.length) {
-        throw new BadRequestException(`Предмет з іd: ${updateTeacherDto.courses} не існує .`)
-      }
-
-      courses
-        .update(Course)
-        .set({
-          teacher: teacher,
-        })
-        .execute()
-
-      try {
-        await teacher.save({
-          data: {
-            id: sub,
-          },
-        })
-      } catch (e) {
-        throw new NotAcceptableException('Не вишло зберегти користувача. ' + e.message)
-      }
-
-      return {
-        success: true,
-      }
     }
   }
 
@@ -530,19 +418,5 @@ export class UsersService {
 
     query.orderBy(`User.${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetCoursesByTeacherDto, query, options)
-  }
-
-  async findOneTeacher(id: number, token?: TokenDto) {
-    const user = this.selectUsers()
-      .leftJoinAndSelect('User.courses', 'Course')
-      .andWhere('User.id=:id', { id })
-      .andWhere('User.role=:role', { role: ROLE.TEACHER })
-      .getOne()
-
-    if (!user) {
-      throw new NotFoundException(`Користувач з id: ${id} не існує `)
-    }
-
-    return plainToClass(GetCoursesByTeacherDto, user, { excludeExtraneousValues: true })
   }
 }

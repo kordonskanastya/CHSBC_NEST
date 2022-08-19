@@ -8,11 +8,11 @@ export class CreateVotingDto {
 
   @IsString()
   @ApiProperty({ required: true, example: '2022-08-13T17:12:57.000Z' })
-  startDate: string
+  startDate: Date
 
   @IsString()
   @ApiProperty({ required: true, example: '2022-08-14T17:12:57.000Z' })
-  endDate: string
+  endDate: Date
 
   @IsArray()
   @ApiProperty({ required: true, example: [1, 2] })

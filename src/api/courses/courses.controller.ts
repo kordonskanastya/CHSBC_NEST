@@ -107,13 +107,13 @@ export class CoursesController {
     )
   }
 
-  @Get(':id')
+  @Get(':id([0-9]+)')
   @MinRole(ROLE.STUDENT)
   async findOne(@Param('id') id: string): Promise<GetCourseResponseDto> {
     return await this.coursesService.findOne(+id)
   }
 
-  @Patch(':id')
+  @Patch(':id([0-9]+)')
   @MinRole(ROLE.ADMIN)
   async update(@Request() req, @Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
     return await this.coursesService.update(+id, updateCourseDto, req.user)

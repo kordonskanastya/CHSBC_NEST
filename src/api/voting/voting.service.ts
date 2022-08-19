@@ -13,6 +13,7 @@ import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
+import { Student } from '../students/entities/student.entity'
 
 export enum VotingColumns {
   ID = 'id',
@@ -81,6 +82,12 @@ export class VotingService {
     if (!notRequiredCourses || notRequiredCourses.length !== notRequiredCoursesIds.length) {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.notRequiredCourses} не існує.`)
     }
+    const students = await Student.createQueryBuilder()
+      .leftJoin('Student.group', 'Group')
+      .where(`Group.id IN (:...ids)`, {
+        ids: groupIds,
+      })
+      .getMany()
 
     const vote = await this.votingRepository
       .create({
@@ -89,6 +96,7 @@ export class VotingService {
         requiredCourses,
         notRequiredCourses,
         groups,
+        students,
       })
       .save({ data: { id: sub } })
 
@@ -116,11 +124,11 @@ export class VotingService {
     checkColumnExist(VOTING_COLUMN_LIST, orderByColumn)
 
     const query = this.votingRepository
-
       .createQueryBuilder('Vote')
       .leftJoinAndSelect('Vote.groups', 'Group')
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
+      .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'students')
 
     if (name) {
       query.andWhere('Vote.name=:name', { name })
@@ -163,11 +171,6 @@ export class VotingService {
         }
       }
     }
-
-    query
-      .leftJoin('Group.students', 'Student')
-      .loadRelationCountAndMap('Vote.students', 'Group.students')
-      .addSelect((qb) => qb.select('Sum(Vote.students)').from('Group.students', 'l'))
     query.orderBy(`Vote.${orderByColumn}`, orderBy)
     console.log(await query.getMany())
     return await paginateAndPlainToClass(GetVotingDto, query, options)
@@ -179,6 +182,7 @@ export class VotingService {
       .leftJoinAndSelect('Vote.groups', 'Group')
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
+      .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'students')
       .where('Vote.id=:id', { id })
       .getOne()
 

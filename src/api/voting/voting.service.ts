@@ -60,7 +60,7 @@ export class VotingService {
       : [createVotingDto.notRequiredCourses]
 
     if (requiredCoursesIds.length === 0 || notRequiredCoursesIds.length === 0) {
-      throw new BadRequestException(`Херня`)
+      throw new BadRequestException(`Предмет  з іd: ${createVotingDto.groups} не існує. `)
     }
 
     const requiredCourses = await Course.createQueryBuilder()
@@ -82,6 +82,7 @@ export class VotingService {
     if (!notRequiredCourses || notRequiredCourses.length !== notRequiredCoursesIds.length) {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.notRequiredCourses} не існує.`)
     }
+
     const students = await Student.createQueryBuilder()
       .leftJoin('Student.group', 'Group')
       .where(`Group.id IN (:...ids)`, {
@@ -91,6 +92,7 @@ export class VotingService {
 
     const vote = await this.votingRepository
       .create({
+        ...createVotingDto,
         startDate: new Date(createVotingDto.startDate).toISOString(),
         endDate: new Date(createVotingDto.endDate).toISOString(),
         requiredCourses,

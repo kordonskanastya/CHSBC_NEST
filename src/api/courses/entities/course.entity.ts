@@ -1,12 +1,14 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm'
 import { Entities } from '../../common/enums'
 import { Group } from '../../groups/entities/group.entity'
@@ -59,4 +61,10 @@ export class Course extends BaseEntity {
 
   @ManyToOne(() => Vote, (vote) => vote.notRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   voteNotRequiredCourses: Vote
+
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  created: Date
+
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  updated: Date
 }

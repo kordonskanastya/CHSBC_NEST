@@ -274,7 +274,7 @@ export class StudentsService {
       .andWhere({ id })
       .getOne()
 
-    Object.assign(student, updateStudentDto)
+    Object.assign(student, { ...updateStudentDto, group })
 
     try {
       if (user) {

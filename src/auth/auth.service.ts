@@ -18,11 +18,11 @@ import { LoginUserResultDto } from './dto/result/login-user.dto'
 import { MailerService } from '@nestjs-modules/mailer'
 import { SentMessageInfo } from 'nodemailer'
 import { RegisterDto } from './dto/register.dto'
-import { CreateUserResponseDto } from '../api/users/dto/create-user-response.dto'
 import * as bcrypt from 'bcrypt'
 import { plainToClass } from 'class-transformer'
 import { TokenDto } from './dto/token.dto'
 import { SendMailDto } from './dto/send-mail.dto'
+import { AuthUserDto } from './dto/auth-user.dto'
 
 @Injectable()
 export class AuthService {
@@ -39,14 +39,14 @@ export class AuthService {
     const user: User = await this.usersService.findOneByEmail(email)
 
     if (!user) {
-      throw new UnauthorizedException('The username you entered is not correct, please check your entry and try again.')
+      throw new UnauthorizedException('Логін або пароль введено невірно,перевірте і спробуйте знову.')
     }
 
     if (user && (await bcrypt.compare(pass, user.password))) {
       return user
     }
 
-    throw new UnauthorizedException('The password you entered is not correct, please check your entry and try again.')
+    throw new UnauthorizedException('Логін або пароль введено невірно,перевірте і спробуйте знову.')
   }
 
   createRefreshToken(id: number) {
@@ -61,7 +61,7 @@ export class AuthService {
     )
   }
 
-  async login({ id, role }: CreateUserResponseDto) {
+  async login({ id, role }: AuthUserDto) {
     const refreshToken = this.createRefreshToken(id)
 
     await this.usersService.addRefreshToken(id, refreshToken)
@@ -92,7 +92,7 @@ export class AuthService {
     const user = await this.usersService.findOne(id)
 
     return this.login(
-      plainToClass(CreateUserResponseDto, user, {
+      plainToClass(AuthUserDto, user, {
         excludeExtraneousValues: true,
       }),
     )
@@ -136,14 +136,11 @@ export class AuthService {
     const user = await this.usersService.findOneByEmail(forgotPasswordDto.email)
 
     if (!user) {
-      throw new NotFoundException('User with this email not found. Contact your manager for assistance.')
+      throw new NotFoundException('Користувача з таким email не знайдено')
     }
 
     if (!user.email) {
-      throw new BadRequestException(
-        'Email not found. We did not find any emails associated with this Username. ' +
-          'Contact your manager for assistance.',
-      )
+      throw new BadRequestException('Не знайдено жодної електронної адреси для цього користувача.')
     }
 
     const password = Buffer.from(Math.random().toString()).toString('base64').substring(0, 8)
@@ -194,7 +191,15 @@ export class AuthService {
     }
   }
 
-  async changePassword(userId: number, { password }: ChangePasswordDto, userData: TokenDto) {
-    return await this.usersService.update(userId, { password }, userData)
+  async changePassword(changePasswordDto: ChangePasswordDto, userData: TokenDto) {
+    const user = await this.usersService.findOneByEmail(changePasswordDto.email)
+    if (!user) {
+      throw new BadRequestException(`Користувача з email ${changePasswordDto.email} не знайдено`)
+    }
+    if (await bcrypt.compare(changePasswordDto.oldPassword, user.password)) {
+      return await this.usersService.update(user.id, { password: changePasswordDto.newPassword }, userData)
+    } else {
+      throw new BadRequestException('Старий пароль не співпадає')
+    }
   }
 }

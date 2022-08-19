@@ -28,9 +28,4 @@ export class GetLoggerUserDto {
   @IsString()
   @ApiProperty({ type: String })
   role: string
-
-  @Expose()
-  @IsBoolean()
-  @ApiProperty({ type: Boolean })
-  status: boolean
 }

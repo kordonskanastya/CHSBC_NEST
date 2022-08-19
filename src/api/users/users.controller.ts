@@ -1,17 +1,17 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Request,
-  Query,
   BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common'
-import { UserColumns, USER_COLUMN_LIST, UsersService } from './users.service'
+import { USER_COLUMN_LIST, UserColumns, UsersService } from './users.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import {
@@ -37,6 +37,8 @@ import { Entities } from '../common/enums'
 import { capitalize } from '../../utils/common'
 import { ApiPaginatedResponse } from '../../utils/paginate'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
+import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
+import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -67,12 +69,13 @@ export class UsersController {
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'search', required: false },
+    { name: 'id', required: false },
     { name: 'name', required: false },
     { name: 'firstName', required: false },
     { name: 'lastName', required: false },
+    { name: 'patronymic', required: false },
     { name: 'email', required: false },
     { name: 'role', required: false },
-    { name: 'status', required: false },
   ])
   async findAll(
     @Query('page') page = 1,
@@ -80,16 +83,16 @@ export class UsersController {
     @Query('orderByColumn') orderByColumn: UserColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('search') search: string,
+    @Query('id') id: number,
     @Query('name') name: string,
     @Query('firstName') firstName: string,
     @Query('lastName') lastName: string,
+    @Query('patronymic') patronymic: string,
     @Query('email') email: string,
     @Query('role') role: string,
-    @Query() props,
-    @Request() req,
   ) {
     if (limit <= 0) {
-      throw new BadRequestException('Invalid limit. Must be in the range 1 - 100.')
+      throw new BadRequestException('Неправильний ліміт. Має бути від 1 до 100.')
     }
 
     return await this.usersService.findAll(
@@ -102,12 +105,13 @@ export class UsersController {
       search,
       orderByColumn,
       orderBy,
+      id,
       name,
       firstName,
       lastName,
+      patronymic,
       email,
       role,
-      props.status,
     )
   }
 
@@ -157,22 +161,34 @@ export class UsersController {
 
   @Get('dropdown/teacher')
   @MinRole(ROLE.TEACHER)
-  @ApiOkResponse({
+  @ApiPaginatedResponse(GetUserDropdownResponseDto, {
     description: 'Find teachers full names (ПІБ) for dropdown filter',
-    type: GetUserDropdownResponseDto,
   })
-  async dropdownTeacher(): Promise<GetUserDropdownResponseDto[]> {
-    return await this.usersService.dropdownTeacher()
-  }
-
-  @Get('dropdown/curator')
-  @MinRole(ROLE.TEACHER)
-  @ApiOkResponse({
-    description: 'Find curators full names (ПІБ) for dropdown filter',
-    type: GetUserDropdownResponseDto,
-  })
-  async dropdownCurator(): Promise<GetUserDropdownResponseDto[]> {
-    return await this.usersService.dropdownCurator()
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'teacherName', required: false },
+  ])
+  async dropdownTeacher(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: UserColumns,
+    @Query('teacherName') teacherName: string,
+  ) {
+    return await this.usersService.dropdownTeacher(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+      teacherName,
+    )
   }
 
   @Get('dropdown/admin')
@@ -181,17 +197,100 @@ export class UsersController {
     description: 'Find admins full names (ПІБ) for dropdown filter',
     type: GetUserDropdownResponseDto,
   })
-  async dropdownAdmin(): Promise<GetUserDropdownResponseDto[]> {
-    return await this.usersService.dropdownAdmin()
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+  ])
+  async dropdownAdmin(
+    @Query('page') page = 1,
+    @Query('orderByColumn') orderByColumn: UserColumns,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+  ) {
+    return await this.usersService.dropdownAdmin(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.GROUPS}`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+    )
   }
 
-  @Get('dropdown/student')
-  @MinRole(ROLE.TEACHER)
-  @ApiOkResponse({
-    description: 'Find students full names (ПІБ) for dropdown filter',
-    type: GetUserDropdownResponseDto,
+  @Get('/curator')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetGroupResponseDto, {
+    description: 'Find all groups by curator',
   })
-  async dropdownStudent(): Promise<GetUserDropdownResponseDto[]> {
-    return await this.usersService.dropdownStudent()
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'curatorId', required: false, description: 'curator`s id' },
+    { name: 'groupName', required: false, description: 'group`s name' },
+  ])
+  async findGroupByCurator(
+    @Query('curatorId') curatorId: number,
+    @Query('groupName') groupName: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: UserColumns,
+  ) {
+    return await this.usersService.getGroupsByCurator(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.USERS}/curator`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      groupName,
+      curatorId,
+      orderBy,
+      orderByColumn,
+    )
+  }
+
+  @Get('/teacher')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetCoursesByTeacherDto, {
+    description: 'Find all courses by teacher',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'teacherId', required: false },
+    { name: 'groups', required: false, type: 'array' },
+    { name: 'courses', required: false, type: 'array' },
+  ])
+  async findCoursesByTeacher(
+    @Query('teacherId') teacherId: number,
+    @Query('groups') groups: number[],
+    @Query('courses') courses: number[],
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: UserColumns,
+  ) {
+    return await this.usersService.getCoursesByTeacher(
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.USERS}/teacher`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+      teacherId,
+      groups,
+      courses,
+    )
   }
 }

@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsBoolean, IsNumber, IsObject, IsString, MaxLength, MinLength } from 'class-validator'
-import { Expose, Transform, TransformFnParams, Type } from 'class-transformer'
+import { Expose, Type } from 'class-transformer'
 import { GetUserResponseDto } from '../../users/dto/get-user-response.dto'
-import { GetGroupResponseDto } from '../../groups/dto/get-group-response.dto'
+import { CreateGroupResponseDto } from '../../groups/dto/create-group-response.dto'
 
 export class GetStudentResponseDto {
   @Expose()
@@ -14,9 +13,9 @@ export class GetStudentResponseDto {
   dateOfBirth: string
 
   @Expose()
-  @Type(() => GetGroupResponseDto)
-  @ApiProperty({ type: GetGroupResponseDto })
-  group: GetGroupResponseDto
+  @Type(() => CreateGroupResponseDto)
+  @ApiProperty({ type: CreateGroupResponseDto })
+  group: CreateGroupResponseDto
 
   @Expose()
   @Type(() => GetUserResponseDto)

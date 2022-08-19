@@ -8,5 +8,9 @@ export class CreateUserResponseDto {
 
   @Expose()
   @ApiProperty({ type: String })
+  name: string
+
+  @Expose()
+  @ApiProperty({ type: String })
   role: string
 }

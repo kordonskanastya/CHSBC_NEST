@@ -4,7 +4,7 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { ROLE } from '../../auth/roles/role.enum'
-import { STUDENT_REPOSITORY } from '../../constants'
+import { GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { UpdateResponseDto } from '../common/dto/update-response.dto'
@@ -16,6 +16,10 @@ import { CreateStudentDto } from './dto/create-student.dto'
 import { GetStudentResponseDto } from './dto/get-student-response.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
 import { Student } from './entities/student.entity'
+import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
+import { Grade } from '../grades/entities/grade.entity'
+import { Course } from '../courses/entities/course.entity'
+import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
 
 export enum StudentColumns {
   ID = 'id',
@@ -25,6 +29,8 @@ export enum StudentColumns {
   ORDER_NUMBER = 'orderNumber',
   EDEBO_ID = 'edeboId',
   IS_FULL_TIME = 'isFullTime',
+  UPDATED = 'updated',
+  CREATED = 'created',
 }
 
 export const STUDENT_COLUMN_LIST = enumToArray(StudentColumns)
@@ -32,29 +38,33 @@ export const STUDENT_COLUMNS = enumToObject(StudentColumns)
 
 @Injectable()
 export class StudentsService {
+  User: any
+
   constructor(
     @Inject(STUDENT_REPOSITORY)
     private studentsRepository: Repository<Student>,
     private usersService: UsersService,
+    @Inject(GRADE_REPOSITORY)
+    private gradeRepository: Repository<Grade>,
   ) {}
 
   async create(
     { user, ...createStudentDto }: CreateStudentDto,
     tokenDto?: TokenDto,
   ): Promise<CreateStudentResponseDto> {
-    const { sub, role } = tokenDto
+    const { sub } = tokenDto
 
     const group = await Group.findOne(createStudentDto.groupId)
     if (!group) {
-      throw new BadRequestException(`This group with Id: ${createStudentDto.groupId} doesn't exist.`)
+      throw new BadRequestException(`Групу з id: ${createStudentDto.groupId},не знайдено`)
     }
 
     if (await this.findOneByEdeboId(createStudentDto.edeboId)) {
-      throw new BadRequestException(`This student edeboId: ${createStudentDto.edeboId} already exist.`)
+      throw new BadRequestException(`Студент з таким ЕДЕБО : ${createStudentDto.edeboId} вже існує`)
     }
 
     if (user.role !== ROLE.STUDENT) {
-      throw new BadRequestException(`This user can't be registered as student because has role: ${user.role}`)
+      throw new BadRequestException(`Користувач не може бути зареєстрованим ,бо має роль: ${user.role}`)
     }
 
     const { id: userId } = await this.usersService.create(user, tokenDto)
@@ -71,6 +81,30 @@ export class StudentsService {
         },
       })
 
+    if (!student) {
+      throw new BadRequestException('Не вишло створити студента')
+    } else {
+      const courses = plainToClass(GetCourseResponseDto, await Course.createQueryBuilder().getMany(), {
+        excludeExtraneousValues: true,
+      })
+      if (await Grade.createQueryBuilder().where('Grade.studentId=:studentId', { studentId: student.id })) {
+        const students = await plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
+        for (const course of courses) {
+          const candidate_course = await Course.findOne(course.id)
+          for (const student of [students]) {
+            await Course.createQueryBuilder().update(Course).set({ student: students }).execute()
+            const candidate_student = await Student.findOne(student.id)
+            await this.gradeRepository
+              .create({
+                grade: 0,
+                student: candidate_student,
+                course: candidate_course,
+              })
+              .save({ data: { id: sub } })
+          }
+        }
+      }
+    }
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,
     })
@@ -81,11 +115,15 @@ export class StudentsService {
     search: string,
     orderByColumn: StudentColumns,
     orderBy: 'ASC' | 'DESC',
-    group: string,
+    id: number,
+    firstName: string,
+    lastName: string,
+    patronymic: string,
+    email: string,
+    group: number,
     orderNumber: string,
     edeboId: string,
     isFullTime: boolean,
-    token: TokenDto,
   ) {
     orderByColumn = orderByColumn || StudentColumns.ID
     orderBy = orderBy || 'ASC'
@@ -96,6 +134,9 @@ export class StudentsService {
       .createQueryBuilder('student')
       .leftJoinAndSelect('student.user', 'user')
       .leftJoinAndSelect('student.group', 'group')
+      .where('user.role = :role', {
+        role: 'student',
+      })
 
     if (search) {
       query.andWhere(
@@ -107,8 +148,30 @@ export class StudentsService {
       )
     }
 
+    if (id) {
+      query.andWhere('Student.id=:id', { id })
+    }
+
+    if (firstName) {
+      query.andWhere(`LOWER(user.firstName) LIKE LOWER('%${firstName}%')`)
+    }
+
+    if (lastName) {
+      query.andWhere(`LOWER(user.lastName) LIKE LOWER('%${lastName}%')`)
+    }
+
+    if (patronymic) {
+      query.andWhere(`LOWER(user.patronymic) LIKE LOWER('%${patronymic}%')`)
+    }
+
+    if (email) {
+      query.andWhere(`LOWER(user.email) LIKE LOWER('%${email}%')`)
+    }
+
     if (group) {
-      query.andWhere(`LOWER(student.group) LIKE LOWER('%${group}%')`)
+      query.andWhere('student.group = :group', {
+        group,
+      })
     }
 
     if (orderNumber) {
@@ -138,10 +201,10 @@ export class StudentsService {
       .getOne()
 
     if (!student) {
-      throw new NotFoundException(`Not found student id: ${id}`)
+      throw new NotFoundException(`Студента з id: ${id} не знайдено`)
     }
 
-    return plainToClass(GetStudentResponseDto, student)
+    return plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
   }
 
   async findOneByEdeboId(edeboId: string): Promise<GetStudentResponseDto> {
@@ -153,10 +216,12 @@ export class StudentsService {
       .getOne()
 
     if (student) {
-      throw new NotFoundException(`Student with this edeboid: ${edeboId}, already exist`)
+      throw new BadRequestException(`Студент з таким ЕДЕБО : ${edeboId} вже існує`)
     }
 
-    return plainToClass(GetStudentResponseDto, student)
+    return plainToClass(GetStudentResponseDto, student, {
+      excludeExtraneousValues: true,
+    })
   }
 
   async findOneByUserId(userId: number): Promise<GetStudentResponseDto> {
@@ -168,10 +233,12 @@ export class StudentsService {
       .getOne()
 
     if (!student) {
-      throw new NotFoundException(`Student with this userId: ${userId}, doesn't exist`)
+      throw new NotFoundException(`Студента з id:${userId}, не існує`)
     }
 
-    return plainToClass(GetStudentResponseDto, student)
+    return plainToClass(GetStudentResponseDto, student, {
+      excludeExtraneousValues: true,
+    })
   }
 
   async update(
@@ -179,18 +246,23 @@ export class StudentsService {
     { user, ...updateStudentDto }: UpdateStudentDto,
     { sub, role }: TokenDto,
   ): Promise<UpdateResponseDto> {
-    if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
-      throw new BadRequestException(`This student edeboId: ${updateStudentDto.edeboId} already exist.`)
+    // if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
+    //   throw new BadRequestException(`Студент з таким ЕДЕБО : ${updateStudentDto.edeboId} вже існує`)
+    // }
+
+    if (user && user.role && user.role !== ROLE.STUDENT) {
+      throw new BadRequestException(`Студент не може бути змінений , бо має роль :${user.role}`)
     }
 
     const student = await this.studentsRepository.findOne(id)
     if (!student) {
-      throw new NotFoundException(`Not found student id: ${id}`)
+      throw new NotFoundException(`Студент з id: ${id} не знайдений`)
     }
+    Object.assign(student, updateStudentDto)
 
     const group = await Group.findOne(updateStudentDto.groupId)
     if (!group) {
-      throw new BadRequestException(`This group with Id: ${updateStudentDto.groupId} doesn't exist.`)
+      throw new BadRequestException(` Група з іd: ${updateStudentDto.groupId} не існує`)
     }
 
     const {
@@ -202,17 +274,19 @@ export class StudentsService {
       .andWhere({ id })
       .getOne()
 
-    Object.assign(student, updateStudentDto)
+    Object.assign(student, { ...updateStudentDto, group })
 
     try {
-      await this.usersService.update(userId, user, { sub, role })
+      if (user) {
+        await this.usersService.update(userId, user, { sub, role })
+      }
       await student.save({
         data: {
           id: sub,
         },
       })
     } catch (e) {
-      throw new NotAcceptableException("Can't save student. " + e.message)
+      throw new NotAcceptableException('Не вишло зберегти студента. ' + e.message)
     }
     return {
       success: true,
@@ -223,7 +297,7 @@ export class StudentsService {
     const student = await this.studentsRepository.findOne(id)
 
     if (!student) {
-      throw new NotFoundException(`Not found student id: ${id}`)
+      throw new NotFoundException(`Студент з id: ${id} не знайдений `)
     }
 
     const {
@@ -246,7 +320,20 @@ export class StudentsService {
 
       return { success: true }
     } catch (e) {
-      throw new NotAcceptableException("Can't delete student. " + e.message)
+      throw new NotAcceptableException('Не вишло видалити студента. ' + e.message)
     }
+  }
+
+  async dropdownStudent(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: StudentColumns) {
+    orderByColumn = orderByColumn || StudentColumns.ID
+
+    const students = await this.studentsRepository
+      .createQueryBuilder()
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('User.role=:role', { role: ROLE.STUDENT })
+
+    students.orderBy(`Student.${orderByColumn}`, orderBy)
+
+    return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
   }
 }

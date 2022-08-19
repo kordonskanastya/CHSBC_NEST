@@ -83,3 +83,10 @@ Nest is [MIT licensed](LICENSE).
 ## Create migration
 
     env-cmd -f .env.local yarn typeorm migration:generate -n init
+
+## Create dump database
+
+    pg_dump "host=localhost port=5432 dbname=csbc user=postgres password=postgres" > dump.sql
+
+    psql --file=dump.sql --username=postgres --host=localhost --port=5432 csbc
+

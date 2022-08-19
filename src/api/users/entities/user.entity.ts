@@ -1,15 +1,18 @@
 import {
   BaseEntity,
+  BeforeInsert,
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  BeforeInsert,
 } from 'typeorm'
 import { ROLE } from '../../../auth/roles/role.enum'
 import { hashPassword } from '../users.service'
 import { Entities } from '../../common/enums'
+import { Course } from '../../courses/entities/course.entity'
+import { Group } from '../../groups/entities/group.entity'
 
 export interface RefreshToken {
   token: string
@@ -49,6 +52,12 @@ export class User extends BaseEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   refreshTokenList: RefreshTokenList
+
+  @OneToMany(() => Course, (course) => course.teacher, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  courses: Course[]
+
+  @OneToMany(() => Group, (group) => group.curator, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  groups: Group[]
 
   @BeforeInsert()
   async hashPassword() {

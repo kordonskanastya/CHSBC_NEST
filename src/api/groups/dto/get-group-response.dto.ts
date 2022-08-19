@@ -21,10 +21,6 @@ export class GetGroupResponseDto {
   orderNumber: string
 
   @Expose()
-  @ApiProperty({ type: Date })
-  updated: Date
-
-  @Expose()
-  @ApiProperty({ type: Date })
-  created: Date
+  @ApiProperty({ type: Number })
+  students: number
 }

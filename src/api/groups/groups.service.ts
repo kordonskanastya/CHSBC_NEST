@@ -36,7 +36,7 @@ export class GroupsService {
   ) {}
 
   async create(createGroupDto: CreateGroupDto, tokenDto?: TokenDto) {
-    const { sub, role } = tokenDto || {}
+    const { sub } = tokenDto || {}
     const curator = await User.findOne(createGroupDto.curatorId)
 
     const checkName = await this.groupsRepository
@@ -45,11 +45,11 @@ export class GroupsService {
       .getOne()
 
     if (checkName) {
-      throw new BadRequestException(`This group with name: ${createGroupDto.name} is exist.`)
+      throw new BadRequestException(`Група з назвою: ${createGroupDto.name} вже існує.`)
     }
 
     if (!curator || curator.role !== ROLE.CURATOR) {
-      throw new BadRequestException(`This curator id: ${createGroupDto.curatorId} not found.`)
+      throw new BadRequestException(`Не знайдено куратора з id: ${createGroupDto.curatorId}`)
     }
 
     const group = await this.groupsRepository
@@ -82,6 +82,7 @@ export class GroupsService {
     const query = this.groupsRepository
       .createQueryBuilder('Group')
       .leftJoinAndSelect('Group.curator', 'User')
+      .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
       .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
 
     if (search) {
@@ -97,7 +98,7 @@ export class GroupsService {
       query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
     }
     if (curatorId) {
-      query.where(`User.id=:curId`, { curId: curatorId })
+      query.andWhere(`User.id=:curId`, { curId: curatorId })
     }
     if (orderNumber) {
       query.andWhere(`LOWER(Group.orderNumber) LIKE LOWER(:orderNumber)`, { orderNumber: `%${orderNumber}%` })
@@ -118,10 +119,12 @@ export class GroupsService {
     const group = await this.groupsRepository
       .createQueryBuilder('Group')
       .leftJoinAndSelect('Group.curator', 'User')
+      .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
       .andWhere({ id })
       .getOne()
+
     if (!group) {
-      throw new NotFoundException(`Not found group id: ${id}`)
+      throw new NotFoundException(`Групу з id: ${id},не знайдено`)
     }
 
     return plainToClass(GetGroupResponseDto, group, {
@@ -130,7 +133,7 @@ export class GroupsService {
   }
 
   async update(id: number, updateGroupDto: UpdateExactFieldDto, tokenDto?: TokenDto) {
-    const { sub, role } = tokenDto || {}
+    const { sub } = tokenDto || {}
     if (
       await this.groupsRepository
         .createQueryBuilder()
@@ -138,24 +141,24 @@ export class GroupsService {
         .andWhere({ id: Not(id) })
         .getOne()
     ) {
-      throw new BadRequestException(`This group name: ${updateGroupDto.name} already exist.`)
+      throw new BadRequestException(`Група з назвою: ${updateGroupDto.name} вже існує.`)
     }
 
     const group = await this.groupsRepository.findOne(id)
 
     if (!group) {
-      throw new NotFoundException(`Not found group id: ${id}`)
+      throw new NotFoundException(`Групу з id: ${id},не знайдено`)
     }
 
     if (updateGroupDto.curatorId) {
       const curator = await User.findOne(updateGroupDto.curatorId)
 
       if (!curator || curator.role !== ROLE.CURATOR) {
-        throw new BadRequestException(`This curator id: ${updateGroupDto.curatorId} not found.`)
+        throw new BadRequestException(`Не знайдено куратора з id: ${updateGroupDto.curatorId}`)
       }
 
       if (!group) {
-        throw new NotFoundException(`Not found group id: ${id}`)
+        throw new NotFoundException(`Група з назвою: ${updateGroupDto.name} вже існує.`)
       }
 
       Object.assign(group, { ...updateGroupDto, curator })
@@ -166,7 +169,7 @@ export class GroupsService {
     try {
       await group.save({ data: { id: sub } })
     } catch (e) {
-      throw new NotAcceptableException("Can't save group. " + e.message)
+      throw new NotAcceptableException('Не вишло зберегти групу. ' + e.message)
     }
 
     return {
@@ -174,26 +177,21 @@ export class GroupsService {
     }
   }
 
-  async countStudents(id) {
-    return await this.groupsRepository
-      .createQueryBuilder()
-      .addSelect((subQuery) => {
-        return subQuery.select('COUNT(st.id)', 'quantity').from('students', 'st').where('st.groupId = :id', { id })
-      }, 'quantity')
-      .getRawOne()
-      .then((gr) => gr.quantity)
-  }
-
-  async dropdownName(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', name: string) {
-    const orderByColumn = GroupsColumns.ID
+  async dropdownName(options: IPaginationOptions, orderByColumn: GroupsColumns, orderBy: 'ASC' | 'DESC', name: string) {
+    orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
 
-    const query = this.groupsRepository.createQueryBuilder('Group').leftJoinAndSelect('Group.curator', 'User')
+    const query = this.groupsRepository
+      .createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.curator', 'User')
+      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
 
     if (name) {
-      query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
+      query
+        .andWhere("(Group.deletedOrderNumber  <> '') IS  TRUE")
+        .orWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
     }
 
     query.orderBy(`Group.${orderByColumn}`, orderBy)
@@ -201,8 +199,13 @@ export class GroupsService {
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
 
-  async dropdownCurators(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', search: string) {
-    const orderByColumn = GroupsColumns.ID
+  async dropdownCurators(
+    options: IPaginationOptions,
+    orderByColumn: GroupsColumns,
+    orderBy: 'ASC' | 'DESC',
+    search: string,
+  ) {
+    orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)

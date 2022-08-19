@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards, Request } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { GroupsColumns, GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { Entities } from '../common/enums'
@@ -22,6 +22,7 @@ import { RolesGuard } from '../../auth/roles/roles.guard'
 import { ApiPaginatedResponse } from '../../utils/paginate'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
 import { GetGroupResponseDto } from './dto/get-group-response.dto'
+import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
 
 @Controller(Entities.GROUPS)
 @ApiTags(capitalize(Entities.GROUPS))
@@ -93,12 +94,15 @@ export class GroupsController {
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GroupsColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'name', required: false },
   ])
   async dropdownName(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('orderByColumn') orderByColumn: GroupsColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('name') name: string,
   ) {
@@ -106,9 +110,10 @@ export class GroupsController {
       {
         page,
         limit: Math.min(limit, 100),
-        route: `/${Entities.GROUPS}`,
+        route: `/${Entities.GROUPS}/dropdown/name`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      orderByColumn,
       orderBy,
       name,
     )
@@ -116,18 +121,20 @@ export class GroupsController {
 
   @Get('dropdown/curators')
   @MinRole(ROLE.ADMIN)
-  @ApiPaginatedResponse(CreateGroupResponseDto, {
+  @ApiPaginatedResponse(GetUserDropdownResponseDto, {
     description: 'get dropdown list',
   })
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GroupsColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'curatorName', required: false },
   ])
   async dropdownCurator(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('orderByColumn') orderByColumn: GroupsColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('curatorName') curatorName: string,
   ) {
@@ -138,6 +145,7 @@ export class GroupsController {
         route: `/${Entities.GROUPS}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      orderByColumn,
       orderBy,
       curatorName,
     )
@@ -150,12 +158,6 @@ export class GroupsController {
     return this.groupsService.findOne(+id)
   }
 
-  @Get(':id([0-9]+)/quantity-students')
-  @MinRole(ROLE.ADMIN)
-  @ApiOkResponse({ description: 'Get quantity students in group', type: Number })
-  async getQuantityStudent(@Param('id') id: number) {
-    return await this.groupsService.countStudents(id)
-  }
   @Patch(':id([0-9]+)')
   @MinRole(ROLE.ADMIN)
   async update(@Request() req, @Param('id') id: string, @Body() updateGroupDto: UpdateExactFieldDto) {

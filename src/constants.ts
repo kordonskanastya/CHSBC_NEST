@@ -5,6 +5,9 @@ export const USER_REPOSITORY = 'USER_REPOSITORY'
 export const GROUP_REPOSITORY = 'GROUP_REPOSITORY'
 export const LOGGER_REPOSITORY = 'LOGGER_REPOSITORY'
 export const STUDENT_REPOSITORY = 'STUDENT_REPOSITORY'
+export const COURSE_REPOSITORY = 'COURSE_REPOSITORY'
+export const GRADE_REPOSITORY = 'GRADE_REPOSITORY'
+export const VOTE_REPOSITORY = 'VOTE_REPOSITORY'
 
 export const FAKE_EMAIL = faker.internet.email()
 export const FAKE_PASSWORD = faker.internet.password(7, true)

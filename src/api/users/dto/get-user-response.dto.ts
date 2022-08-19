@@ -21,16 +21,4 @@ export class GetUserResponseDto {
   @Expose()
   @ApiPropertyOptional({ type: String })
   email: string
-
-  @Expose()
-  @ApiProperty({ type: String })
-  role: string
-
-  @Expose()
-  @ApiProperty({ type: Date })
-  updated: Date
-
-  @Expose()
-  @ApiProperty({ type: Date })
-  created: Date
 }

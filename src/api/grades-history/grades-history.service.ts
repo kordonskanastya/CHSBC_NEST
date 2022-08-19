@@ -64,9 +64,10 @@ export class GradesHistoryService {
     orderByColumn: GradesHistoryColumns,
     orderBy: 'ASC' | 'DESC',
     studentId: number,
-    userId: number,
+    userChangedId: number,
     courseId: number,
     grade: number,
+    reasonOfChange: string,
   ) {
     orderByColumn = orderByColumn || GradesHistoryColumns.ID
     orderBy = orderBy || 'ASC'
@@ -76,8 +77,9 @@ export class GradesHistoryService {
     const query = this.gradesHistoryRepository
       .createQueryBuilder('GradeHistory')
       .leftJoinAndSelect('GradeHistory.student', 'Student')
+      .leftJoinAndSelect('Student.user', 'User')
       .leftJoinAndSelect('GradeHistory.course', 'Course')
-      .leftJoinAndSelect('GradeHistory.userChanged', 'User')
+      .leftJoinAndSelect('GradeHistory.userChanged', 'UserChanged')
 
     if (grade) {
       query.andWhere(`GradeHistory.grade = :grade`, { grade })
@@ -87,14 +89,18 @@ export class GradesHistoryService {
       query.andWhere(`Course.id=:courseId`, { courseId })
     }
 
-    if (userId) {
-      query.andWhere(`User.id=:userId`, { userId })
+    if (userChangedId) {
+      query.andWhere(`UserChanged.id=:userChangedId`, { userChangedId })
     }
 
     if (studentId) {
       query.andWhere(`Student.id=:studentId`, { studentId })
     }
 
+    if (reasonOfChange) {
+      query.andWhere(`GradeHistory.reasonOfChange=:reasonOfChange`, { reasonOfChange })
+    }
+    console.log(await query.getMany())
     query.orderBy(`${orderByColumn}`, orderBy)
     return paginateAndPlainToClass(GetGradesHistoryResponseDto, query, options)
   }

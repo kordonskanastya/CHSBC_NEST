@@ -1,31 +1,31 @@
 import { Expose, Type } from 'class-transformer'
 import { ApiProperty } from '@nestjs/swagger'
-import { GetStudentResponseDto } from '../../students/dto/get-student-response.dto'
-import { GetCourseResponseDto } from '../../courses/dto/get-course-response.dto'
-import { GetUserResponseDto } from '../../users/dto/get-user-response.dto'
+import { GetCourseDropdownResponseDto } from '../../courses/dto/get-course-dropdown-response.dto'
+import { GetUserDropdownResponseDto } from '../../users/dto/get-user-dropdown-response.dto'
+import { GetStudentDropdownNameDto } from '../../students/dto/get-student-dropdown-name.dto'
 
 export class GetGradesHistoryResponseDto {
   @Expose()
   id: number
 
   @Expose()
-  @ApiProperty({ example: 3 })
-  @Type(() => GetStudentResponseDto)
-  student: GetStudentResponseDto
+  @ApiProperty({ example: GetStudentDropdownNameDto })
+  @Type(() => GetStudentDropdownNameDto)
+  student: GetStudentDropdownNameDto
 
   @Expose()
   @ApiProperty({ type: Number })
   grade: number
 
   @Expose()
-  @ApiProperty({ example: 1 })
-  @Type(() => GetCourseResponseDto)
-  course: GetCourseResponseDto
+  @ApiProperty({ example: GetCourseDropdownResponseDto })
+  @Type(() => GetCourseDropdownResponseDto)
+  course: GetCourseDropdownResponseDto
 
   @Expose()
-  @ApiProperty({ example: 1 })
-  @Type(() => GetUserResponseDto)
-  userChanged: GetUserResponseDto
+  @ApiProperty({ example: GetUserDropdownResponseDto })
+  @Type(() => GetUserDropdownResponseDto)
+  userChanged: GetUserDropdownResponseDto
 
   @Expose()
   @ApiProperty({ type: Date })

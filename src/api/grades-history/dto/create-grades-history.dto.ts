@@ -1,5 +1,6 @@
-import { IsNumber, IsString, Max, Min } from 'class-validator'
+import { IsEnum, IsNumber, Max, Min } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger'
+import { ReasonForChangeGrade } from '../../grades/grades.service'
 
 export class CreateGradesHistoryDto {
   @IsNumber()
@@ -20,7 +21,7 @@ export class CreateGradesHistoryDto {
   @ApiProperty({ example: 1 })
   grade: number
 
-  @IsString()
+  @IsEnum(ReasonForChangeGrade)
   @ApiProperty({ example: 'Exam' })
-  reasonOfChange: string
+  reasonOfChange: ReasonForChangeGrade
 }

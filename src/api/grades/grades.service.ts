@@ -139,25 +139,22 @@ export class GradesService {
 
     Object.assign(grade, updateGradeDto)
 
+    const userChanged = await User.findOne(sub)
+
     try {
       await grade.save({ data: { id: sub } })
+      await this.gradeHistoryRepository
+        .create({
+          student,
+          course,
+          userChanged,
+          grade: updateGradeDto.grade,
+          reasonOfChange: updateGradeDto.reasonForChange,
+        })
+        .save({ data: { id: sub } })
     } catch (e) {
       throw new NotAcceptableException("Can't save grade. " + e.message)
     }
-
-    const userChanged = await User.findOne(sub)
-    const reasonOfChange = updateGradeDto.reasonForChange ? updateGradeDto.reasonForChange : 'Оцінка за виконану роботу'
-    const gradeValue = updateGradeDto.grade
-
-    await this.gradeHistoryRepository
-      .create({
-        student,
-        course,
-        userChanged,
-        grade: gradeValue,
-        reasonOfChange,
-      })
-      .save({ data: { id: sub } })
 
     return {
       success: true,

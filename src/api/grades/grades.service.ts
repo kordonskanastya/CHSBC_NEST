@@ -20,6 +20,14 @@ export enum GradeColumns {
   COURSE_ID = 'Course.id',
   STUDENT_ID = 'Student.id',
   GRADE = 'Grade.grade',
+  CREATED = 'created',
+  UPDATED = 'updated',
+}
+
+export enum ReasonForChangeGrade {
+  EXAM = 'Екзамен',
+  RETAKE = 'Перездача',
+  MISTAKE = 'Помилкове введення оцінки',
 }
 
 export const GRADE_COLUMN_LIST = enumToArray(GradeColumns)

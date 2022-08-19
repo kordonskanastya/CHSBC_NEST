@@ -168,12 +168,14 @@ export class UsersController {
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
     { name: 'teacherName', required: false },
   ])
   async dropdownTeacher(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: UserColumns,
     @Query('teacherName') teacherName: string,
   ) {
     return await this.usersService.dropdownTeacher(
@@ -184,6 +186,7 @@ export class UsersController {
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       orderBy,
+      orderByColumn,
       teacherName,
     )
   }
@@ -224,11 +227,12 @@ export class UsersController {
     description: 'Find all groups by curator',
   })
   @ApiImplicitQueries([
-    { name: 'curatorId', required: false, description: 'curator`s id' },
-    { name: 'groupName', required: false, description: 'group`s name' },
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'curatorId', required: false, description: 'curator`s id' },
+    { name: 'groupName', required: false, description: 'group`s name' },
   ])
   async findGroupByCurator(
     @Query('curatorId') curatorId: number,
@@ -236,6 +240,7 @@ export class UsersController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: UserColumns,
   ) {
     return await this.usersService.getGroupsByCurator(
       {
@@ -247,6 +252,7 @@ export class UsersController {
       groupName,
       curatorId,
       orderBy,
+      orderByColumn,
     )
   }
 
@@ -256,12 +262,13 @@ export class UsersController {
     description: 'Find all courses by teacher',
   })
   @ApiImplicitQueries([
-    { name: 'teacherId', required: false },
-    { name: 'groups', required: false, type: 'array' },
-    { name: 'courses', required: false, type: 'array' },
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'teacherId', required: false },
+    { name: 'groups', required: false, type: 'array' },
+    { name: 'courses', required: false, type: 'array' },
   ])
   async findCoursesByTeacher(
     @Query('teacherId') teacherId: number,
@@ -270,6 +277,7 @@ export class UsersController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: UserColumns,
   ) {
     return await this.usersService.getCoursesByTeacher(
       {
@@ -279,6 +287,7 @@ export class UsersController {
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
       orderBy,
+      orderByColumn,
       teacherId,
       groups,
       courses,

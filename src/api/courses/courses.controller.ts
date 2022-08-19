@@ -130,12 +130,14 @@ export class CoursesController {
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: CourseColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'courseName', required: false, description: 'course name' },
   ])
   async getCoursesDropdown(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('orderByColumn') orderByColumn: CourseColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('courseName') courseName: string,
   ) {
@@ -146,6 +148,7 @@ export class CoursesController {
         route: `/${Entities.COURSES}/course/dropdown`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      orderByColumn,
       orderBy,
       courseName,
     )

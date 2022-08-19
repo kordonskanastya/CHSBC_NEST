@@ -29,6 +29,8 @@ export enum CourseColumns {
   IS_COMPULSORY = 'isCompulsory',
   TEACHER = 'teacher',
   GROUPS = 'groups',
+  CREATED = 'created',
+  UPDATED = 'updated',
 }
 
 export const COURSE_COLUMN_LIST = enumToArray(CourseColumns)
@@ -319,8 +321,13 @@ export class CoursesService {
     }
   }
 
-  async getCoursesDropdown(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', courseName: string) {
-    const orderByColumn = CourseColumns.ID
+  async getCoursesDropdown(
+    options: IPaginationOptions,
+    orderByColumn: CourseColumns,
+    orderBy: 'ASC' | 'DESC',
+    courseName: string,
+  ) {
+    orderByColumn = orderByColumn || CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
     const courses = await this.coursesRepository.createQueryBuilder('Course')

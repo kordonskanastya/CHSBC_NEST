@@ -38,7 +38,6 @@ import { capitalize } from '../../utils/common'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { RolesGuard } from '../../auth/roles/roles.guard'
 import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
-import { UserColumns } from '../users/users.service'
 
 @Controller(Entities.STUDENTS)
 @ApiTags(capitalize(Entities.STUDENTS))
@@ -151,7 +150,7 @@ export class StudentsController {
     type: GetUserDropdownResponseDto,
   })
   @ApiImplicitQueries([
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: StudentColumns },
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },

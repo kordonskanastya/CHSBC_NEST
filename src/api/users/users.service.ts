@@ -28,9 +28,7 @@ import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
-import { GroupsColumns } from '../groups/groups.service'
 import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
-import { CourseColumns } from '../courses/courses.service'
 
 export enum UserColumns {
   ID = 'id',
@@ -305,8 +303,13 @@ export class UsersService {
     }
   }
 
-  async dropdownTeacher(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', search: string) {
-    const orderByColumn = CourseColumns.ID
+  async dropdownTeacher(
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    orderByColumn: UserColumns,
+    search: string,
+  ) {
+    orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'
 
     const teachers = await this.usersRepository
@@ -339,8 +342,14 @@ export class UsersService {
     return paginateAndPlainToClass(GetUserDropdownResponseDto, administrators, options)
   }
 
-  async getGroupsByCurator(options: IPaginationOptions, groupName: string, curatorId: number, orderBy: 'ASC' | 'DESC') {
-    const orderByColumn = GroupsColumns.ID
+  async getGroupsByCurator(
+    options: IPaginationOptions,
+    groupName: string,
+    curatorId: number,
+    orderBy: 'ASC' | 'DESC',
+    orderByColumn: UserColumns,
+  ) {
+    orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'
 
     const query = this.usersRepository
@@ -357,33 +366,35 @@ export class UsersService {
       query.andWhere('Group.curatorId = :curatorId', { curatorId })
     }
 
-    query.orderBy('User.id', orderBy)
+    query.orderBy(`User.${orderByColumn}`, orderBy)
 
-    const sortFunction =
-      orderBy === 'DESC'
-        ? ({ [orderByColumn]: a }, { [orderByColumn]: b }) => (a > b ? -1 : a < b ? 1 : 0)
-        : ({ [orderByColumn]: a }, { [orderByColumn]: b }) => (a < b ? -1 : a > b ? 1 : 0)
+    // const sortFunction =
+    //   orderBy === 'DESC'
+    //     ? ({ [orderByColumn]: a }, { [orderByColumn]: b }) => (a > b ? -1 : a < b ? 1 : 0)
+    //     : ({ [orderByColumn]: a }, { [orderByColumn]: b }) => (a < b ? -1 : a > b ? 1 : 0)
 
-    return await paginateAndPlainToClass(GetGroupsByCuratorDto, query, options, ({ items, ...query }) => ({
-      items: items.map((data: { groups: { id: number }[] }) => {
-        if (data.groups && data.groups.length) {
-          data.groups.sort(sortFunction)
-        }
-
-        return data
-      }),
-      ...query,
-    }))
+    return await paginateAndPlainToClass(GetGroupsByCuratorDto, query, options)
+    //   , ({ items, ...query }) => ({
+    //   items: items.map((data: { groups: { id: number }[] }) => {
+    //     if (data.groups && data.groups.length) {
+    //       data.groups.sort(sortFunction)
+    //     }
+    //
+    //     return data
+    //   }),
+    //   ...query,
+    // }))
   }
 
   async getCoursesByTeacher(
     options: IPaginationOptions,
     orderBy: 'ASC' | 'DESC',
+    orderByColumn: UserColumns,
     teacherId: number,
     groups: number[],
     courses: number[],
   ) {
-    const orderByColumn = GroupsColumns.ID
+    orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'
 
     const query = this.usersRepository

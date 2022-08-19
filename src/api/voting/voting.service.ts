@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { CreateVotingDto } from './dto/create-voting.dto'
 import { UpdateVotingDto } from './dto/update-voting.dto'
 import { TokenDto } from '../../auth/dto/token.dto'
@@ -194,10 +194,110 @@ export class VotingService {
   }
 
   async update(id: number, updateVotingDto: UpdateVotingDto, tokenDto?: TokenDto) {
-    return await `This action updates a #${id} voting`
+    const { sub } = tokenDto || {}
+    const vote = await this.votingRepository.findOne(id)
+
+    if (!vote) {
+      throw new NotFoundException(`Голосування з id: ${id} не знайдено `)
+    }
+
+    const getCourses = async (courses_) => {
+      const coursesIds = Array.isArray(courses_) ? courses_ : [courses_]
+      const courses = await Course.createQueryBuilder()
+        .where(`Course.id IN (:...ids)`, {
+          ids: coursesIds,
+        })
+        .getMany()
+
+      if (!courses || courses.length !== coursesIds.length) {
+        throw new BadRequestException(`Предмет з іd: ${courses_} не існує .`)
+      }
+
+      return courses
+    }
+    const getGroups = async (groups_) => {
+      const groupsIds = Array.isArray(groups_) ? groups_ : [groups_]
+      const groups = await Group.createQueryBuilder()
+        .where(`Group.id IN (:...ids)`, {
+          ids: groupsIds,
+        })
+        .getMany()
+
+      if (!groups || groups.length !== groupsIds.length) {
+        throw new BadRequestException(`Група з іd: ${groups_} не існує .`)
+      }
+
+      const students = await Student.createQueryBuilder()
+        .leftJoin('Student.group', 'Group')
+        .where(`Group.id IN (:...ids)`, {
+          ids: groupsIds,
+        })
+        .getMany()
+      return { groups, students }
+    }
+    Object.assign(vote, updateVotingDto)
+
+    if (updateVotingDto.groups && updateVotingDto.requiredCourses && updateVotingDto.notRequiredCourses) {
+      const { groups, students } = await getGroups(updateVotingDto.groups)
+      const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
+      const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
+      Object.assign(vote, { ...updateVotingDto, groups, requiredCourses, notRequiredCourses, students })
+    } else {
+      if (updateVotingDto.requiredCourses && updateVotingDto.notRequiredCourses) {
+        const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
+        const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
+        Object.assign(vote, { ...updateVotingDto, requiredCourses, notRequiredCourses })
+      }
+      if (updateVotingDto.requiredCourses && updateVotingDto.groups) {
+        const { groups, students } = await getGroups(updateVotingDto.groups)
+        const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
+        Object.assign(vote, { ...updateVotingDto, groups, requiredCourses, students })
+      }
+      if (updateVotingDto.notRequiredCourses && updateVotingDto.groups) {
+        const { groups, students } = await getGroups(updateVotingDto.groups)
+        const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
+        Object.assign(vote, { ...updateVotingDto, groups, notRequiredCourses, students })
+      }
+      if (updateVotingDto.groups) {
+        const { groups, students } = await getGroups(updateVotingDto.groups)
+        Object.assign(vote, { ...updateVotingDto, groups, students })
+      }
+      if (updateVotingDto.requiredCourses) {
+        const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
+        Object.assign(vote, { ...updateVotingDto, requiredCourses })
+      }
+      if (updateVotingDto.notRequiredCourses) {
+        const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
+        Object.assign(vote, { ...updateVotingDto, notRequiredCourses })
+      }
+    }
+
+    try {
+      await vote.save({ data: { id: sub } })
+      return {
+        success: true,
+      }
+    } catch (e) {
+      throw new NotAcceptableException('Не вишло зберегти голосування.' + e.message)
+    }
   }
 
   async remove(id: number, tokenDto?: TokenDto) {
-    return await `This action removes a #${id} voting`
+    const { sub } = tokenDto || {}
+
+    const vote = await this.votingRepository.findOne(id)
+    if (!vote) {
+      throw new NotFoundException(`Голосування з id: ${id} не знайдений `)
+    }
+
+    await this.votingRepository.remove(vote, {
+      data: {
+        id: sub,
+      },
+    })
+
+    return {
+      success: true,
+    }
   }
 }

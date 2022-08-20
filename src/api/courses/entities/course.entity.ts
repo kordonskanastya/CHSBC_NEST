@@ -54,8 +54,8 @@ export class Course extends BaseEntity {
   @ManyToOne(() => Student, (student) => student.courses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   student: Student
 
-  @OneToMany(() => Grade, (grade) => grade.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
-  grades: Grade[]
+  @ManyToOne(() => Grade, (grade) => grade.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  grade: Grade
 
   @ManyToOne(() => Vote, (vote) => vote.requiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   voteRequiredCourses: Vote

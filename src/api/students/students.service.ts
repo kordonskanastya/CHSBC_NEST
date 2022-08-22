@@ -19,7 +19,6 @@ import { Student } from './entities/student.entity'
 import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
 import { Grade } from '../grades/entities/grade.entity'
 import { Course } from '../courses/entities/course.entity'
-import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
 
 export enum StudentColumns {
   ID = 'id',
@@ -74,6 +73,7 @@ export class StudentsService {
         ...createStudentDto,
         group,
         user: await User.findOne(userId),
+        courses: await Course.createQueryBuilder().getMany(),
       })
       .save({
         data: {
@@ -81,9 +81,28 @@ export class StudentsService {
         },
       })
 
+    console.log('USER=> ', student)
+
     if (!student) {
       throw new BadRequestException('Не вишло створити студента')
     } else {
+      const courses = await Course.createQueryBuilder().getMany()
+      console.log('COURSES => ', courses)
+      await this.gradeRepository
+        .create({
+          grade: 0,
+          student: student,
+          courses: courses,
+        })
+        .save({ data: { id: sub } })
+
+      /*
+                  await Course.createQueryBuilder().update(Course).set({ student: student }).execute()
+            */
+
+      const studentsTEST = await Student.createQueryBuilder().leftJoinAndSelect('Student.courses', 'Course').getMany()
+      console.log('studentsTEST', studentsTEST)
+    } /*else {
       const courses = plainToClass(GetCourseResponseDto, await Course.createQueryBuilder().getMany(), {
         excludeExtraneousValues: true,
       })
@@ -104,7 +123,7 @@ export class StudentsService {
           }
         }
       }
-    }
+    }*/
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,
     })

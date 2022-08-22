@@ -5,6 +5,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
@@ -24,8 +25,8 @@ export class Grade extends BaseEntity {
   @Column({ default: 0, nullable: false })
   grade: number
 
-  @ManyToOne(() => Course, (course) => course.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
-  course: Course
+  @OneToMany(() => Course, (course) => course.grade, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  courses: Course[]
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   created: Date

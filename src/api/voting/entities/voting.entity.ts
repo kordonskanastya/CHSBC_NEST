@@ -1,12 +1,4 @@
-import {
-  BaseEntity,
-  Column,
-  CreateDateColumn,
-  Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm'
+import { BaseEntity, Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import { Entities } from '../../common/enums'
 import { Course } from '../../courses/entities/course.entity'
 import { Group } from '../../groups/entities/group.entity'
@@ -37,13 +29,4 @@ export class Vote extends BaseEntity {
 
   @OneToMany(() => Student, (student) => student.vote, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   students: Student[]
-
-  @Column({ nullable: true })
-  status: string
-
-  @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
-  created: Date
-
-  @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
-  updated: Date
 }

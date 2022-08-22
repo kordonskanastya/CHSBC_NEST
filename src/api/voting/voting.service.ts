@@ -22,14 +22,6 @@ export enum VotingColumns {
   END_DATE = 'endDate',
   REQUIRED_COURSES = 'requiredCourses',
   NOT_REQUIRES_COURSES = 'notRequiredCourses',
-  CREATED = 'created',
-  UPDATED = 'updated',
-}
-
-export enum VotingStatus {
-  NEW = 'Нове голосування',
-  IN_PROGRESS = 'У прогресі',
-  ENDED = 'Закінчене голосування',
 }
 
 export const VOTING_COLUMN_LIST = enumToArray(VotingColumns)
@@ -56,26 +48,8 @@ export class VotingService {
       throw new BadRequestException(`Група з іd: ${createVotingDto.groups} не існує.`)
     }
 
-    const votingGroups = await this.votingRepository
-      .createQueryBuilder()
-      .leftJoin('Vote.groups', 'Group')
-      .where(`Group.id IN (:...ids)`, {
-        ids: groupIds,
-      })
-      .getMany()
-
-    if (votingGroups.length > 0) {
-      throw new BadRequestException(`Голосування із такими предметами ${createVotingDto.groups} вже існує`)
-    }
-
     if (new Date(createVotingDto.startDate) > new Date(createVotingDto.endDate)) {
       throw new BadRequestException('Дата старту голосування не може бути пізніше,чим кінець голосування')
-    }
-
-    if (new Date() > new Date(createVotingDto.startDate)) {
-      throw new BadRequestException(
-        `Дата старту голосування не може бути раніше,чим ${new Date().toLocaleDateString()}`,
-      )
     }
 
     const requiredCoursesIds = Array.isArray(createVotingDto.requiredCourses)
@@ -145,7 +119,6 @@ export class VotingService {
     endDate: string,
     requiredCourses: number[],
     notRequiredCourses: number[],
-    status: VotingStatus,
   ) {
     orderByColumn = orderByColumn || VotingColumns.ID
     orderBy = orderBy || 'ASC'
@@ -158,8 +131,6 @@ export class VotingService {
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
       .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'students')
-
-    await this.updateStatusVoting()
 
     if (name) {
       query.andWhere('Vote.name=:name', { name })
@@ -202,17 +173,12 @@ export class VotingService {
         }
       }
     }
-
-    if (status) {
-      query.andWhere('Vote.status=:status', { status })
-    }
-
     query.orderBy(`Vote.${orderByColumn}`, orderBy)
+    console.log(await query.getMany())
     return await paginateAndPlainToClass(GetVotingDto, query, options)
   }
 
   async findOne(id: number) {
-    await this.updateStatusVoting()
     const query = this.votingRepository
       .createQueryBuilder('Vote')
       .leftJoinAndSelect('Vote.groups', 'Group')
@@ -335,26 +301,5 @@ export class VotingService {
     return {
       success: true,
     }
-  }
-
-  async updateStatusVoting() {
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.NEW })
-      .where(`"startDate"::timestamp>now()`)
-      .execute()
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.IN_PROGRESS })
-      .where(`now() between "startDate"::timestamp and "endDate"::timestamp`)
-      .execute()
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.ENDED })
-      .where(`"endDate"::timestamp<now()`)
-      .execute()
   }
 }

@@ -16,6 +16,7 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { ROLE } from '../../auth/roles/role.enum'
 import { User } from '../users/entities/user.entity'
 import { Grade } from '../grades/entities/grade.entity'
+import { Student } from '../students/entities/student.entity'
 
 export enum CourseColumns {
   ID = 'id',
@@ -76,12 +77,19 @@ export class CoursesService {
       throw new BadRequestException(`Користувач має роль: ${teacher.role} не teacher`)
     }
 
-    const course = await this.coursesRepository
-      .create({ ...createCourseDto, teacher, groups })
+    const students = await Student.createQueryBuilder().getMany()
+
+    const newCourse = await this.coursesRepository
+      .create({ ...createCourseDto, teacher, groups, students })
       .save({ data: { id: sub } })
 
-    if (!course) {
+    if (!newCourse) {
       throw new BadRequestException(`Не вишло створити предмет`)
+    } else {
+      await Student.createQueryBuilder()
+        .update(Student)
+        .set({ courses: () => `array_append("courses", 1)` })
+        .execute()
     } /*else {
       const studArrayId = []
       const students = plainToClass(GetStudentResponseDto, await Student.createQueryBuilder().getMany(), {
@@ -92,7 +100,7 @@ export class CoursesService {
       if (
         await Grade.createQueryBuilder()
           .where('Grade.courseId=:courseId', {
-            courseId: course.id,
+            courseId: newCourse.id,
           })
           .andWhere('Grade.studentId IN (...:studentId)', { studentId: studArrayId })
       ) {
@@ -110,12 +118,12 @@ export class CoursesService {
             .create({
               grade: 0,
               student: candidate_student,
-              courses: course,
+              courses: newCourse,
             })
             .save({ data: { id: sub } })
         })
       }}*/
-    return plainToClass(CreateCourseResponseDto, course, {
+    return plainToClass(CreateCourseResponseDto, newCourse, {
       excludeExtraneousValues: true,
     })
   }

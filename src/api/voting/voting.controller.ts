@@ -11,7 +11,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common'
-import { VotingColumns, VotingService } from './voting.service'
+import { VotingColumns, VotingService, VotingStatus } from './voting.service'
 import { CreateVotingDto } from './dto/create-voting.dto'
 import { UpdateVotingDto } from './dto/update-voting.dto'
 import { Entities } from '../common/enums'
@@ -60,6 +60,7 @@ export class VotingController {
     { name: 'endDate', required: false, type: 'endDate' },
     { name: 'requiredCourses', required: false, type: 'array' },
     { name: 'notRequiredCourses', required: false, type: 'array' },
+    { name: 'status', required: false, enum: VotingStatus },
   ])
   async findAll(
     @Query('page') page = 1,
@@ -74,6 +75,7 @@ export class VotingController {
     @Query('endDate') endDate: string,
     @Query('requiredCourses') requiredCourses: number[],
     @Query('notRequiredCourses') notRequiredCourses: number[],
+    @Query('status') status: VotingStatus,
   ) {
     if (limit <= 0) {
       throw new BadRequestException('Не правильний ліміт має бути 1 - 100.')
@@ -95,6 +97,7 @@ export class VotingController {
       endDate,
       requiredCourses,
       notRequiredCourses,
+      status,
     )
   }
 

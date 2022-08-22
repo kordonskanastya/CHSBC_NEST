@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class fixCoursesGradesRelationManyToMany1661189392444 implements MigrationInterface {
-    name = 'fixCoursesGradesRelationManyToMany1661189392444'
+export class relationsGradeCoursesManyMany1661353510730 implements MigrationInterface {
+    name = 'relationsGradeCoursesManyMany1661353510730'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "grades" DROP CONSTRAINT "FK_ff09424ef05361e1c47fa03d82b"`);

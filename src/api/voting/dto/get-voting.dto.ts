@@ -8,10 +8,6 @@ export class GetVotingDto {
   id: number
 
   @Expose()
-  @ApiProperty({ type: Number })
-  semester: number
-
-  @Expose()
   @Type(() => GetGroupResponseDto)
   @ApiProperty({ type: GetGroupResponseDto })
   groups: GetGroupResponseDto

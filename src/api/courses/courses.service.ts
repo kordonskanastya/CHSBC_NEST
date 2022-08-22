@@ -16,8 +16,6 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { ROLE } from '../../auth/roles/role.enum'
 import { User } from '../users/entities/user.entity'
 import { Grade } from '../grades/entities/grade.entity'
-import { Student } from '../students/entities/student.entity'
-import { GetStudentResponseDto } from '../students/dto/get-student-response.dto'
 
 export enum CourseColumns {
   ID = 'id',
@@ -84,7 +82,7 @@ export class CoursesService {
 
     if (!course) {
       throw new BadRequestException(`Не вишло створити предмет`)
-    } else {
+    } /*else {
       const studArrayId = []
       const students = plainToClass(GetStudentResponseDto, await Student.createQueryBuilder().getMany(), {
         excludeExtraneousValues: true,
@@ -99,28 +97,24 @@ export class CoursesService {
           .andWhere('Grade.studentId IN (...:studentId)', { studentId: studArrayId })
       ) {
       } else {
+        const courses = await
         students.map(async (student) => {
           const { sub } = tokenDto || {}
           const candidate_student = await Student.findOne(student.id)
-          const candidate_course = await Course.findOne(course.id)
           if (!candidate_student) {
             throw new BadRequestException(`Студента з id: ${candidate_student.id} не знайдено.`)
           }
 
-          if (!candidate_course) {
-            throw new BadRequestException(`Предмета з  id: ${candidate_course.id} не знайдено .`)
-          }
           await Course.createQueryBuilder().update(Course).set({ student: candidate_student }).execute()
           await this.gradeRepository
             .create({
               grade: 0,
               student: candidate_student,
-              course: candidate_course,
+              courses: course,
             })
             .save({ data: { id: sub } })
         })
-      }
-    }
+      }}*/
     return plainToClass(CreateCourseResponseDto, course, {
       excludeExtraneousValues: true,
     })

@@ -4,6 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -47,7 +48,7 @@ export class Student extends BaseEntity {
   @JoinColumn()
   user: User
 
-  @OneToMany(() => Course, (course) => course.student, { onDelete: 'SET NULL' })
+  @ManyToMany(() => Course, (course) => course.students, { onDelete: 'SET NULL' })
   courses: Course[]
 
   @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })

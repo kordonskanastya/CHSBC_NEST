@@ -326,7 +326,6 @@ export class CoursesService {
     orderByColumn: CourseColumns,
     orderBy: 'ASC' | 'DESC',
     courseName: string,
-    isCompulsory: boolean,
   ) {
     orderByColumn = orderByColumn || CourseColumns.ID
     orderBy = orderBy || 'ASC'
@@ -335,10 +334,6 @@ export class CoursesService {
 
     if (courseName) {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
-    }
-
-    if (isCompulsory) {
-      courses.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
     }
 
     courses.orderBy(`Course.${orderByColumn}`, orderBy)

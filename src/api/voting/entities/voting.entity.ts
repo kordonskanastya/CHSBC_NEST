@@ -17,6 +17,9 @@ export class Vote extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
 
+  @Column({ nullable: false, default: 1 })
+  semester: number
+
   @Column({ nullable: true })
   startDate: string
 

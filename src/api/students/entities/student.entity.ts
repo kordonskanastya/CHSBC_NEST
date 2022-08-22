@@ -47,7 +47,7 @@ export class Student extends BaseEntity {
   @JoinColumn()
   user: User
 
-  @OneToMany(() => Course, (course) => course.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @OneToMany(() => Course, (course) => course.student, { onDelete: 'SET NULL' })
   courses: Course[]
 
   @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })

@@ -15,7 +15,7 @@ import { VotingColumns, VotingService, VotingStatus } from './voting.service'
 import { CreateVotingDto } from './dto/create-voting.dto'
 import { UpdateVotingDto } from './dto/update-voting.dto'
 import { Entities } from '../common/enums'
-import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiForbiddenResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
 import { capitalize } from '../../utils/common'
 import { MinRole } from '../../auth/roles/roles.decorator'
 import { ROLE } from '../../auth/roles/role.enum'
@@ -108,7 +108,7 @@ export class VotingController {
   }
 
   @Patch(':id([0-9]+)')
-  @ApiOkResponse({ description: 'Update voting', type: UpdateVotingDto })
+  @MinRole(ROLE.ADMIN)
   async update(@Request() req, @Param('id') id: string, @Body() updateVotingDto: UpdateVotingDto) {
     return await this.votingService.update(+id, updateVotingDto, req.user)
   }

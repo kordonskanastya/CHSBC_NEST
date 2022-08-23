@@ -14,6 +14,7 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
 import { Student } from '../students/entities/student.entity'
+import { GetOneVoteDto } from './dto/get-one-vote.dto'
 
 export enum VotingColumns {
   ID = 'id',
@@ -58,14 +59,16 @@ export class VotingService {
 
     const votingGroups = await this.votingRepository
       .createQueryBuilder()
-      .leftJoin('Vote.groups', 'Group')
+      .leftJoinAndSelect('Vote.groups', 'Group')
       .where(`Group.id IN (:...ids)`, {
         ids: groupIds,
       })
       .getMany()
 
     if (votingGroups.length > 0) {
-      throw new BadRequestException(`Голосування із такими предметами ${createVotingDto.groups} вже існує`)
+      throw new BadRequestException(
+        `Голосування із такими групами ${votingGroups.map((vote) => vote.groups.map((group) => group.name))} вже існує`,
+      )
     }
 
     if (new Date(createVotingDto.startDate) > new Date(createVotingDto.endDate)) {
@@ -226,7 +229,7 @@ export class VotingService {
       throw new BadRequestException(`Голосування з id: ${id} не знайдено`)
     }
 
-    return plainToClass(GetVotingDto, query, { excludeExtraneousValues: true })
+    return plainToClass(GetOneVoteDto, query, { excludeExtraneousValues: true })
   }
 
   async update(id: number, updateVotingDto: UpdateVotingDto, tokenDto?: TokenDto) {

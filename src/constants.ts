@@ -9,7 +9,6 @@ export const COURSE_REPOSITORY = 'COURSE_REPOSITORY'
 export const GRADE_REPOSITORY = 'GRADE_REPOSITORY'
 export const GRADE_HISTORY_REPOSITORY = 'GRADE_HISTORY_REPOSITORY'
 export const VOTE_REPOSITORY = 'VOTE_REPOSITORY'
-export const VOTE_RESULT_REPOSITORY = 'VOTE_RESULT_REPOSITORY'
 
 export const FAKE_EMAIL = faker.internet.email()
 export const FAKE_PASSWORD = faker.internet.password(7, true)

@@ -118,16 +118,4 @@ export class VotingController {
   async remove(@Request() req, @Param('id') id: string) {
     return await this.votingService.remove(+id, req.user)
   }
-
-  @Get(':id([0-9]+)/result/course')
-  @MinRole(ROLE.ADMIN)
-  async getVotingResultCourse(@Param('id') id: string) {
-    return await this.votingService.getOneResultVotingCourses(+id)
-  }
-
-  @Get(':id([0-9]+)/result/student')
-  @MinRole(ROLE.ADMIN)
-  async getVotingResultStudent(@Param('id') id: string) {
-    return await this.votingService.getOneResultVotingStudent(+id)
-  }
 }

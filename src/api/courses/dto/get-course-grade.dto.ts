@@ -7,5 +7,5 @@ export class GetCourseGradeDto extends PartialType(GetCourseDropdownResponseDto)
   @Expose()
   @Type(() => GetGradeResponseDto)
   @ApiProperty({ type: Number })
-  grade: number
+  grade: GetGradeResponseDto
 }

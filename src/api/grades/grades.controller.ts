@@ -73,8 +73,8 @@ export class GradesController {
 
   @Patch('/student/:id([0-9]+)')
   @MinRole(ROLE.TEACHER)
-  update(@Request() req, @Param('id') id: string, @Body() updateGradeDto: UpdateGradeDto) {
-    return this.gradesService.update(+id, updateGradeDto, req.user)
+  async update(@Request() req, @Param('id') id: string, @Body() updateGradeDto: UpdateGradeDto) {
+    return await this.gradesService.update(+id, updateGradeDto, req.user)
   }
 
   @Delete(':id([0-9]+)')

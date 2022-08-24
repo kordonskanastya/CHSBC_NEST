@@ -17,7 +17,6 @@ import { User } from '../../users/entities/user.entity'
 import { Course } from '../../courses/entities/course.entity'
 import { GradeHistory } from '../../grades-history/entities/grades-history.entity'
 import { Vote } from '../../voting/entities/voting.entity'
-import { VoteResult } from '../../voting/entities/voting-result.entity'
 
 @Entity({ name: Entities.STUDENTS })
 export class Student extends BaseEntity {
@@ -57,8 +56,4 @@ export class Student extends BaseEntity {
 
   @ManyToOne(() => Vote, (vote) => vote.students, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   vote: Vote
-
-  @OneToOne(() => VoteResult)
-  @JoinColumn()
-  voteResult: VoteResult
 }

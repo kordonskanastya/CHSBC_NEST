@@ -134,7 +134,6 @@ export class GradesService {
       .where('Grade.studentId=:studentId', { studentId: id })
       .andWhere('Course.id=:courseId', { courseId: updateGradeDto.courseId })
       .getOne()
-    console.log(grade)
 
     if (!grade) {
       throw new BadRequestException(`This grade  not found.`)

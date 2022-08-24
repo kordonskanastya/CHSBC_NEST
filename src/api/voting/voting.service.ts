@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFou
 import { CreateVotingDto } from './dto/create-voting.dto'
 import { UpdateVotingDto } from './dto/update-voting.dto'
 import { TokenDto } from '../../auth/dto/token.dto'
-import { VOTE_REPOSITORY } from '../../constants'
+import { VOTE_REPOSITORY, VOTE_RESULT_REPOSITORY } from '../../constants'
 import { Repository } from 'typeorm'
 import { Vote } from './entities/voting.entity'
 import { Group } from '../groups/entities/group.entity'
@@ -15,6 +15,9 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
 import { Student } from '../students/entities/student.entity'
 import { GetOneVoteDto } from './dto/get-one-vote.dto'
+import { GetVotingResultCoursesDto } from './dto/get-voting-result-courses.dto'
+import { VoteResult } from './entities/voting-result.entity'
+import { GetVotingResultStudentDto } from './dto/get-voting-result-student.dto'
 
 export enum VotingColumns {
   ID = 'id',
@@ -41,6 +44,8 @@ export class VotingService {
   constructor(
     @Inject(VOTE_REPOSITORY)
     private votingRepository: Repository<Vote>,
+    @Inject(VOTE_RESULT_REPOSITORY)
+    private votingResultRepository: Repository<VoteResult>,
   ) {}
 
   async create(createVotingDto: CreateVotingDto, tokenDto?: TokenDto) {
@@ -340,6 +345,35 @@ export class VotingService {
     }
   }
 
+  async getOneResultVotingCourses(id: number) {
+    await this.updateStatusVoting()
+    const vote = await this.votingRepository
+      .createQueryBuilder('Vote')
+      .leftJoinAndSelect('Vote.groups', 'Group')
+      .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
+      .leftJoinAndSelect('Course_required.students', 'Course_required_students')
+      .leftJoinAndSelect('Course_required.teacher', 'Teacher')
+      .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
+      .leftJoinAndSelect('Course_notRequired.students', 'Course_notRequired_students')
+      .leftJoinAndSelect('Course_notRequired.teacher', 'Teacher_')
+      .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'students')
+      .where('Vote.id=:id', { id })
+      .getOne()
+
+    if (!vote) {
+      throw new BadRequestException(`Голосування з id: ${id} не знайдено`)
+    }
+    return plainToClass(
+      GetVotingResultCoursesDto,
+      {
+        ...vote,
+        courses: [...vote.requiredCourses, ...vote.notRequiredCourses],
+        students: [...vote.students],
+      },
+      { excludeExtraneousValues: true },
+    )
+  }
+
   async updateStatusVoting() {
     await this.votingRepository
       .createQueryBuilder()
@@ -359,5 +393,17 @@ export class VotingService {
       .set({ status: VotingStatus.ENDED })
       .where(`"endDate"::timestamp<now()`)
       .execute()
+  }
+
+  async getOneResultVotingStudent(id: number) {
+    const students = await this.votingResultRepository
+      .createQueryBuilder('VotingResult')
+      .leftJoinAndSelect('VotingResult.student', 'Student')
+      .leftJoinAndSelect('VotingResult.vote', 'Vote')
+      .leftJoinAndSelect('Vote.groups', 'Group')
+      .where('Vote.id=:id', { id })
+      .getOne()
+
+    return plainToClass(GetVotingResultStudentDto, students, { excludeExtraneousValues: true })
   }
 }

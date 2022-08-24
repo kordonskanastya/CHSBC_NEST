@@ -85,7 +85,6 @@ export class StudentsService {
       throw new BadRequestException('Не вишло створити студента')
     } else {
       const courses = await Course.createQueryBuilder().getMany()
-      console.log('COURSES => ', courses)
       await this.gradeRepository
         .create({
           grade: 0,
@@ -180,8 +179,7 @@ export class StudentsService {
     return await paginateAndPlainToClass(GetStudentResponseDto, query, options)
   }
 
-  async findOne(id: number, token?: TokenDto): Promise<GetStudentResponseDto> {
-    const { sub, role } = token
+  async findOne(id: number): Promise<GetStudentResponseDto> {
     const student = await this.studentsRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.user', 'User')
@@ -206,23 +204,6 @@ export class StudentsService {
 
     if (student) {
       throw new BadRequestException(`Студент з таким ЕДЕБО : ${edeboId} вже існує`)
-    }
-
-    return plainToClass(GetStudentResponseDto, student, {
-      excludeExtraneousValues: true,
-    })
-  }
-
-  async findOneByUserId(userId: number): Promise<GetStudentResponseDto> {
-    const student = await this.studentsRepository
-      .createQueryBuilder('Student')
-      .leftJoinAndSelect('Student.user', 'User')
-      .leftJoinAndSelect('Student.group', 'Group')
-      .where({ user: userId })
-      .getOne()
-
-    if (!student) {
-      throw new NotFoundException(`Студента з id:${userId}, не існує`)
     }
 
     return plainToClass(GetStudentResponseDto, student, {

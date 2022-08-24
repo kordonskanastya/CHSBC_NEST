@@ -79,20 +79,19 @@ export class CoursesService {
 
     const students = await Student.createQueryBuilder().getMany()
 
-    const newCourse = await this.coursesRepository
+    const course = await this.coursesRepository
       .create({ ...createCourseDto, teacher, groups, students })
       .save({ data: { id: sub } })
 
-    const allCourses = await this.coursesRepository.createQueryBuilder().getMany()
-
-    if (!newCourse) {
+    if (!course) {
       throw new BadRequestException(`Не вийшло створити предмет`)
     } else {
+      const courses = await this.coursesRepository.createQueryBuilder().getMany()
       students.map(async (student) => {
-        await this.gradeRepository.create({ grade: 0, student, courses: allCourses }).save({ data: { id: sub } })
+        await this.gradeRepository.create({ grade: 0, student, courses }).save({ data: { id: sub } })
       })
     }
-    return plainToClass(CreateCourseResponseDto, newCourse, {
+    return plainToClass(CreateCourseResponseDto, course, {
       excludeExtraneousValues: true,
     })
   }

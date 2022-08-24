@@ -124,8 +124,8 @@ export class StudentsController {
   @Get(':id([0-9]+)')
   @MinRole(ROLE.TEACHER)
   @ApiOkResponse({ description: 'Find student', type: GetStudentResponseDto })
-  async findOne(@Param('id') id: string, @Request() req): Promise<GetStudentResponseDto> {
-    return this.studentsService.findOne(+id, req.user)
+  async findOne(@Param('id') id: string): Promise<GetStudentResponseDto> {
+    return this.studentsService.findOne(+id)
   }
 
   @Patch(':id([0-9]+)')

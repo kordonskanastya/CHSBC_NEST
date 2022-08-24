@@ -9,4 +9,5 @@ export enum Entities {
   GRADES = 'grades',
   GRADES_HISTORY = 'grades-history',
   VOTING = 'voting',
+  VOTING_HISTORY = 'voting-history',
 }

@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { UpdateGradeDto } from './dto/update-grade.dto'
-import { GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
+import { GRADE_HISTORY_REPOSITORY, GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { Repository } from 'typeorm'
 import { Grade } from './entities/grade.entity'
 import { plainToClass } from 'class-transformer'
@@ -14,6 +14,8 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { Group } from '../groups/entities/group.entity'
 import { GroupsColumns } from '../groups/groups.service'
 import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto'
+import { GradeHistory } from '../grades-history/entities/grades-history.entity'
+import { User } from '../users/entities/user.entity'
 
 export enum GradeColumns {
   ID = 'Grade.id',
@@ -40,6 +42,8 @@ export class GradesService {
     private gradeRepository: Repository<Grade>,
     @Inject(STUDENT_REPOSITORY)
     private studentRepository: Repository<Student>,
+    @Inject(GRADE_HISTORY_REPOSITORY)
+    private gradeHistoryRepository: Repository<GradeHistory>,
   ) {}
 
   async findAll(
@@ -59,7 +63,7 @@ export class GradesService {
     const query = this.studentRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.courses', 'Course')
-      .leftJoinAndSelect('Course.grades', 'Grade')
+      .leftJoinAndSelect('Course.grade', 'Grade')
       .leftJoinAndSelect('Student.user', 'User')
     if (search) {
       query.where(
@@ -95,8 +99,9 @@ export class GradesService {
 
     const grades = this.studentRepository
       .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.group', 'Group')
       .leftJoinAndSelect('Student.courses', 'Course')
-      .leftJoinAndSelect('Course.grades', 'Grade')
+      .leftJoinAndSelect('Course.grade', 'Grade')
       .leftJoinAndSelect('Student.user', 'User')
       .andWhere('Student.id=:id', { id })
       .getOne()
@@ -125,8 +130,9 @@ export class GradesService {
 
     const grade = await this.gradeRepository
       .createQueryBuilder('Grade')
+      .leftJoinAndSelect('Grade.courses', 'Course')
       .where('Grade.studentId=:studentId', { studentId: id })
-      .andWhere('Grade.courseId=:courseId', { courseId: updateGradeDto.courseId })
+      .andWhere('Course.id=:courseId', { courseId: updateGradeDto.courseId })
       .getOne()
 
     if (!grade) {
@@ -135,8 +141,19 @@ export class GradesService {
 
     Object.assign(grade, updateGradeDto)
 
+    const userChanged = await User.findOne(sub)
+
     try {
       await grade.save({ data: { id: sub } })
+      await this.gradeHistoryRepository
+        .create({
+          student,
+          course,
+          userChanged,
+          grade: updateGradeDto.grade,
+          reasonOfChange: updateGradeDto.reasonForChange,
+        })
+        .save({ data: { id: sub } })
     } catch (e) {
       throw new NotAcceptableException("Can't save grade. " + e.message)
     }

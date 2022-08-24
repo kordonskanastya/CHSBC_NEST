@@ -356,6 +356,9 @@ export class VotingService {
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
       .leftJoinAndSelect('Course_notRequired.students', 'Course_notRequired_students')
       .leftJoinAndSelect('Course_notRequired.teacher', 'Teacher_')
+      .leftJoinAndSelect('Vote.students', 'Student')
+      .leftJoinAndSelect('Student.voteResult', 'VoteResult')
+      .leftJoinAndSelect('Student.user', 'User')
       .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'students')
       .where('Vote.id=:id', { id })
       .getOne()
@@ -368,7 +371,7 @@ export class VotingService {
       {
         ...vote,
         courses: [...vote.requiredCourses, ...vote.notRequiredCourses],
-        students: [...vote.students],
+        // students: [...vote.students],
       },
       { excludeExtraneousValues: true },
     )

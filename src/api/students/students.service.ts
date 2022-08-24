@@ -81,8 +81,6 @@ export class StudentsService {
         },
       })
 
-    console.log('USER=> ', student)
-
     if (!student) {
       throw new BadRequestException('Не вишло створити студента')
     } else {
@@ -95,35 +93,7 @@ export class StudentsService {
           courses: courses,
         })
         .save({ data: { id: sub } })
-
-      /*
-                  await Course.createQueryBuilder().update(Course).set({ student: student }).execute()
-            */
-
-      const studentsTEST = await Student.createQueryBuilder().leftJoinAndSelect('Student.courses', 'Course').getMany()
-      console.log('studentsTEST', studentsTEST)
-    } /*else {
-      const courses = plainToClass(GetCourseResponseDto, await Course.createQueryBuilder().getMany(), {
-        excludeExtraneousValues: true,
-      })
-      if (await Grade.createQueryBuilder().where('Grade.studentId=:studentId', { studentId: student.id })) {
-        const students = await plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
-        for (const course of courses) {
-          const candidate_course = await Course.findOne(course.id)
-          for (const student of [students]) {
-            await Course.createQueryBuilder().update(Course).set({ student: students }).execute()
-            const candidate_student = await Student.findOne(student.id)
-            await this.gradeRepository
-              .create({
-                grade: 0,
-                student: candidate_student,
-                course: candidate_course,
-              })
-              .save({ data: { id: sub } })
-          }
-        }
-      }
-    }*/
+    }
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,
     })

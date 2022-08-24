@@ -83,46 +83,15 @@ export class CoursesService {
       .create({ ...createCourseDto, teacher, groups, students })
       .save({ data: { id: sub } })
 
-    if (!newCourse) {
-      throw new BadRequestException(`Не вишло створити предмет`)
-    } else {
-      await Student.createQueryBuilder()
-        .update(Student)
-        .set({ courses: () => `array_append("courses", 1)` })
-        .execute()
-    } /*else {
-      const studArrayId = []
-      const students = plainToClass(GetStudentResponseDto, await Student.createQueryBuilder().getMany(), {
-        excludeExtraneousValues: true,
-      })
-      students.map((studentId) => studArrayId.push(studentId.id))
-      console.log(studArrayId)
-      if (
-        await Grade.createQueryBuilder()
-          .where('Grade.courseId=:courseId', {
-            courseId: newCourse.id,
-          })
-          .andWhere('Grade.studentId IN (...:studentId)', { studentId: studArrayId })
-      ) {
-      } else {
-        const courses = await
-        students.map(async (student) => {
-          const { sub } = tokenDto || {}
-          const candidate_student = await Student.findOne(student.id)
-          if (!candidate_student) {
-            throw new BadRequestException(`Студента з id: ${candidate_student.id} не знайдено.`)
-          }
+    const allCourses = await this.coursesRepository.createQueryBuilder().getMany()
 
-          await Course.createQueryBuilder().update(Course).set({ student: candidate_student }).execute()
-          await this.gradeRepository
-            .create({
-              grade: 0,
-              student: candidate_student,
-              courses: newCourse,
-            })
-            .save({ data: { id: sub } })
-        })
-      }}*/
+    if (!newCourse) {
+      throw new BadRequestException(`Не вийшло створити предмет`)
+    } else {
+      students.map(async (student) => {
+        await this.gradeRepository.create({ grade: 0, student, courses: allCourses }).save({ data: { id: sub } })
+      })
+    }
     return plainToClass(CreateCourseResponseDto, newCourse, {
       excludeExtraneousValues: true,
     })

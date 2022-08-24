@@ -100,7 +100,7 @@ export class GradesService {
     const grades = this.studentRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.courses', 'Course')
-      .leftJoinAndSelect('Course.grade', 'Grade')
+      .leftJoinAndSelect('Course.grades', 'Grade')
       .leftJoinAndSelect('Student.user', 'User')
       .andWhere('Student.id=:id', { id })
       .getOne()

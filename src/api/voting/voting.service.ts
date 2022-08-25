@@ -122,8 +122,6 @@ export class VotingService {
     const vote = await this.votingRepository
       .create({
         ...createVotingDto,
-        startDate: createVotingDto.startDate.toISOString(),
-        endDate: createVotingDto.endDate.toISOString(),
         requiredCourses,
         notRequiredCourses,
         groups,

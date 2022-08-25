@@ -18,10 +18,10 @@ export class Vote extends BaseEntity {
   id: number
 
   @Column({ nullable: true })
-  startDate: string
+  startDate: Date
 
   @Column({ nullable: true })
-  endDate: string
+  endDate: Date
 
   @Column({ nullable: false, default: 0 })
   tookPart: number

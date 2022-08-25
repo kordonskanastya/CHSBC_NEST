@@ -63,6 +63,7 @@ export class GradesService {
     const query = this.studentRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.courses', 'Course')
+      .leftJoinAndSelect('Student.group', 'Group')
       .leftJoinAndSelect('Course.grades', 'Grade')
       .leftJoinAndSelect('Student.user', 'User')
     if (search) {

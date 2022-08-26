@@ -15,7 +15,7 @@ export class Grade extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => Student, (student) => student.grades, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   student: Student
 
   @Column({ default: 0, nullable: false })

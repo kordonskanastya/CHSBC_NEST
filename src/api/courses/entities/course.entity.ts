@@ -14,7 +14,6 @@ import { Entities } from '../../common/enums'
 import { Group } from '../../groups/entities/group.entity'
 import { User } from '../../users/entities/user.entity'
 import { Student } from '../../students/entities/student.entity'
-import { Grade } from '../../grades/entities/grade.entity'
 import { Vote } from '../../voting/entities/voting.entity'
 import { GradeHistory } from '../../grades-history/entities/grades-history.entity'
 
@@ -51,16 +50,14 @@ export class Course extends BaseEntity {
   @JoinTable()
   groups: Group[]
 
-  @ManyToOne(() => Student, (student) => student.courses, { onDelete: 'SET NULL' })
-  student: Student
+  @ManyToMany(() => Student, (student) => student.courses, { onDelete: 'CASCADE' })
+  @JoinTable()
+  students: Student[]
 
-  @OneToMany(() => Grade, (grade) => grade.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
-  grades: Grade[]
-
-  @ManyToOne(() => Vote, (vote) => vote.requiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => Vote, (vote) => vote.requiredCourses, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   voteRequiredCourses: Vote
 
-  @ManyToOne(() => Vote, (vote) => vote.notRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => Vote, (vote) => vote.notRequiredCourses, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   voteNotRequiredCourses: Vote
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
@@ -69,6 +66,6 @@ export class Course extends BaseEntity {
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
 
-  @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.course, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.course, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   gradesHistories: GradeHistory[]
 }

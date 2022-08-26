@@ -19,7 +19,6 @@ import { Student } from './entities/student.entity'
 import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
 import { Grade } from '../grades/entities/grade.entity'
 import { Course } from '../courses/entities/course.entity'
-import { GetCourseResponseDto } from '../courses/dto/get-course-response.dto'
 
 export enum StudentColumns {
   ID = 'id',
@@ -68,7 +67,7 @@ export class StudentsService {
     }
 
     const { id: userId } = await this.usersService.create(user, tokenDto)
-
+    const courses = await Course.createQueryBuilder().getMany()
     const student = await this.studentsRepository
       .create({
         ...createStudentDto,
@@ -84,26 +83,9 @@ export class StudentsService {
     if (!student) {
       throw new BadRequestException('Не вишло створити студента')
     } else {
-      const courses = plainToClass(GetCourseResponseDto, await Course.createQueryBuilder().getMany(), {
-        excludeExtraneousValues: true,
+      courses.map(async (course) => {
+        await this.gradeRepository.create({ grade: 0, student, course }).save({ data: { id: sub } })
       })
-      if (await Grade.createQueryBuilder().where('Grade.studentId=:studentId', { studentId: student.id })) {
-        const students = await plainToClass(GetStudentResponseDto, student, { excludeExtraneousValues: true })
-        for (const course of courses) {
-          const candidate_course = await Course.findOne(course.id)
-          for (const student of [students]) {
-            await Course.createQueryBuilder().update(Course).set({ student: students }).execute()
-            const candidate_student = await Student.findOne(student.id)
-            await this.gradeRepository
-              .create({
-                grade: 0,
-                student: candidate_student,
-                course: candidate_course,
-              })
-              .save({ data: { id: sub } })
-          }
-        }
-      }
     }
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,

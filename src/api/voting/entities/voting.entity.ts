@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -35,7 +36,7 @@ export class Vote extends BaseEntity {
   @OneToMany(() => Course, (course) => course.voteNotRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   notRequiredCourses: Course[]
 
-  @OneToMany(() => Student, (student) => student.vote, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToMany(() => Student, (student) => student.votes, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   students: Student[]
 
   @Column({ nullable: true })

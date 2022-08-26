@@ -62,9 +62,9 @@ export class GradesService {
 
     const query = this.studentRepository
       .createQueryBuilder('Student')
-      .leftJoinAndSelect('Student.courses', 'Course')
       .leftJoinAndSelect('Student.group', 'Group')
-      .leftJoinAndSelect('Course.grades', 'Grade')
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Grade.course', 'Course')
       .leftJoinAndSelect('Student.user', 'User')
     if (search) {
       query.where(
@@ -101,8 +101,8 @@ export class GradesService {
     const grades = this.studentRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.group', 'Group')
-      .leftJoinAndSelect('Student.courses', 'Course')
-      .leftJoinAndSelect('Course.grade', 'Grade')
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Grade.course', 'Course')
       .leftJoinAndSelect('Student.user', 'User')
       .andWhere('Student.id=:id', { id })
       .getOne()
@@ -131,7 +131,7 @@ export class GradesService {
 
     const grade = await this.gradeRepository
       .createQueryBuilder('Grade')
-      .leftJoinAndSelect('Grade.courses', 'Course')
+      .leftJoinAndSelect('Grade.course', 'Course')
       .where('Grade.studentId=:studentId', { studentId: id })
       .andWhere('Course.id=:courseId', { courseId: updateGradeDto.courseId })
       .getOne()

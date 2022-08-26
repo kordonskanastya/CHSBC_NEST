@@ -50,14 +50,14 @@ export class Course extends BaseEntity {
   @JoinTable()
   groups: Group[]
 
-  @ManyToMany(() => Student, (student) => student.courses, { onDelete: 'SET NULL' })
+  @ManyToMany(() => Student, (student) => student.courses, { onDelete: 'CASCADE' })
   @JoinTable()
   students: Student[]
 
-  @ManyToOne(() => Vote, (vote) => vote.requiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => Vote, (vote) => vote.requiredCourses, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   voteRequiredCourses: Vote
 
-  @ManyToOne(() => Vote, (vote) => vote.notRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => Vote, (vote) => vote.notRequiredCourses, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   voteNotRequiredCourses: Vote
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
@@ -66,6 +66,6 @@ export class Course extends BaseEntity {
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
 
-  @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.course, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.course, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   gradesHistories: GradeHistory[]
 }

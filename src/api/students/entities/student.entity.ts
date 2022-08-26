@@ -4,6 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
@@ -17,6 +18,7 @@ import { User } from '../../users/entities/user.entity'
 import { Course } from '../../courses/entities/course.entity'
 import { GradeHistory } from '../../grades-history/entities/grades-history.entity'
 import { Vote } from '../../voting/entities/voting.entity'
+import { Grade } from '../../grades/entities/grade.entity'
 
 @Entity({ name: Entities.STUDENTS })
 export class Student extends BaseEntity {
@@ -41,6 +43,9 @@ export class Student extends BaseEntity {
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
 
+  @OneToMany(() => Grade, (grade) => grade.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  grades: Grade[]
+
   @ManyToOne(() => Group, (group) => group.students, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   group: Group
 
@@ -54,6 +59,7 @@ export class Student extends BaseEntity {
   @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.student, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   gradesHistories: GradeHistory[]
 
-  @ManyToOne(() => Vote, (vote) => vote.students, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
-  vote: Vote
+  @ManyToMany(() => Vote, (vote) => vote.students, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @JoinTable()
+  votes: Vote[]
 }

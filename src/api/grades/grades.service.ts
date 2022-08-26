@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { UpdateGradeDto } from './dto/update-grade.dto'
 import { GRADE_HISTORY_REPOSITORY, GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { Repository } from 'typeorm'
@@ -100,12 +100,9 @@ export class GradesService {
 
     const grades = this.studentRepository
       .createQueryBuilder('Student')
-      .leftJoinAndSelect('Student.courses', 'Course')
-<<<<<<< HEAD
       .leftJoinAndSelect('Student.group', 'Group')
-=======
->>>>>>> e5924f3 (Relations fixed with mentor)
-      .leftJoinAndSelect('Course.grades', 'Grade')
+      .leftJoinAndSelect('Student.courses', 'Course')
+      .leftJoinAndSelect('Course.grade', 'Grade')
       .leftJoinAndSelect('Student.user', 'User')
       .andWhere('Student.id=:id', { id })
       .getOne()
@@ -136,37 +133,31 @@ export class GradesService {
       .createQueryBuilder('Grade')
       .leftJoinAndSelect('Grade.courses', 'Course')
       .where('Grade.studentId=:studentId', { studentId: id })
-      /*
-                        .andWhere('Course.id=:courseId', { courseId: updateGradeDto.courseId })
-                  */
+      .andWhere('Course.id=:courseId', { courseId: updateGradeDto.courseId })
       .getOne()
-
-    console.log('GRASDE', grade)
 
     if (!grade) {
       throw new BadRequestException(`This grade  not found.`)
     }
 
-    /*
-                        Object.assign(grade, updateGradeDto)
-                    */
+    Object.assign(grade, updateGradeDto)
 
-    /*    const userChanged = await User.findOne(sub)
-                    
-                        try {
-                          await grade.save({ data: { id: sub } })
-                          await this.gradeHistoryRepository
-                            .create({
-                              student,
-                              course,
-                              userChanged,
-                              grade: updateGradeDto.grade,
-                              reasonOfChange: updateGradeDto.reasonForChange,
-                            })
-                            .save({ data: { id: sub } })
-                        } catch (e) {
-                          throw new NotAcceptableException("Can't save grade. " + e.message)
-                        }*/
+    const userChanged = await User.findOne(sub)
+
+    try {
+      await grade.save({ data: { id: sub } })
+      await this.gradeHistoryRepository
+        .create({
+          student,
+          course,
+          userChanged,
+          grade: updateGradeDto.grade,
+          reasonOfChange: updateGradeDto.reasonForChange,
+        })
+        .save({ data: { id: sub } })
+    } catch (e) {
+      throw new NotAcceptableException("Can't save grade. " + e.message)
+    }
 
     return {
       success: true,

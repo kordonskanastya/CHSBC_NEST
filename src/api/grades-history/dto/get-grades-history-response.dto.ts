@@ -2,16 +2,15 @@ import { Expose, Type } from 'class-transformer'
 import { ApiProperty } from '@nestjs/swagger'
 import { GetCourseDropdownResponseDto } from '../../courses/dto/get-course-dropdown-response.dto'
 import { GetUserDropdownResponseDto } from '../../users/dto/get-user-dropdown-response.dto'
-import { GetStudentDropdownNameDto } from '../../students/dto/get-student-dropdown-name.dto'
 
 export class GetGradesHistoryResponseDto {
   @Expose()
   id: number
 
-  @Expose()
-  @ApiProperty({ example: GetStudentDropdownNameDto })
-  @Type(() => GetStudentDropdownNameDto)
-  student: GetStudentDropdownNameDto
+  // @Expose()
+  // @ApiProperty({ example: GetStudentDropdownNameDto })
+  // @Type(() => GetStudentDropdownNameDto)
+  // student: GetStudentDropdownNameDto
 
   @Expose()
   @ApiProperty({ type: Number })

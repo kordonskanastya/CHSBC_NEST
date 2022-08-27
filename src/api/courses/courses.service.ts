@@ -204,7 +204,7 @@ export class CoursesService {
     if (!course) {
       throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
     }
-
+    Object.assign(course, updateCourseDto)
     if (updateCourseDto.groups && updateCourseDto.teacher) {
       const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
       const groups = await Group.createQueryBuilder()

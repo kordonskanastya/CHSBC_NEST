@@ -5,7 +5,6 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
@@ -24,7 +23,7 @@ export class Grade extends BaseEntity {
   @Column({ default: 0, nullable: false })
   grade: number
 
-  @OneToOne(() => Course, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Course, { onDelete: 'CASCADE' })
   @JoinColumn()
   course: Course
 

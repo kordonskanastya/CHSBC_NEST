@@ -28,7 +28,6 @@ import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
-import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
 import { GetCuratorInfoDto } from './dto/get-curator-info.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
 

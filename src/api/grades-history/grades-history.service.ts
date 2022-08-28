@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { CreateGradesHistoryDto } from './dto/create-grades-history.dto'
-import { GRADE_HISTORY_REPOSITORY } from '../../constants'
+import { GRADE_HISTORY_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { Repository } from 'typeorm'
 import { Student } from '../students/entities/student.entity'
 import { GradeHistory } from './entities/grades-history.entity'
@@ -12,6 +12,7 @@ import { User } from '../users/entities/user.entity'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
+import { GetGradesHistoryDto } from './dto/get-grades-history.dto'
 
 export enum GradesHistoryColumns {
   ID = 'GradeHistory.id',
@@ -29,6 +30,8 @@ export class GradesHistoryService {
   constructor(
     @Inject(GRADE_HISTORY_REPOSITORY)
     private gradesHistoryRepository: Repository<GradeHistory>,
+    @Inject(STUDENT_REPOSITORY)
+    private studentRepository: Repository<Student>,
   ) {}
 
   async create(createGradesHistoryDto: CreateGradesHistoryDto, tokenDto?: TokenDto) {
@@ -74,12 +77,13 @@ export class GradesHistoryService {
 
     checkColumnExist(GRADES_HISTORY_COLUMN_LIST, orderByColumn)
 
-    const query = this.gradesHistoryRepository
-      .createQueryBuilder('GradeHistory')
-      .leftJoinAndSelect('GradeHistory.student', 'Student')
+    const query = this.studentRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.gradesHistories', 'GradeHistory_Student')
+      .leftJoinAndSelect(GradeHistory, 'GradeHistory', 'GradeHistory.studentId=Student.id')
       .leftJoinAndSelect('Student.user', 'User')
-      .leftJoinAndSelect('GradeHistory.course', 'Course')
-      .leftJoinAndSelect('GradeHistory.userChanged', 'UserChanged')
+      .leftJoinAndSelect('GradeHistory_Student.course', 'Course')
+      .leftJoinAndSelect('GradeHistory_Student.userChanged', 'UserChanged')
 
     if (grade) {
       query.andWhere(`GradeHistory.grade = :grade`, { grade })
@@ -100,8 +104,8 @@ export class GradesHistoryService {
     if (reasonOfChange) {
       query.andWhere(`GradeHistory.reasonOfChange=:reasonOfChange`, { reasonOfChange })
     }
-    console.log(await query.getMany())
+
     query.orderBy(`${orderByColumn}`, orderBy)
-    return paginateAndPlainToClass(GetGradesHistoryResponseDto, query, options)
+    return paginateAndPlainToClass(GetGradesHistoryDto, query, options)
   }
 }

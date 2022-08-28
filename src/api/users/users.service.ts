@@ -28,6 +28,8 @@ import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
+import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
+import { GetCuratorInfoDto } from './dto/get-curator-info.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
 
 export enum UserColumns {
@@ -429,5 +431,19 @@ export class UsersService {
 
     query.orderBy(`User.${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetTeacherCoursesDto, query, options)
+  }
+
+  async getCuratorInfo(token: TokenDto) {
+    const { sub } = token || {}
+    const curatorInfo = await this.usersRepository
+      .createQueryBuilder('User')
+      .leftJoinAndSelect('User.groups', 'Group')
+      .leftJoinAndSelect('Group.students', 'Student')
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Student.user', 'User_')
+      .where('User.id=:id', { id: sub })
+      .getOne()
+    return plainToClass(GetCuratorInfoDto, curatorInfo, { excludeExtraneousValues: true })
   }
 }

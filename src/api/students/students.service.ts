@@ -173,8 +173,7 @@ export class StudentsService {
     return await paginateAndPlainToClass(GetStudentResponseDto, query, options)
   }
 
-  async findOne(id: number, token?: TokenDto): Promise<GetStudentResponseDto> {
-    const { sub, role } = token
+  async findOne(id: number): Promise<GetStudentResponseDto> {
     const student = await this.studentsRepository
       .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.user', 'User')

@@ -293,4 +293,13 @@ export class UsersController {
       courses,
     )
   }
+
+  @Get('/curator/page')
+  @MinRole(ROLE.CURATOR)
+  // @ApiPaginatedResponse(GetGroupResponseDto, {
+  //   description: 'Find all groups by curator',
+  // })
+  async findCuratorInfo(@Request() req) {
+    return await this.usersService.getCuratorInfo(req.user)
+  }
 }

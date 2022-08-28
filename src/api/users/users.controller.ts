@@ -38,7 +38,7 @@ import { capitalize } from '../../utils/common'
 import { ApiPaginatedResponse } from '../../utils/paginate'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
-import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
+import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -258,7 +258,7 @@ export class UsersController {
 
   @Get('/teacher')
   @MinRole(ROLE.ADMIN)
-  @ApiPaginatedResponse(GetCoursesByTeacherDto, {
+  @ApiPaginatedResponse(GetTeacherCoursesDto, {
     description: 'Find all courses by teacher',
   })
   @ApiImplicitQueries([

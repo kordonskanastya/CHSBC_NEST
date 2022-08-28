@@ -15,6 +15,7 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
 import { Student } from '../students/entities/student.entity'
 import { GetOneVoteDto } from './dto/get-one-vote.dto'
+import { GetVotingResultDto } from './dto/getVotingResult.dto'
 
 export enum VotingColumns {
   ID = 'id',
@@ -71,11 +72,11 @@ export class VotingService {
       )
     }
 
-    if (new Date(createVotingDto.startDate) > new Date(createVotingDto.endDate)) {
+    if (createVotingDto.startDate > createVotingDto.endDate) {
       throw new BadRequestException('Дата старту голосування не може бути пізніше,чим кінець голосування')
     }
 
-    if (new Date() > new Date(createVotingDto.startDate)) {
+    if (new Date() > createVotingDto.startDate) {
       throw new BadRequestException(
         `Дата старту голосування не може бути раніше,чим ${new Date().toLocaleDateString()}`,
       )
@@ -89,7 +90,11 @@ export class VotingService {
       : [createVotingDto.notRequiredCourses]
 
     if (requiredCoursesIds.length === 0 || notRequiredCoursesIds.length === 0) {
-      throw new BadRequestException(`Предмет  з іd: ${createVotingDto.groups} не існує. `)
+      throw new BadRequestException(
+        `Предмет  з іd: ${
+          requiredCoursesIds.length === 0 ? createVotingDto.requiredCourses : createVotingDto.notRequiredCourses
+        } не існує. `,
+      )
     }
 
     const requiredCourses = await Course.createQueryBuilder()
@@ -98,13 +103,23 @@ export class VotingService {
       })
       .getMany()
 
+    const checkRequired = (courses: Course[], isRequired: boolean) => {
+      courses.map((course) => {
+        if (course.isCompulsory != isRequired) {
+          throw new BadRequestException(`Предмет ${course.name} ,не ${isRequired ? "обов'язковий" : 'вибірковий'}`)
+        }
+      })
+    }
+
     if (!requiredCourses || requiredCourses.length !== requiredCoursesIds.length) {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.requiredCourses} не існує.`)
     }
 
+    checkRequired(requiredCourses, true)
+
     const notRequiredCourses = await Course.createQueryBuilder()
       .where(`Course.id IN (:...ids)`, {
-        ids: requiredCoursesIds,
+        ids: notRequiredCoursesIds,
       })
       .getMany()
 
@@ -112,12 +127,7 @@ export class VotingService {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.notRequiredCourses} не існує.`)
     }
 
-    const students = await Student.createQueryBuilder()
-      .leftJoin('Student.group', 'Group')
-      .where(`Group.id IN (:...ids)`, {
-        ids: groupIds,
-      })
-      .getMany()
+    checkRequired(notRequiredCourses, false)
 
     const vote = await this.votingRepository
       .create({
@@ -125,7 +135,6 @@ export class VotingService {
         requiredCourses,
         notRequiredCourses,
         groups,
-        students,
       })
       .save({ data: { id: sub } })
 
@@ -357,5 +366,37 @@ export class VotingService {
       .set({ status: VotingStatus.ENDED })
       .where(`"endDate"::timestamp<now()`)
       .execute()
+  }
+
+  async findOneVotingResult(id: number) {
+    await this.updateStatusVoting()
+    const votingResult = await this.votingRepository
+      .createQueryBuilder('Vote')
+      .leftJoinAndSelect('Vote.groups', 'Group')
+      .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
+      .leftJoinAndSelect('Course_required.teacher', 'requiredTeacher')
+      .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
+      .leftJoinAndSelect('Course_notRequired.teacher', 'notRequiredTeacher')
+      .leftJoinAndSelect('Group.students', 'Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.votes', 'S')
+      .where('Vote.id=:id', { id })
+      .getOne()
+
+    if (!votingResult) {
+      throw new BadRequestException(`Голосування з id: ${id} не знайдено`)
+    }
+    // TODO проголосовал студик или нет
+    const students = []
+    votingResult.groups.map((group) => group.students.map((student) => students.push(student)))
+    return plainToClass(
+      GetVotingResultDto,
+      {
+        ...votingResult,
+        courses: [...votingResult.requiredCourses, ...votingResult.notRequiredCourses],
+        students,
+      },
+      { excludeExtraneousValues: true },
+    )
   }
 }

@@ -103,19 +103,19 @@ export class VotingService {
       })
       .getMany()
 
-    const checkRequired = (courses: Course[], isRequired: boolean) => {
-      courses.map((course) => {
-        if (course.isCompulsory != isRequired) {
-          throw new BadRequestException(`Предмет ${course.name} ,не ${isRequired ? "обов'язковий" : 'вибірковий'}`)
-        }
-      })
-    }
+    // const checkRequired = (courses: Course[], isRequired: boolean) => {
+    //   courses.map((course) => {
+    //     if (course.isCompulsory !== isRequired) {
+    //       throw new BadRequestException(`Предмет ${course.name} ,не ${isRequired ? "обов'язковий" : 'вибірковий'}`)
+    //     }
+    //   })
+    // }
 
     if (!requiredCourses || requiredCourses.length !== requiredCoursesIds.length) {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.requiredCourses} не існує.`)
     }
 
-    checkRequired(requiredCourses, true)
+    //checkRequired(requiredCourses, true)
 
     const notRequiredCourses = await Course.createQueryBuilder()
       .where(`Course.id IN (:...ids)`, {
@@ -127,7 +127,7 @@ export class VotingService {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.notRequiredCourses} не існує.`)
     }
 
-    checkRequired(notRequiredCourses, false)
+    //checkRequired(notRequiredCourses, false)
 
     const vote = await this.votingRepository
       .create({

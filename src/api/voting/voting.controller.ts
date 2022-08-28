@@ -118,4 +118,10 @@ export class VotingController {
   async remove(@Request() req, @Param('id') id: string) {
     return await this.votingService.remove(+id, req.user)
   }
+
+  @Get(':id([0-9]+)/result')
+  @MinRole(ROLE.STUDENT)
+  async findOneVotingResult(@Param('id') id: string) {
+    return await this.votingService.findOneVotingResult(+id)
+  }
 }

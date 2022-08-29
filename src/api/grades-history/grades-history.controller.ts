@@ -10,8 +10,8 @@ import { RolesGuard } from '../../auth/roles/roles.guard'
 import { ApiPaginatedResponse } from '../../utils/paginate'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
 import { GetGradesHistoryResponseDto } from './dto/get-grades-history-response.dto'
-import { PaginationTypeEnum } from 'nestjs-typeorm-paginate'
 import { ReasonForChangeGrade } from '../grades/grades.service'
+import { SEMESTER } from '../courses/dto/create-course.dto'
 
 @Controller(Entities.GRADES_HISTORY)
 @ApiTags(capitalize(Entities.GRADES_HISTORY))
@@ -29,20 +29,18 @@ export class GradesHistoryController {
     description: 'Get grades history response dto',
   })
   @ApiImplicitQueries([
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GradesHistoryColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'name', required: false },
     { name: 'courseId', required: false },
+    { name: 'semester', required: false },
     { name: 'studentId', required: false },
     { name: 'userId', required: false },
     { name: 'grade', required: false },
     { name: 'reasonOfChange', required: false, enum: ReasonForChangeGrade },
   ])
   async findAll(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Query('semester') semester: SEMESTER,
     @Query('orderByColumn') orderByColumn: GradesHistoryColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('studentId') studentId: number,
@@ -52,12 +50,6 @@ export class GradesHistoryController {
     @Query('reasonOfChange') reasonOfChange: string,
   ) {
     return await this.gradesHistoryService.findAll(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.GRADES_HISTORY}`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
       orderByColumn,
       orderBy,
       studentId,
@@ -65,6 +57,7 @@ export class GradesHistoryController {
       courseId,
       grade,
       reasonOfChange,
+      semester,
     )
   }
 }

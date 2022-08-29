@@ -9,10 +9,9 @@ import { Course } from '../courses/entities/course.entity'
 import { plainToClass } from 'class-transformer'
 import { GetGradesHistoryResponseDto } from './dto/get-grades-history-response.dto'
 import { User } from '../users/entities/user.entity'
-import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
-import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetGradesHistoryDto } from './dto/get-grades-history.dto'
+import { SEMESTER } from '../courses/dto/create-course.dto'
 
 export enum GradesHistoryColumns {
   ID = 'GradeHistory.id',
@@ -63,7 +62,6 @@ export class GradesHistoryService {
   }
 
   async findAll(
-    options: IPaginationOptions,
     orderByColumn: GradesHistoryColumns,
     orderBy: 'ASC' | 'DESC',
     studentId: number,
@@ -71,6 +69,7 @@ export class GradesHistoryService {
     courseId: number,
     grade: number,
     reasonOfChange: string,
+    semester: SEMESTER,
   ) {
     orderByColumn = orderByColumn || GradesHistoryColumns.ID
     orderBy = orderBy || 'ASC'
@@ -84,6 +83,7 @@ export class GradesHistoryService {
       .leftJoinAndSelect('Student.user', 'User')
       .leftJoinAndSelect('GradeHistory_Student.course', 'Course')
       .leftJoinAndSelect('GradeHistory_Student.userChanged', 'UserChanged')
+      .leftJoinAndSelect('Student.group', 'Group')
 
     if (grade) {
       query.andWhere(`GradeHistory.grade = :grade`, { grade })
@@ -91,6 +91,10 @@ export class GradesHistoryService {
 
     if (courseId) {
       query.andWhere(`Course.id=:courseId`, { courseId })
+    }
+
+    if (semester) {
+      query.andWhere(`Course.semester=:semester`, { semester })
     }
 
     if (userChangedId) {
@@ -106,6 +110,6 @@ export class GradesHistoryService {
     }
 
     query.orderBy(`${orderByColumn}`, orderBy)
-    return paginateAndPlainToClass(GetGradesHistoryDto, query, options)
+    return plainToClass(GetGradesHistoryDto, query.getMany(), { excludeExtraneousValues: true })
   }
 }

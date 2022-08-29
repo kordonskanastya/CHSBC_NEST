@@ -160,7 +160,6 @@ export class VotingService {
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
       .leftJoin('Group.students', 'Student')
-    console.log(await query.getRawMany())
     await this.updateStatusVoting()
 
     if (name) {
@@ -397,7 +396,7 @@ export class VotingService {
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
       .leftJoinAndSelect('Course_notRequired.teacher', 'notRequiredTeacher')
       .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt')
-      .where(`Course.id IN (:...ids)`, {})
+      .where(`Course.id IN (:...ids)`, { ids: coursesids })
       .getMany()
 
     const studentsInRes = []

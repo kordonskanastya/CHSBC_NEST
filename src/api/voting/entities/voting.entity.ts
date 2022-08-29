@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -10,7 +11,7 @@ import {
 import { Entities } from '../../common/enums'
 import { Course } from '../../courses/entities/course.entity'
 import { Group } from '../../groups/entities/group.entity'
-import { VotingResultEntity } from './voting-result.entity'
+import { VotingResult } from './voting-result.entity'
 
 @Entity({ name: Entities.VOTING })
 export class Vote extends BaseEntity {
@@ -29,17 +30,17 @@ export class Vote extends BaseEntity {
   @OneToMany(() => Group, (group) => group.vote, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   groups: Group[]
 
-  @OneToMany(() => Course, (course) => course.voteRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToMany(() => Course, (course) => course.voteRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   requiredCourses: Course[]
 
-  @OneToMany(() => Course, (course) => course.voteNotRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToMany(() => Course, (course) => course.voteNotRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   notRequiredCourses: Course[]
 
-  @OneToMany(() => VotingResultEntity, (votingResultEntity) => votingResultEntity.vote, {
+  @OneToMany(() => VotingResult, (votingResultEntity) => votingResultEntity.vote, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
-  results: VotingResultEntity[]
+  results: VotingResult[]
 
   @Column({ nullable: true })
   status: string

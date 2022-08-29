@@ -4,7 +4,6 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
-  JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
@@ -14,12 +13,11 @@ import {
 } from 'typeorm'
 import { Entities } from '../../common/enums'
 import { Group } from '../../groups/entities/group.entity'
-import { Vote } from '../../voting/entities/voting.entity'
 import { User } from '../../users/entities/user.entity'
 import { GradeHistory } from '../../grades-history/entities/grades-history.entity'
 import { Grade } from '../../grades/entities/grade.entity'
 import { Course } from '../../courses/entities/course.entity'
-import { VotingResultEntity } from '../../voting/entities/voting-result.entity'
+import { VotingResult } from '../../voting/entities/voting-result.entity'
 
 @Entity({ name: Entities.STUDENTS })
 export class Student extends BaseEntity {
@@ -60,6 +58,6 @@ export class Student extends BaseEntity {
   @OneToMany(() => GradeHistory, (gradeHistory) => gradeHistory.student, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   gradesHistories: GradeHistory[]
 
-  @OneToMany(() => VotingResultEntity, (VotingResultEntity) => VotingResultEntity.student)
-  votingResults: VotingResultEntity[]
+  @OneToMany(() => VotingResult, (VotingResultEntity) => VotingResultEntity.student)
+  votingResults: VotingResult[]
 }

@@ -5,7 +5,7 @@ import { Student } from '../../students/entities/student.entity'
 import { Vote } from './voting.entity'
 
 @Entity({ name: Entities.VOTING_RESULT })
-export class VotingResultEntity extends BaseEntity {
+export class VotingResult extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
 

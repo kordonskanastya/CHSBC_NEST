@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CreateGradesHistoryDto } from './dto/create-grades-history.dto'
 import { GRADE_HISTORY_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { Repository } from 'typeorm'
@@ -111,5 +111,31 @@ export class GradesHistoryService {
 
     query.orderBy(`${orderByColumn}`, orderBy)
     return plainToClass(GetGradesHistoryDto, query.getMany(), { excludeExtraneousValues: true })
+  }
+
+  async findOne(id: number, courseId: number, semester: SEMESTER) {
+    const query = this.studentRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.gradesHistories', 'GradeHistory_Student')
+      .leftJoinAndSelect(GradeHistory, 'GradeHistory', 'GradeHistory.studentId=Student.id')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('GradeHistory_Student.course', 'Course')
+      .leftJoinAndSelect('GradeHistory_Student.userChanged', 'UserChanged')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .where('Student.id=:id', { id })
+
+    if (semester) {
+      query.andWhere(`Course.semester=:semester`, { semester })
+    }
+
+    if (courseId) {
+      query.andWhere(`Course.id=:courseId`, { courseId })
+    }
+
+    if (!(await query.getOne())) {
+      throw new NotFoundException(`Студента з id: ${id} не знайдено`)
+    }
+
+    return plainToClass(GetGradesHistoryDto, query.getOne(), { excludeExtraneousValues: true })
   }
 }

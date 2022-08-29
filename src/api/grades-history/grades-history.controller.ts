@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common'
 import { GradesHistoryColumns, GradesHistoryService } from './grades-history.service'
 import { Entities } from '../common/enums'
 import { ApiBearerAuth, ApiForbiddenResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
@@ -59,5 +59,18 @@ export class GradesHistoryController {
       reasonOfChange,
       semester,
     )
+  }
+
+  @Get('student/:id([0-9]+)')
+  @MinRole(ROLE.TEACHER)
+  @ApiPaginatedResponse(GetGradesHistoryResponseDto, {
+    description: 'Get grades history response dto',
+  })
+  @ApiImplicitQueries([
+    { name: 'semester', required: false },
+    { name: 'courseId', required: false },
+  ])
+  async findOne(@Param('id') id: string, @Query('courseId') courseId: number, @Query('semester') semester: SEMESTER) {
+    return await this.gradesHistoryService.findOne(+id, courseId, semester)
   }
 }

@@ -16,6 +16,7 @@ import { GetVotingDto } from './dto/get-voting.dto'
 import { Student } from '../students/entities/student.entity'
 import { GetOneVoteDto } from './dto/get-one-vote.dto'
 import { GetVotingResultDto } from './dto/getVotingResult.dto'
+import { VotingResult } from './entities/voting-result.entity'
 
 export enum VotingColumns {
   ID = 'id',
@@ -71,6 +72,9 @@ export class VotingService {
         `Голосування із такими групами ${votingGroups.map((vote) => vote.groups.map((group) => group.name))} вже існує`,
       )
     }
+    if (createVotingDto.requiredCourses.length === 0 && createVotingDto.notRequiredCourses.length === 0) {
+      throw new BadRequestException('Не можна створити голосування тому, що немає предметів')
+    }
 
     if (createVotingDto.startDate > createVotingDto.endDate) {
       throw new BadRequestException('Дата старту голосування не може бути пізніше,чим кінець голосування')
@@ -103,19 +107,9 @@ export class VotingService {
       })
       .getMany()
 
-    // const checkRequired = (courses: Course[], isRequired: boolean) => {
-    //   courses.map((course) => {
-    //     if (course.isCompulsory !== isRequired) {
-    //       throw new BadRequestException(`Предмет ${course.name} ,не ${isRequired ? "обов'язковий" : 'вибірковий'}`)
-    //     }
-    //   })
-    // }
-
     if (!requiredCourses || requiredCourses.length !== requiredCoursesIds.length) {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.requiredCourses} не існує.`)
     }
-
-    //checkRequired(requiredCourses, true)
 
     const notRequiredCourses = await Course.createQueryBuilder()
       .where(`Course.id IN (:...ids)`, {
@@ -126,8 +120,6 @@ export class VotingService {
     if (!notRequiredCourses || notRequiredCourses.length !== notRequiredCoursesIds.length) {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.notRequiredCourses} не існує.`)
     }
-
-    //checkRequired(notRequiredCourses, false)
 
     const vote = await this.votingRepository
       .create({
@@ -167,8 +159,8 @@ export class VotingService {
       .leftJoinAndSelect('Vote.groups', 'Group')
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
-      .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'students')
-
+      .leftJoin('Group.students', 'Student')
+    console.log(await query.getRawMany())
     await this.updateStatusVoting()
 
     if (name) {
@@ -223,12 +215,12 @@ export class VotingService {
 
   async findOne(id: number) {
     await this.updateStatusVoting()
-    const query = this.votingRepository
+
+    const query = await this.votingRepository
       .createQueryBuilder('Vote')
       .leftJoinAndSelect('Vote.groups', 'Group')
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
-      .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'students')
       .where('Vote.id=:id', { id })
       .getOne()
 
@@ -293,26 +285,21 @@ export class VotingService {
         const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
         const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
         Object.assign(vote, { ...updateVotingDto, requiredCourses, notRequiredCourses })
-      }
-      if (updateVotingDto.requiredCourses && updateVotingDto.groups) {
+      } else if (updateVotingDto.requiredCourses && updateVotingDto.groups) {
         const { groups, students } = await getGroups(updateVotingDto.groups)
         const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
         Object.assign(vote, { ...updateVotingDto, groups, requiredCourses, students })
-      }
-      if (updateVotingDto.notRequiredCourses && updateVotingDto.groups) {
+      } else if (updateVotingDto.notRequiredCourses && updateVotingDto.groups) {
         const { groups, students } = await getGroups(updateVotingDto.groups)
         const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
         Object.assign(vote, { ...updateVotingDto, groups, notRequiredCourses, students })
-      }
-      if (updateVotingDto.groups) {
+      } else if (updateVotingDto.groups) {
         const { groups, students } = await getGroups(updateVotingDto.groups)
         Object.assign(vote, { ...updateVotingDto, groups, students })
-      }
-      if (updateVotingDto.requiredCourses) {
+      } else if (updateVotingDto.requiredCourses) {
         const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
         Object.assign(vote, { ...updateVotingDto, requiredCourses })
-      }
-      if (updateVotingDto.notRequiredCourses) {
+      } else if (updateVotingDto.notRequiredCourses) {
         const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
         Object.assign(vote, { ...updateVotingDto, notRequiredCourses })
       }
@@ -370,31 +357,71 @@ export class VotingService {
 
   async findOneVotingResult(id: number) {
     await this.updateStatusVoting()
-    const votingResult = await this.votingRepository
+    const votes = await this.votingRepository
       .createQueryBuilder('Vote')
       .leftJoinAndSelect('Vote.groups', 'Group')
+      .leftJoinAndSelect('Group.students', 'Student')
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
+      .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
+      .where('Vote.id=:id', { id })
+      .getOne()
+
+    if (!votes) {
+      throw new BadRequestException(`Голосування з id: ${id} не знайдено`)
+    }
+
+    const studentsInGroup = []
+    votes.groups.map((group) => group.students.map((student) => studentsInGroup.push(student)))
+
+    const votingResults = await VotingResult.createQueryBuilder('votingResult')
+      .leftJoinAndSelect('votingResult.student', 'Student')
+      .where('votingResult.vote=:id', { id })
+      .leftJoinAndSelect('votingResult.course', 'Course')
+      .getMany()
+
+    const coursesids = [
+      ...votes.requiredCourses.map((course) => course.id),
+      ...votes.notRequiredCourses.map((course) => course.id),
+    ]
+
+    if (coursesids.length === 0) {
+      throw new BadRequestException('Не можна відобразити результат тому, що у голосуванні немає предметів')
+    }
+
+    const courses = await Course.createQueryBuilder()
+      .leftJoinAndSelect('Course.votingResults', 'VT')
+      .leftJoinAndSelect(Vote, 'Vote', 'VT.vote=Vote.id')
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Course_required.teacher', 'requiredTeacher')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
       .leftJoinAndSelect('Course_notRequired.teacher', 'notRequiredTeacher')
-      .leftJoinAndSelect('Group.students', 'Student')
-      .leftJoinAndSelect('Student.user', 'User')
-      .leftJoinAndSelect('Student.votes', 'S')
-      .where('Vote.id=:id', { id })
-      .getOne()
+      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt')
+      .where(`Course.id IN (:...ids)`, {})
+      .getMany()
 
-    if (!votingResult) {
-      throw new BadRequestException(`Голосування з id: ${id} не знайдено`)
-    }
-    // TODO проголосовал студик или нет
+    const studentsInRes = []
+    votingResults.map((result) => studentsInRes.push(result.student))
+
     const students = []
-    votingResult.groups.map((group) => group.students.map((student) => students.push(student)))
+    studentsInGroup.map((studentInGroup) => {
+      {
+        let isVoted = false
+        studentsInRes.map((studentInRes) => {
+          if (studentInGroup.id === studentInRes.id) {
+            isVoted = true
+          }
+        })
+        students.push({ ...studentInGroup, isVoted: isVoted })
+      }
+    })
+
     return plainToClass(
       GetVotingResultDto,
       {
-        ...votingResult,
-        courses: [...votingResult.requiredCourses, ...votingResult.notRequiredCourses],
+        ...votes,
         students,
+        courses,
       },
       { excludeExtraneousValues: true },
     )

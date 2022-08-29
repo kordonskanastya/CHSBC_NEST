@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { Expose, Type } from 'class-transformer'
-import { GetStudentDropdownNameDto } from '../../students/dto/get-student-dropdown-name.dto'
 import { GetCourseTeacherDto } from '../../courses/dto/get-course-teacher.dto'
 import { CreateGroupResponseDto } from '../../groups/dto/create-group-response.dto'
+import { GetStudentForVotingResult } from '../../students/dto/get-student-for-voting-result'
 
 export class GetVotingResultDto {
   @Expose()
@@ -27,8 +27,8 @@ export class GetVotingResultDto {
   startDate: Date
 
   @Expose()
-  @Type(() => GetStudentDropdownNameDto)
-  students: GetStudentDropdownNameDto
+  @Type(() => GetStudentForVotingResult)
+  students: GetStudentForVotingResult
 
   @Expose()
   @Type(() => GetCourseTeacherDto)

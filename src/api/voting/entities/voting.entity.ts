@@ -3,7 +3,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -11,7 +10,7 @@ import {
 import { Entities } from '../../common/enums'
 import { Course } from '../../courses/entities/course.entity'
 import { Group } from '../../groups/entities/group.entity'
-import { Student } from '../../students/entities/student.entity'
+import { VotingResultEntity } from './voting-result.entity'
 
 @Entity({ name: Entities.VOTING })
 export class Vote extends BaseEntity {
@@ -36,8 +35,11 @@ export class Vote extends BaseEntity {
   @OneToMany(() => Course, (course) => course.voteNotRequiredCourses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   notRequiredCourses: Course[]
 
-  @ManyToMany(() => Student, (student) => student.votes, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
-  students: Student[]
+  @OneToMany(() => VotingResultEntity, (votingResultEntity) => votingResultEntity.vote, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
+  results: VotingResultEntity[]
 
   @Column({ nullable: true })
   status: string

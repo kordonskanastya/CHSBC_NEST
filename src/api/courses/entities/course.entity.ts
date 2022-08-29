@@ -16,6 +16,7 @@ import { User } from '../../users/entities/user.entity'
 import { Student } from '../../students/entities/student.entity'
 import { Vote } from '../../voting/entities/voting.entity'
 import { GradeHistory } from '../../grades-history/entities/grades-history.entity'
+import { VotingResultEntity } from '../../voting/entities/voting-result.entity'
 
 @Entity({ name: Entities.COURSES })
 export class Course extends BaseEntity {
@@ -59,6 +60,9 @@ export class Course extends BaseEntity {
 
   @ManyToOne(() => Vote, (vote) => vote.notRequiredCourses, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   voteNotRequiredCourses: Vote
+
+  @OneToMany(() => VotingResultEntity, (VotingResultEntity) => VotingResultEntity.course)
+  votingResults: VotingResultEntity[]
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   created: Date

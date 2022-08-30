@@ -17,7 +17,6 @@ import { ROLE } from '../../auth/roles/role.enum'
 import { User } from '../users/entities/user.entity'
 import { Grade } from '../grades/entities/grade.entity'
 import { Student } from '../students/entities/student.entity'
-import { GetStudentResponseDto } from '../students/dto/get-student-response.dto'
 
 export enum CourseColumns {
   ID = 'id',
@@ -29,6 +28,8 @@ export enum CourseColumns {
   IS_COMPULSORY = 'isCompulsory',
   TEACHER = 'teacher',
   GROUPS = 'groups',
+  CREATED = 'created',
+  UPDATED = 'updated',
 }
 
 export const COURSE_COLUMN_LIST = enumToArray(CourseColumns)
@@ -83,33 +84,11 @@ export class CoursesService {
     if (!course) {
       throw new BadRequestException(`Не вишло створити предмет`)
     } else {
-      const students = plainToClass(GetStudentResponseDto, await Student.createQueryBuilder().getMany(), {
-        excludeExtraneousValues: true,
-      })
-
+      const students = await Student.createQueryBuilder().getMany()
       students.map(async (student) => {
-        const { sub } = tokenDto || {}
-        const candidate_student = await Student.findOne(student.id)
-        const candidate_course = await Course.findOne(course.id)
-
-        if (!candidate_student) {
-          throw new BadRequestException(`Студента з id: ${candidate_student.id} не знайдено.`)
-        }
-
-        if (!candidate_course) {
-          throw new BadRequestException(`Предмета з  id: ${candidate_course.id} не знайдено .`)
-        }
-
-        await this.gradeRepository
-          .create({
-            grade: null,
-            student: candidate_student,
-            course: candidate_course,
-          })
-          .save({ data: { id: sub } })
+        await this.gradeRepository.create({ grade: 0, student, course }).save({ data: { id: sub } })
       })
     }
-
     return plainToClass(CreateCourseResponseDto, course, {
       excludeExtraneousValues: true,
     })
@@ -225,7 +204,7 @@ export class CoursesService {
     if (!course) {
       throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
     }
-
+    Object.assign(course, updateCourseDto)
     if (updateCourseDto.groups && updateCourseDto.teacher) {
       const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
       const groups = await Group.createQueryBuilder()
@@ -310,14 +289,24 @@ export class CoursesService {
     }
   }
 
-  async getCoursesDropdown(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', courseName: string) {
-    const orderByColumn = CourseColumns.ID
+  async getCoursesDropdown(
+    options: IPaginationOptions,
+    orderByColumn: CourseColumns,
+    orderBy: 'ASC' | 'DESC',
+    courseName: string,
+    isCompulsory: boolean,
+  ) {
+    orderByColumn = orderByColumn || CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
     const courses = await this.coursesRepository.createQueryBuilder('Course')
 
     if (courseName) {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
+    }
+
+    if (isCompulsory) {
+      courses.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
     }
 
     courses.orderBy(`Course.${orderByColumn}`, orderBy)

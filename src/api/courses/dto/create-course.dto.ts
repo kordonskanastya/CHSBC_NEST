@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { IsArray, IsBoolean, IsEnum, IsNumber, IsString, MaxLength, MinLength } from 'class-validator'
 
-enum SEMESTER {
+export enum SEMESTER {
   'FIRST' = 1,
   'SECOND' = 2,
 }

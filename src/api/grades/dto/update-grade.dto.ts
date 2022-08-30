@@ -1,5 +1,6 @@
-import { IsNumber, Max, Min } from 'class-validator'
+import { IsEnum, IsNumber, Max, Min } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger'
+import { ReasonForChangeGrade } from '../grades.service'
 
 export class UpdateGradeDto {
   @IsNumber()
@@ -11,4 +12,8 @@ export class UpdateGradeDto {
   @Max(100)
   @ApiProperty({ example: 1 })
   grade: number
+
+  @IsEnum(ReasonForChangeGrade)
+  @ApiProperty({ default: ReasonForChangeGrade.RETAKE, enum: ReasonForChangeGrade })
+  reasonForChange: ReasonForChangeGrade
 }

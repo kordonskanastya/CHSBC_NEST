@@ -107,13 +107,13 @@ export class CoursesController {
     )
   }
 
-  @Get(':id')
+  @Get(':id([0-9]+)')
   @MinRole(ROLE.STUDENT)
   async findOne(@Param('id') id: string): Promise<GetCourseResponseDto> {
     return await this.coursesService.findOne(+id)
   }
 
-  @Patch(':id')
+  @Patch(':id([0-9]+)')
   @MinRole(ROLE.ADMIN)
   async update(@Request() req, @Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
     return await this.coursesService.update(+id, updateCourseDto, req.user)
@@ -130,14 +130,18 @@ export class CoursesController {
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: CourseColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'courseName', required: false, description: 'course name' },
+    { name: 'isCompulsory', required: false },
   ])
   async getCoursesDropdown(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('orderByColumn') orderByColumn: CourseColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('courseName') courseName: string,
+    @Query('isCompulsory') isCompulsory: boolean,
   ) {
     return await this.coursesService.getCoursesDropdown(
       {
@@ -146,8 +150,10 @@ export class CoursesController {
         route: `/${Entities.COURSES}/course/dropdown`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      orderByColumn,
       orderBy,
       courseName,
+      isCompulsory,
     )
   }
 }

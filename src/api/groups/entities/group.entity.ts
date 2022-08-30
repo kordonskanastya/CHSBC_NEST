@@ -13,6 +13,7 @@ import { Entities } from '../../common/enums'
 import { User } from '../../users/entities/user.entity'
 import { Student } from '../../students/entities/student.entity'
 import { Course } from '../../courses/entities/course.entity'
+import { Vote } from '../../voting/entities/voting.entity'
 
 @Entity({ name: Entities.GROUPS })
 export class Group extends BaseEntity {
@@ -34,7 +35,7 @@ export class Group extends BaseEntity {
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
 
-  @OneToMany(() => Student, (student) => student.group, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @OneToMany(() => Student, (student) => student.group, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   students: Student[]
 
   @ManyToOne(() => User, (user) => user.groups, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
@@ -42,4 +43,7 @@ export class Group extends BaseEntity {
 
   @ManyToMany(() => Course, (course) => course.groups, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   courses: Course[]
+
+  @ManyToOne(() => Vote, (vote) => vote.groups, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+  vote: Vote
 }

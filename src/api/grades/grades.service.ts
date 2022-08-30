@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { UpdateGradeDto } from './dto/update-grade.dto'
-import { GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
+import { GRADE_HISTORY_REPOSITORY, GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
 import { Repository } from 'typeorm'
 import { Grade } from './entities/grade.entity'
 import { plainToClass } from 'class-transformer'
@@ -11,16 +11,25 @@ import { Student } from '../students/entities/student.entity'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
-import { GetGradeResponseDto } from './dto/get-grade-response.dto'
 import { Group } from '../groups/entities/group.entity'
 import { GroupsColumns } from '../groups/groups.service'
 import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto'
+import { GradeHistory } from '../grades-history/entities/grades-history.entity'
+import { User } from '../users/entities/user.entity'
 
 export enum GradeColumns {
   ID = 'Grade.id',
   COURSE_ID = 'Course.id',
   STUDENT_ID = 'Student.id',
   GRADE = 'Grade.grade',
+  CREATED = 'created',
+  UPDATED = 'updated',
+}
+
+export enum ReasonForChangeGrade {
+  EXAM = 'Екзамен',
+  RETAKE = 'Перездача',
+  MISTAKE = 'Помилкове введення оцінки',
 }
 
 export const GRADE_COLUMN_LIST = enumToArray(GradeColumns)
@@ -33,6 +42,8 @@ export class GradesService {
     private gradeRepository: Repository<Grade>,
     @Inject(STUDENT_REPOSITORY)
     private studentRepository: Repository<Student>,
+    @Inject(GRADE_HISTORY_REPOSITORY)
+    private gradeHistoryRepository: Repository<GradeHistory>,
   ) {}
 
   async findAll(
@@ -51,9 +62,10 @@ export class GradesService {
 
     const query = this.studentRepository
       .createQueryBuilder('Student')
-      .leftJoinAndSelect('Student.courses', 'Course')
-      .leftJoinAndSelect('Course.grades', 'Grade')
-
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Student.user', 'User')
     if (search) {
       query.where(
         // eslint-disable-next-line max-len
@@ -76,7 +88,6 @@ export class GradesService {
     }
 
     query.orderBy(`${orderByColumn}`, orderBy)
-
     return await paginateAndPlainToClass(GetStudentForGradeDto, query, options)
   }
 
@@ -87,19 +98,19 @@ export class GradesService {
       throw new BadRequestException(`Студента з  id: ${id} не знайдено.`)
     }
 
-    const grades = await this.gradeRepository
-      .createQueryBuilder('Grade')
-      .leftJoinAndSelect('Grade.student', 'Student')
-      .leftJoinAndSelect('Grade.course', 'Course')
+    const grades = this.studentRepository
+      .createQueryBuilder('Student')
       .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Student.user', 'User')
       .andWhere('Student.id=:id', { id })
-      .getMany()
+      .getOne()
 
     if (!grades) {
       throw new NotFoundException(`Not found grades id: ${id}`)
     }
-
-    return plainToClass(GetGradeResponseDto, grades, {
+    return plainToClass(GetStudentForGradeDto, grades, {
       excludeExtraneousValues: true,
     })
   }
@@ -120,8 +131,9 @@ export class GradesService {
 
     const grade = await this.gradeRepository
       .createQueryBuilder('Grade')
+      .leftJoinAndSelect('Grade.course', 'Course')
       .where('Grade.studentId=:studentId', { studentId: id })
-      .andWhere('Grade.courseId=:courseId', { courseId: updateGradeDto.courseId })
+      .andWhere('Course.id=:courseId', { courseId: updateGradeDto.courseId })
       .getOne()
 
     if (!grade) {
@@ -130,8 +142,19 @@ export class GradesService {
 
     Object.assign(grade, updateGradeDto)
 
+    const userChanged = await User.findOne(sub)
+
     try {
       await grade.save({ data: { id: sub } })
+      await this.gradeHistoryRepository
+        .create({
+          student,
+          course,
+          userChanged,
+          grade: updateGradeDto.grade,
+          reasonOfChange: updateGradeDto.reasonForChange,
+        })
+        .save({ data: { id: sub } })
     } catch (e) {
       throw new NotAcceptableException("Can't save grade. " + e.message)
     }

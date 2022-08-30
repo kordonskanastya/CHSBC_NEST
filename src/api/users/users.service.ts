@@ -28,12 +28,8 @@ import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
-import { GroupsColumns } from '../groups/groups.service'
-import { GetCoursesByTeacherDto } from './dto/get-courses-by-teacher.dto'
-import { CourseColumns } from '../courses/courses.service'
-import { UpdateTeacherDto } from './dto/update-teacher.dto'
-import { Course } from '../courses/entities/course.entity'
-import { CreateTeacherDto } from './dto/create-teacher.dto'
+import { GetCuratorInfoDto } from './dto/get-curator-info.dto'
+import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -96,60 +92,6 @@ export class UsersService {
     })
 
     return plainToClass(CreateUserResponseDto, user, {
-      excludeExtraneousValues: true,
-    })
-  }
-
-  async createTeacher(createTeacherDto: CreateTeacherDto, tokenDto?: TokenDto) {
-    const { sub } = tokenDto || {}
-    const registerDto = {
-      password: Buffer.from(Math.random().toString()).toString('base64').substring(0, 8),
-      email: createTeacherDto.email,
-      role: ROLE.TEACHER,
-      firstName: createTeacherDto.firstName,
-      lastName: createTeacherDto.lastName,
-      patronymic: createTeacherDto.patronymic,
-    }
-
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: registerDto.email })
-        .getOne()
-    ) {
-      throw new BadRequestException(`Користувач з емейлом : ${registerDto.email} Вже існує.`)
-    }
-    const courseIds = Array.isArray(createTeacherDto.courses) ? createTeacherDto.courses : [createTeacherDto.courses]
-    const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
-      ids: courseIds,
-    })
-
-    if (!courses || (await courses.getMany()).length !== courseIds.length) {
-      throw new BadRequestException(`Предмет з іd: ${createTeacherDto.courses} не існує .`)
-    }
-    const user = await this.usersRepository.create(registerDto).save({
-      data: {
-        id: sub,
-      },
-    })
-
-    if (!user) {
-      throw new BadRequestException(`Не вишло створити користувача`)
-    }
-    courses
-      .update(Course)
-      .set({
-        teacher: user,
-      })
-      .execute()
-    this.authService.sendMailCreatePassword({
-      firstName: registerDto.firstName,
-      lastName: registerDto.lastName,
-      password: registerDto.password,
-      email: registerDto.email,
-    })
-
-    return plainToClass(GetCoursesByTeacherDto, user, {
       excludeExtraneousValues: true,
     })
   }
@@ -292,61 +234,6 @@ export class UsersService {
     }
   }
 
-  async updateTeacher(id: number, updateTeacherDto: UpdateTeacherDto, { sub }: TokenDto): Promise<UpdateResponseDto> {
-    if (
-      await this.usersRepository
-        .createQueryBuilder()
-        .where(`LOWER(email) = LOWER(:email)`, { email: updateTeacherDto.email })
-        .andWhere({ id: Not(id) })
-        .getOne()
-    ) {
-      throw new BadRequestException(`Користувач з такою електронною поштою: ${updateTeacherDto.email} вже існує.`)
-    }
-
-    const teacher = await this.selectUsers().andWhere({ id }).getOne()
-
-    if (!teacher) {
-      throw new NotFoundException(`Вчитель з id: ${id} не знайдений`)
-    }
-    if (teacher.role !== ROLE.TEACHER) {
-      throw new BadRequestException(`Користувач не є вчителем ,він є ${teacher.role}`)
-    }
-
-    Object.assign(teacher, updateTeacherDto)
-
-    if (updateTeacherDto.courses) {
-      const courseIds = Array.isArray(updateTeacherDto.courses) ? updateTeacherDto.courses : [updateTeacherDto.courses]
-      const courses = Course.createQueryBuilder('courses').where(`courses.id IN (:...ids)`, {
-        ids: courseIds,
-      })
-
-      if (!courses || (await courses.getMany()).length !== courseIds.length) {
-        throw new BadRequestException(`Предмет з іd: ${updateTeacherDto.courses} не існує .`)
-      }
-
-      courses
-        .update(Course)
-        .set({
-          teacher: teacher,
-        })
-        .execute()
-
-      try {
-        await teacher.save({
-          data: {
-            id: sub,
-          },
-        })
-      } catch (e) {
-        throw new NotAcceptableException('Не вишло зберегти користувача. ' + e.message)
-      }
-
-      return {
-        success: true,
-      }
-    }
-  }
-
   async filterExpiresRefreshTokenList(refreshTokenList: RefreshTokenList = []): Promise<RefreshTokenList> {
     const now = await getDatabaseCurrentTimestamp()
     const list = refreshTokenList ? refreshTokenList?.filter(({ expiresIn }) => moment(expiresIn).diff(now) > 0) : []
@@ -417,8 +304,13 @@ export class UsersService {
     }
   }
 
-  async dropdownTeacher(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', search: string) {
-    const orderByColumn = CourseColumns.ID
+  async dropdownTeacher(
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    orderByColumn: UserColumns,
+    search: string,
+  ) {
+    orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'
 
     const teachers = await this.usersRepository
@@ -451,8 +343,14 @@ export class UsersService {
     return paginateAndPlainToClass(GetUserDropdownResponseDto, administrators, options)
   }
 
-  async getGroupsByCurator(options: IPaginationOptions, groupName: string, curatorId: number, orderBy: 'ASC' | 'DESC') {
-    const orderByColumn = GroupsColumns.ID
+  async getGroupsByCurator(
+    options: IPaginationOptions,
+    groupName: string,
+    curatorId: number,
+    orderBy: 'ASC' | 'DESC',
+    orderByColumn: UserColumns,
+  ) {
+    orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'
 
     const query = this.usersRepository
@@ -469,18 +367,35 @@ export class UsersService {
       query.andWhere('Group.curatorId = :curatorId', { curatorId })
     }
 
-    query.orderBy(`Group.${orderByColumn}`, orderBy)
+    query.orderBy(`User.${orderByColumn}`, orderBy)
+
+    // const sortFunction =
+    //   orderBy === 'DESC'
+    //     ? ({ [orderByColumn]: a }, { [orderByColumn]: b }) => (a > b ? -1 : a < b ? 1 : 0)
+    //     : ({ [orderByColumn]: a }, { [orderByColumn]: b }) => (a < b ? -1 : a > b ? 1 : 0)
+
     return await paginateAndPlainToClass(GetGroupsByCuratorDto, query, options)
+    //   , ({ items, ...query }) => ({
+    //   items: items.map((data: { groups: { id: number }[] }) => {
+    //     if (data.groups && data.groups.length) {
+    //       data.groups.sort(sortFunction)
+    //     }
+    //
+    //     return data
+    //   }),
+    //   ...query,
+    // }))
   }
 
   async getCoursesByTeacher(
     options: IPaginationOptions,
     orderBy: 'ASC' | 'DESC',
+    orderByColumn: UserColumns,
     teacherId: number,
     groups: number[],
     courses: number[],
   ) {
-    const orderByColumn = GroupsColumns.ID
+    orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'
 
     const query = this.usersRepository
@@ -514,20 +429,20 @@ export class UsersService {
     }
 
     query.orderBy(`User.${orderByColumn}`, orderBy)
-    return await paginateAndPlainToClass(GetCoursesByTeacherDto, query, options)
+    return await paginateAndPlainToClass(GetTeacherCoursesDto, query, options)
   }
 
-  async findOneTeacher(id: number, token?: TokenDto) {
-    const user = this.selectUsers()
-      .leftJoinAndSelect('User.courses', 'Course')
-      .andWhere('User.id=:id', { id })
-      .andWhere('User.role=:role', { role: ROLE.TEACHER })
+  async getCuratorInfo(token: TokenDto) {
+    const { sub } = token || {}
+    const curatorInfo = await this.usersRepository
+      .createQueryBuilder('User')
+      .leftJoinAndSelect('User.groups', 'Group')
+      .leftJoinAndSelect('Group.students', 'Student')
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Student.user', 'User_')
+      .where('User.id=:id', { id: sub })
       .getOne()
-
-    if (!user) {
-      throw new NotFoundException(`Користувач з id: ${id} не існує `)
-    }
-
-    return plainToClass(GetCoursesByTeacherDto, user, { excludeExtraneousValues: true })
+    return plainToClass(GetCuratorInfoDto, curatorInfo, { excludeExtraneousValues: true })
   }
 }

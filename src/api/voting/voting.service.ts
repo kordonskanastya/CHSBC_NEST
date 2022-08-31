@@ -123,7 +123,7 @@ export class VotingService {
     }
 
     const students = []
-    groups.map((gr) => gr.students.map((st) => students.push(st.id)))
+    groups.map((gr) => gr.students.map((st) => students.push(st)))
 
     const vote = await this.votingRepository
       .create({

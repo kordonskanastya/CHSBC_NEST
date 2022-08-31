@@ -5,8 +5,8 @@ import { CreateUserDto } from '../../users/dto/create-user.dto'
 
 export class CreateStudentDto {
   @IsString()
-  @MinLength(10)
-  @MaxLength(10)
+  @MinLength(10, { message: 'Дата народження  має містити 10 символів' })
+  @MaxLength(10, { message: 'Номер наказу може містити максимум 30 символів' })
   @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @ApiProperty({ required: true, example: '15.03.2002' })
   dateOfBirth: string
@@ -30,15 +30,15 @@ export class CreateStudentDto {
   user: CreateUserDto
 
   @IsString()
-  @MinLength(6)
-  @MaxLength(100)
+  @MinLength(6, { message: 'Номер наказу  має містити 6 та більше символів' })
+  @MaxLength(30, { message: 'Номер наказу може містити максимум 30 символів' })
   @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @ApiProperty({ required: true, example: '6724534082924' })
   orderNumber: string
 
   @IsString()
-  @MinLength(8)
-  @MaxLength(8)
+  @MinLength(8, { message: 'ЄДЕБО ID  має містити 8 символів' })
+  @MaxLength(8, { message: 'ЄДЕБО ID може містити максимум 8 символів' })
   @Transform(({ value }: TransformFnParams) => value.toString().trim())
   @ApiProperty({ required: true, example: '12345678' })
   edeboId: string

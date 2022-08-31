@@ -164,6 +164,10 @@ export class GroupsService {
       Object.assign(group, { ...updateGroupDto, curator })
     }
 
+    if (updateGroupDto.deletedOrderNumber) {
+      await this.groupsRepository.createQueryBuilder().update().set({ curator: null }).where('id=:id', { id }).execute()
+    }
+
     Object.assign(group, updateGroupDto)
 
     try {

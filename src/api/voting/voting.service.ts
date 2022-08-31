@@ -30,9 +30,9 @@ export enum VotingColumns {
 }
 
 export enum VotingStatus {
-  NEW = 'Нове голосування',
+  NEW = 'Нове',
   IN_PROGRESS = 'У прогресі',
-  ENDED = 'Закінчене голосування',
+  ENDED = 'Закінчене',
 }
 
 export const VOTING_COLUMN_LIST = enumToArray(VotingColumns)

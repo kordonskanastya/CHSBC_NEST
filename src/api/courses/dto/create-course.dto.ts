@@ -8,8 +8,8 @@ export enum SEMESTER {
 
 export class CreateCourseDto {
   @IsString()
-  @MinLength(2)
-  @MaxLength(100)
+  @MinLength(2, { message: 'Назва предмету  має містити 2 та більше символи' })
+  @MaxLength(30, { message: 'Назва предмету може містити максимум 30 символів' })
   @ApiProperty({ required: true, example: 'English b1-1' })
   name: string
 
@@ -29,7 +29,7 @@ export class CreateCourseDto {
   @ApiProperty({ required: true, example: false })
   isExam: boolean
 
-  @IsEnum(SEMESTER)
+  @IsEnum(SEMESTER, { message: 'Семестер має бути дійсним значенням enum' })
   @ApiProperty({ required: true, example: SEMESTER.FIRST })
   semester: SEMESTER
 

@@ -50,6 +50,7 @@ export class VotingService {
 
     const groupIds = Array.isArray(createVotingDto.groups) ? createVotingDto.groups : [createVotingDto.groups]
     const groups = await Group.createQueryBuilder()
+      .leftJoinAndSelect('Group.students', 'Student')
       .where(`Group.id IN (:...ids)`, {
         ids: groupIds,
       })
@@ -121,12 +122,16 @@ export class VotingService {
       throw new BadRequestException(`Предмет з іd: ${createVotingDto.notRequiredCourses} не існує.`)
     }
 
+    const students = []
+    groups.map((gr) => gr.students.map((st) => students.push(st.id)))
+
     const vote = await this.votingRepository
       .create({
         ...createVotingDto,
         requiredCourses,
         notRequiredCourses,
         groups,
+        students,
       })
       .save({ data: { id: sub } })
 
@@ -153,14 +158,14 @@ export class VotingService {
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(VOTING_COLUMN_LIST, orderByColumn)
+    await this.updateStatusVoting()
 
     const query = this.votingRepository
       .createQueryBuilder('Vote')
       .leftJoinAndSelect('Vote.groups', 'Group')
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
-      .leftJoin('Group.students', 'Student')
-    await this.updateStatusVoting()
+      .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'AllStudents')
 
     if (name) {
       query.andWhere('Vote.name=:name', { name })

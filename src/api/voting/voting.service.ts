@@ -365,6 +365,7 @@ export class VotingService {
       .createQueryBuilder('Vote')
       .leftJoinAndSelect('Vote.groups', 'Group')
       .leftJoinAndSelect('Group.students', 'Student')
+      .leftJoinAndSelect('Student.group', 'Student_group')
       .leftJoinAndSelect('Student.user', 'User')
       .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
@@ -394,12 +395,7 @@ export class VotingService {
     }
 
     const courses = await Course.createQueryBuilder()
-      .leftJoinAndSelect('Course.votingResults', 'VT')
-      .leftJoinAndSelect(Vote, 'Vote', 'VT.vote=Vote.id')
-      .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
-      .leftJoinAndSelect('Course_required.teacher', 'requiredTeacher')
-      .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
-      .leftJoinAndSelect('Course_notRequired.teacher', 'notRequiredTeacher')
+      .leftJoinAndSelect('Course.teacher', 'Teacher')
       .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt')
       .where(`Course.id IN (:...ids)`, { ids: coursesids })
       .getMany()

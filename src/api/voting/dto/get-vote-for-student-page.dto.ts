@@ -1,9 +1,15 @@
-import { Expose } from 'class-transformer'
+import { Expose, Type } from 'class-transformer'
+import { GetCourseResponseDto } from '../../courses/dto/get-course-response.dto'
+import { ApiProperty } from '@nestjs/swagger'
 
 export class GetVoteForStudentPageDto {
   @Expose()
-  requiredCourses: number[]
+  @Type(() => GetCourseResponseDto)
+  @ApiProperty({ type: GetCourseResponseDto })
+  requiredCourses: GetCourseResponseDto
 
   @Expose()
-  notRequiredCourses: number[]
+  @Type(() => GetCourseResponseDto)
+  @ApiProperty({ type: GetCourseResponseDto })
+  notRequiredCourses: GetCourseResponseDto
 }

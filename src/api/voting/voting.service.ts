@@ -545,17 +545,8 @@ export class VotingService {
       .where('Group.id=:groupId', { groupId: student.group.id })
       .where('Vote.status=:status', { status: VotingStatus.IN_PROGRESS })
       .getOne()
-    // const requiredCourses = vote.requiredCourses.map((course) => course.id)
-    // const notRequiredCourses = vote.notRequiredCourses.map((course) => course.id)
-    return plainToClass(
-      GetVoteForStudentPageDto,
 
-      vote,
-      // requiredCourses,
-      // notRequiredCourses,
-
-      { excludeExtraneousValues: true },
-    )
+    return plainToClass(GetVoteForStudentPageDto, vote, { excludeExtraneousValues: true })
   }
 
   async postVotingForStudent(voteStudentDto: VoteStudentDto, tokenDto: TokenDto) {

@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer'
-import { GetCourseResponseDto } from '../../courses/dto/get-course-response.dto'
 import { ApiProperty } from '@nestjs/swagger'
+import { GetCourseResponseDto } from '../../courses/dto/get-course-response.dto'
 
 export class GetVoteForStudentPageDto {
   @Expose()

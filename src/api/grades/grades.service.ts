@@ -53,6 +53,7 @@ export class GradesService {
     orderBy: 'ASC' | 'DESC',
     studentId: number,
     courseId: number,
+    groupId: number,
     grade: number,
   ) {
     orderByColumn = orderByColumn || GradeColumns.ID
@@ -85,6 +86,10 @@ export class GradesService {
 
     if (studentId) {
       query.andWhere(`Student.id=:studentId`, { studentId })
+    }
+
+    if (groupId) {
+      query.andWhere(`Group.id=:groupId`, { groupId })
     }
 
     query.orderBy(`${orderByColumn}`, orderBy)

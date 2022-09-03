@@ -343,6 +343,7 @@ export class VotingService {
         const student = await Student.findOne(st.id)
         student.courses = courses
         await student.save({ data: { id: sub } })
+        await Student.createQueryBuilder().update(Student).set({ vote: null }).where('Student.voteId=:id', { id })
       })
     }
     const coursesNotAproovedIdSelect = await VotingResult.createQueryBuilder('vr')
@@ -531,6 +532,10 @@ export class VotingService {
       .leftJoinAndSelect('Student.group', 'Group')
       .where('User.id=:id', { id: sub })
       .getOne()
+
+    if (!student) {
+      throw new NotFoundException(`Студент не знайдений`)
+    }
 
     const vote = await this.votingRepository
       .createQueryBuilder()

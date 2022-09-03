@@ -38,6 +38,8 @@ import { capitalize } from '../../utils/common'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { RolesGuard } from '../../auth/roles/roles.guard'
 import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
+import { VotingService } from '../voting/voting.service'
+import { VoteStudentDto } from '../voting/dto/vote-student.dto'
 
 @Controller(Entities.STUDENTS)
 @ApiTags(capitalize(Entities.STUDENTS))
@@ -47,7 +49,7 @@ import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-respo
 @MinRole(ROLE.TEACHER)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class StudentsController {
-  constructor(private readonly studentsService: StudentsService) {}
+  constructor(private readonly studentsService: StudentsService, private readonly votingService: VotingService) {}
 
   @Post()
   @MinRole(ROLE.ADMIN)
@@ -124,7 +126,7 @@ export class StudentsController {
   @Get(':id([0-9]+)')
   @MinRole(ROLE.TEACHER)
   @ApiOkResponse({ description: 'Find student', type: GetStudentResponseDto })
-  async findOne(@Param('id') id: string, @Request() req): Promise<GetStudentResponseDto> {
+  async findOne(@Param('id') id: string): Promise<GetStudentResponseDto> {
     return this.studentsService.findOne(+id)
   }
 
@@ -171,5 +173,17 @@ export class StudentsController {
       orderBy,
       orderByColumn,
     )
+  }
+
+  @Get('page/voting')
+  @MinRole(ROLE.STUDENT)
+  async getVotingForStudent(@Request() req) {
+    return await this.votingService.getVotingForStudent(req.user)
+  }
+
+  @Post('page/voting')
+  @MinRole(ROLE.STUDENT)
+  async postVotingForStudent(@Request() req, @Body() voteStudentDto: VoteStudentDto) {
+    return await this.votingService.postVotingForStudent(voteStudentDto, req.user)
   }
 }

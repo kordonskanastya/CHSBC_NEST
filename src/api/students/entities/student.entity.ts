@@ -62,6 +62,6 @@ export class Student extends BaseEntity {
   @OneToMany(() => VotingResult, (VotingResultEntity) => VotingResultEntity.student)
   votingResults: VotingResult[]
 
-  @ManyToOne(() => Vote, (vote) => vote.students)
+  @ManyToOne(() => Vote, (vote) => vote.students, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   vote: Vote
 }

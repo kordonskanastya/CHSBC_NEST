@@ -9,7 +9,7 @@ export class VotingResult extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Vote, (Vote) => Vote.results)
+  @ManyToOne(() => Vote, (Vote) => Vote.results, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   vote: Vote
 
   @ManyToOne(() => Course, (Course) => Course.votingResults)

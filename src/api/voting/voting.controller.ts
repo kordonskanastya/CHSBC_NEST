@@ -31,7 +31,7 @@ import { PaginationTypeEnum } from 'nestjs-typeorm-paginate'
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Unauthorized' })
 @ApiForbiddenResponse({ description: 'Forbidden resource. Check user role' })
-@MinRole(ROLE.STUDENT)
+@MinRole(ROLE.ADMIN)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class VotingController {
   constructor(private readonly votingService: VotingService) {}
@@ -43,7 +43,7 @@ export class VotingController {
   }
 
   @Get()
-  @MinRole(ROLE.STUDENT)
+  @MinRole(ROLE.ADMIN)
   @ApiPaginatedResponse(GetVotingDto, {
     description: 'Find all courses',
   })
@@ -102,7 +102,7 @@ export class VotingController {
   }
 
   @Get(':id([0-9]+)')
-  @MinRole(ROLE.STUDENT)
+  @MinRole(ROLE.ADMIN)
   async findOne(@Param('id') id: string) {
     return await this.votingService.findOne(+id)
   }
@@ -120,7 +120,7 @@ export class VotingController {
   }
 
   @Get(':id([0-9]+)/result')
-  @MinRole(ROLE.STUDENT)
+  @MinRole(ROLE.ADMIN)
   async findOneVotingResult(@Param('id') id: string) {
     return await this.votingService.findOneVotingResult(+id)
   }

@@ -315,58 +315,58 @@ export class VotingService {
         Object.assign(vote, { ...updateVotingDto, notRequiredCourses })
       }
     }
-
-    const coursesAproovedIdSelect = await VotingResult.createQueryBuilder('vr')
-      .leftJoinAndSelect('vr.course', 'Course')
-      .select('Course.id as id')
-      .groupBy('Course.id')
-      .andWhere('vr."voteId"=:id', { id })
-      .having('count(vr."courseId")=>:minQuantityVotesToAprooveCourse', {
-        minQuantityVotesToAprooveCourse: this.minQuantityVotesToAprooveCourse,
-      })
-      .getRawMany()
-
-    if (coursesAproovedIdSelect.length > 0) {
-      const courses = await Course.createQueryBuilder()
-        .where(`Course.id IN (:...ids)`, {
-          ids: coursesAproovedIdSelect.map((course) => course.id),
+    if (updateVotingDto.isRevote === true) {
+      const coursesAproovedIdSelect = await VotingResult.createQueryBuilder('vr')
+        .leftJoinAndSelect('vr.course', 'Course')
+        .select('Course.id as id')
+        .groupBy('Course.id')
+        .andWhere('vr."voteId"=:id', { id })
+        .having('count(vr."courseId")=>:minQuantityVotesToAprooveCourse', {
+          minQuantityVotesToAprooveCourse: this.minQuantityVotesToAprooveCourse,
         })
-        .getMany()
+        .getRawMany()
 
-      const students = await Student.createQueryBuilder()
-        .leftJoinAndSelect('Student.votingResults', 'vr')
-        .leftJoinAndSelect('vr.student', 'vr_student')
-        .leftJoinAndSelect('vr.course', 'vr_course')
-        .where('vr_student.id=Student.id')
-        .andWhere('vr_course.id in (:...ids)', { ids: coursesAproovedIdSelect.map((course) => course.id) })
-        .getMany()
+      if (coursesAproovedIdSelect.length > 0) {
+        const courses = await Course.createQueryBuilder()
+          .where(`Course.id IN (:...ids)`, {
+            ids: coursesAproovedIdSelect.map((course) => course.id),
+          })
+          .getMany()
 
-      students.map(async (st) => {
-        const student = await Student.findOne(st.id)
-        student.courses = courses
-        await student.save({ data: { id: sub } })
-        await Student.createQueryBuilder().update(Student).set({ vote: null }).where('Student.voteId=:id', { id })
-      })
-    }
-    const coursesNotAproovedIdSelect = await VotingResult.createQueryBuilder('vr')
-      .leftJoinAndSelect('vr.course', 'Course')
-      .select('Course.id as id')
-      .groupBy('Course.id')
-      .andWhere('vr."voteId"=:id', { id })
-      .having('count(vr."courseId")<:minQuantityVotesToAprooveCourse', {
-        minQuantityVotesToAprooveCourse: this.minQuantityVotesToAprooveCourse,
-      })
-      .getRawMany()
+        const students = await Student.createQueryBuilder()
+          .leftJoinAndSelect('Student.votingResults', 'vr')
+          .leftJoinAndSelect('vr.student', 'vr_student')
+          .leftJoinAndSelect('vr.course', 'vr_course')
+          .where('vr_student.id=Student.id')
+          .andWhere('vr_course.id in (:...ids)', { ids: coursesAproovedIdSelect.map((course) => course.id) })
+          .getMany()
 
-    if (coursesNotAproovedIdSelect.length > 0) {
-      await VotingResult.createQueryBuilder('vr')
-        .delete()
-        .where('"voting-result"."courseId" in (:...ids)', {
-          ids: coursesNotAproovedIdSelect.map((course) => course.id),
+        students.map(async (st) => {
+          const student = await Student.findOne(st.id)
+          student.courses = courses
+          await student.save({ data: { id: sub } })
+          await Student.createQueryBuilder().update(Student).set({ vote: null }).where('Student.voteId=:id', { id })
         })
-        .execute()
-    }
+      }
+      const coursesNotAproovedIdSelect = await VotingResult.createQueryBuilder('vr')
+        .leftJoinAndSelect('vr.course', 'Course')
+        .select('Course.id as id')
+        .groupBy('Course.id')
+        .andWhere('vr."voteId"=:id', { id })
+        .having('count(vr."courseId")<:minQuantityVotesToAprooveCourse', {
+          minQuantityVotesToAprooveCourse: this.minQuantityVotesToAprooveCourse,
+        })
+        .getRawMany()
 
+      if (coursesNotAproovedIdSelect.length > 0) {
+        await VotingResult.createQueryBuilder('vr')
+          .delete()
+          .where('"voting-result"."courseId" in (:...ids)', {
+            ids: coursesNotAproovedIdSelect.map((course) => course.id),
+          })
+          .execute()
+      }
+    }
     try {
       await vote.save({ data: { id: sub } })
       return {

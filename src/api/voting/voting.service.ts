@@ -479,7 +479,6 @@ export class VotingService {
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoin('Course.votingResults', 'VoteResult')
       .leftJoin('VoteResult.vote', 'VoteResult_vote')
-      .where('VoteResult_vote.id=:id', { id })
       .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt')
       .andWhere(`Course.id IN (:...ids)`, { ids: coursesids })
       .getMany()

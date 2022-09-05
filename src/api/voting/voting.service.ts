@@ -321,7 +321,7 @@ export class VotingService {
         .select('Course.id as id')
         .groupBy('Course.id')
         .andWhere('vr."voteId"=:id', { id })
-        .having('count(vr."courseId")=>:minQuantityVotesToAprooveCourse', {
+        .having('count(vr."courseId")>=:minQuantityVotesToAprooveCourse', {
           minQuantityVotesToAprooveCourse: this.minQuantityVotesToAprooveCourse,
         })
         .getRawMany()

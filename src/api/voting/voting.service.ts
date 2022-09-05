@@ -321,7 +321,7 @@ export class VotingService {
       .select('Course.id as id')
       .groupBy('Course.id')
       .andWhere('vr."voteId"=:id', { id })
-      .having('count(vr."courseId")>:minQuantityVotesToAprooveCourse', {
+      .having('count(vr."courseId")=>:minQuantityVotesToAprooveCourse', {
         minQuantityVotesToAprooveCourse: this.minQuantityVotesToAprooveCourse,
       })
       .getRawMany()
@@ -479,7 +479,9 @@ export class VotingService {
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoin('Course.votingResults', 'VoteResult')
       .leftJoin('VoteResult.vote', 'VoteResult_vote')
-      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt')
+      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt', (qb) =>
+        qb.where('Vt.voteId=id', { id }),
+      )
       .andWhere(`Course.id IN (:...ids)`, { ids: coursesids })
       .getMany()
 

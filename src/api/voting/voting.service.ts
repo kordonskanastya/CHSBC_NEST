@@ -45,7 +45,7 @@ export const VOTING_COLUMNS = enumToObject(VotingColumns)
 
 @Injectable()
 export class VotingService {
-  private minQuantityVotesToAprooveCourse = 20
+  private minQuantityVotesToAprooveCourse = 4
 
   constructor(
     @Inject(VOTE_REPOSITORY)

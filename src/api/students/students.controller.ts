@@ -186,4 +186,10 @@ export class StudentsController {
   async postVotingForStudent(@Request() req, @Body() voteStudentDto: VoteStudentDto) {
     return await this.votingService.postVotingForStudent(voteStudentDto, req.user)
   }
+
+  @Get('get-individual-plan/:id([0-9]+)')
+  @MinRole(ROLE.STUDENT)
+  async getIndividualPlan(@Param('id') id: string) {
+    return await this.studentsService.getIndividualPlan(+id)
+  }
 }

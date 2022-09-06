@@ -479,10 +479,9 @@ export class VotingService {
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoin('Course.votingResults', 'VoteResult')
       .leftJoin('VoteResult.vote', 'VoteResult_vote')
-      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt')
-      //   (qb) =>
-      //   qb.where('Vt.voteId=id', { id }),
-      // )
+      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt', (qb) =>
+        qb.where('Vt.voteId=:id', { id }),
+      )
       .andWhere(`Course.id IN (:...ids)`, { ids: coursesids })
       .getMany()
 
@@ -638,12 +637,13 @@ export class VotingService {
 
   async updateTookPart() {
     const resultsSelect = await VotingResult.createQueryBuilder('vr')
-      .select(['distinct(vr.voteId), COUNT(distinct(vr.studentId)) OVER (PARTITION BY vr.studentId) AS countVotes'])
+      .select(['vr.voteId', 'Count(distinct vr.courseId)'])
+      .addGroupBy('vr.voteId')
       .getRawMany()
     resultsSelect.map(async (result) => {
       await Vote.createQueryBuilder()
         .update(Vote)
-        .set({ tookPart: Number(result.countvotes) })
+        .set({ tookPart: Number(result.count) })
         .where('id=:id', { id: result.voteId })
         .execute()
     })

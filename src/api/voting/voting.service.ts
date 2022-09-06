@@ -636,16 +636,21 @@ export class VotingService {
   }
 
   async updateTookPart() {
-    const resultsSelect = await VotingResult.createQueryBuilder('vr')
-      .select(['vr.voteId', 'Count(distinct vr.courseId)'])
-      .addGroupBy('vr.voteId')
+    const voteRes = await VotingResult.createQueryBuilder('vr')
+      .select('distinct vr.voteId')
+      .addSelect((subQuery) => {
+        return subQuery
+          .select('COUNT(distinct c.id)', 'count')
+          .from('students', 'c')
+          .leftJoin('c.votingResults', 'res')
+          .where('res.studentId=c.id')
+      }, 'count')
       .getRawMany()
-    resultsSelect.map(async (result) => {
+    voteRes.map(async (result) => {
       await Vote.createQueryBuilder()
         .update(Vote)
         .set({ tookPart: Number(result.count) })
         .where('id=:id', { id: result.voteId })
-        .execute()
     })
   }
 }

@@ -651,6 +651,7 @@ export class VotingService {
         .update(Vote)
         .set({ tookPart: Number(result.count) })
         .where('id=:id', { id: result.voteId })
+        .execute()
     })
   }
 }

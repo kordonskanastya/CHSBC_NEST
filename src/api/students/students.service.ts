@@ -19,6 +19,7 @@ import { Student } from './entities/student.entity'
 import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
 import { Grade } from '../grades/entities/grade.entity'
 import { Course } from '../courses/entities/course.entity'
+import { GetStudentIndividualPlanDto } from './dto/get-student-individual-plan.dto'
 
 export enum StudentColumns {
   ID = 'id',
@@ -316,5 +317,23 @@ export class StudentsService {
     students.orderBy(`Student.${orderByColumn}`, orderBy)
 
     return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
+  }
+
+  async getIndividualPlan(id: number) {
+    const student = await Student.createQueryBuilder()
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoin('Student.courses', 'St_course')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Course.teacher', 'Teacher')
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('User.id=:id', { id })
+      .andWhere('St_course.id=Course.id')
+      .getOne()
+
+    if (!student) {
+      throw new NotFoundException(`Студент з id: ${id} не знайдений `)
+    }
+
+    return plainToClass(GetStudentIndividualPlanDto, student, { excludeExtraneousValues: true })
   }
 }

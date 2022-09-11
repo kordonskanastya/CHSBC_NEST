@@ -1,23 +1,21 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger'
 import { GetStudentDropdownNameDto } from '../../students/dto/get-student-dropdown-name.dto'
 import { Expose, Type } from 'class-transformer'
-import { CreateGroupResponseDto } from '../../groups/dto/create-group-response.dto'
 import { GetCourseDropdownResponseDto } from '../../courses/dto/get-course-dropdown-response.dto'
-import { GetGradeResponseDto } from '../../grades/dto/get-grade-response.dto'
+import { GetStudentGroupDto } from '../../students/dto/get-student-group.dto'
 
 export class GetTeacherInfoDto extends PartialType(GetStudentDropdownNameDto) {
   @Expose()
-  @Type(() => CreateGroupResponseDto)
-  @ApiProperty({ type: CreateGroupResponseDto })
-  group: CreateGroupResponseDto
+  @Type(() => GetStudentGroupDto)
+  @ApiProperty({ type: GetStudentGroupDto })
+  student: GetStudentGroupDto
 
   @Expose()
   @Type(() => GetCourseDropdownResponseDto)
   @ApiProperty({ type: GetCourseDropdownResponseDto })
-  courses: GetCourseDropdownResponseDto
+  course: GetCourseDropdownResponseDto
 
   @Expose()
-  @Type(() => GetGradeResponseDto)
-  @ApiProperty({ type: GetGradeResponseDto })
-  grades: GetGradeResponseDto
+  @ApiProperty({ type: Number })
+  grade: number
 }

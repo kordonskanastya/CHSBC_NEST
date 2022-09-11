@@ -39,6 +39,8 @@ import { ApiPaginatedResponse } from '../../utils/paginate'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
+import { GradeColumns } from '../grades/grades.service'
+import { SEMESTER } from '../courses/dto/create-course.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -296,8 +298,18 @@ export class UsersController {
 
   @Get('/curator/page')
   @MinRole(ROLE.CURATOR)
-  async findCuratorInfo(@Request() req) {
-    return await this.usersService.getCuratorInfo(req.user)
+  @ApiImplicitQueries([
+    { name: 'groupId', required: false },
+    { name: 'studentId', required: false },
+    { name: 'semester', required: false },
+  ])
+  async findCuratorInfo(
+    @Request() req,
+    @Query('studentId') studentId: number,
+    @Query('groupId') groupId: number,
+    @Query('semester') semester: SEMESTER,
+  ) {
+    return await this.usersService.getCuratorInfo(req.user, studentId, groupId, semester)
   }
 
   @Get('/teacher/page')
@@ -307,8 +319,8 @@ export class UsersController {
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
-    { name: 'group', required: false },
-    { name: 'course', required: false },
+    { name: 'groupId', required: false },
+    { name: 'courseId', required: false },
     { name: 'studentId', required: false },
   ])
   async findTeacherInfo(
@@ -316,7 +328,7 @@ export class UsersController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
-    @Query('orderByColumn') orderByColumn: UserColumns,
+    @Query('orderByColumn') orderByColumn: GradeColumns,
     @Query('studentId') studentId: number,
     @Query('groupId') groupId: number,
     @Query('courseId') courseId: number,

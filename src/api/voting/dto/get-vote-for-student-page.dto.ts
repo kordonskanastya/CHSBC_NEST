@@ -12,4 +12,8 @@ export class GetVoteForStudentPageDto {
   @Type(() => GetCourseResponseDto)
   @ApiProperty({ type: GetCourseResponseDto })
   notRequiredCourses: GetCourseResponseDto
+
+  @Expose()
+  @ApiProperty({ type: Boolean })
+  isRevote: boolean
 }

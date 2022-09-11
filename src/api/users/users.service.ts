@@ -30,8 +30,8 @@ import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
 import { GetCuratorInfoDto } from './dto/get-curator-info.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
-import { GetTeacherInfoDto } from './dto/get-teacher-info.dto'
 import { Student } from '../students/entities/student.entity'
+import { GetTeacherInfoDto } from './dto/get-teacher-info.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -453,8 +453,8 @@ export class UsersService {
     orderBy: 'ASC' | 'DESC',
     orderByColumn: UserColumns,
     studentId: number,
-    group: number,
-    course: number,
+    groupId: number,
+    courseId: number,
   ) {
     orderByColumn = orderByColumn || UserColumns.ID
     orderBy = orderBy || 'ASC'
@@ -462,7 +462,7 @@ export class UsersService {
     checkColumnExist(USER_COLUMN_LIST, orderByColumn)
 
     const { sub } = token || {}
-    const teacherInfoQuery = await Student.createQueryBuilder('Student')
+    const teacherInfoQuery = Student.createQueryBuilder('Student')
       .leftJoinAndSelect('Student.group', 'Group')
       .leftJoinAndSelect('Group.courses', 'Course')
       .leftJoinAndSelect('Course.teacher', 'Teacher')
@@ -477,16 +477,15 @@ export class UsersService {
       teacherInfoQuery.andWhere(`User.id=:studentId`, { studentId })
     }
 
-    if (group) {
-      teacherInfoQuery.andWhere(`Group.id=:groupId`, { group })
+    if (groupId) {
+      teacherInfoQuery.andWhere(`Group.id=:groupId`, { groupId })
     }
 
-    if (course) {
-      teacherInfoQuery.andWhere(`Course.id=:courseId`, { course })
+    if (courseId) {
+      teacherInfoQuery.andWhere(`Course.id=:courseId`, { courseId })
     }
-
     teacherInfoQuery.orderBy(`User.${orderByColumn}`, orderBy)
 
-    return await paginateAndPlainToClass(GetTeacherInfoDto, teacherInfoQuery, { excludeExtraneousValues: true })
+    return await paginateAndPlainToClass(GetTeacherInfoDto, teacherInfoQuery, options)
   }
 }

@@ -296,18 +296,12 @@ export class UsersController {
 
   @Get('/curator/page')
   @MinRole(ROLE.CURATOR)
-  // @ApiPaginatedResponse(GetGroupResponseDto, {
-  //   description: 'Find all groups by curator',
-  // })
   async findCuratorInfo(@Request() req) {
     return await this.usersService.getCuratorInfo(req.user)
   }
 
   @Get('/teacher/page')
   @MinRole(ROLE.TEACHER)
-  @ApiPaginatedResponse(GetGroupResponseDto, {
-    description: 'Find all groups by teacher',
-  })
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
@@ -319,13 +313,13 @@ export class UsersController {
   ])
   async findTeacherInfo(
     @Request() req,
-    @Query('group') group: number,
-    @Query('course') course: number,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('orderByColumn') orderByColumn: UserColumns,
     @Query('studentId') studentId: number,
+    @Query('groupId') groupId: number,
+    @Query('courseId') courseId: number,
   ) {
     return await this.usersService.getTeacherInfo(
       req.user,
@@ -338,8 +332,8 @@ export class UsersController {
       orderBy,
       orderByColumn,
       studentId,
-      group,
-      course,
+      groupId,
+      courseId,
     )
   }
 }

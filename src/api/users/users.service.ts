@@ -30,6 +30,8 @@ import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
 import { GetCuratorInfoDto } from './dto/get-curator-info.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
+import { Student } from '../students/entities/student.entity'
+import { GetTeacherInfoDto } from './dto/get-teacher-info.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -443,5 +445,47 @@ export class UsersService {
       .where('User.id=:id', { id: sub })
       .getOne()
     return plainToClass(GetCuratorInfoDto, curatorInfo, { excludeExtraneousValues: true })
+  }
+
+  async getTeacherInfo(
+    token: TokenDto,
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    orderByColumn: UserColumns,
+    studentId: number,
+    groupId: number,
+    courseId: number,
+  ) {
+    orderByColumn = orderByColumn || UserColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(USER_COLUMN_LIST, orderByColumn)
+
+    const { sub } = token || {}
+    const teacherInfoQuery = Student.createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Group.courses', 'Course')
+      .leftJoinAndSelect('Course.teacher', 'Teacher')
+      .leftJoinAndSelect('Teacher.courses', 'CourseTeacher')
+      .leftJoinAndSelect('Student.grades', 'Grades')
+      .leftJoinAndSelect('Grades.course', 'CourseGrade')
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('Teacher.id=:id', { id: sub })
+      .andWhere('CourseGrade.id=CourseTeacher.id')
+
+    if (studentId) {
+      teacherInfoQuery.andWhere(`User.id=:studentId`, { studentId })
+    }
+
+    if (groupId) {
+      teacherInfoQuery.andWhere(`Group.id=:groupId`, { groupId })
+    }
+
+    if (courseId) {
+      teacherInfoQuery.andWhere(`Course.id=:courseId`, { courseId })
+    }
+    teacherInfoQuery.orderBy(`User.${orderByColumn}`, orderBy)
+
+    return await paginateAndPlainToClass(GetTeacherInfoDto, teacherInfoQuery, options)
   }
 }

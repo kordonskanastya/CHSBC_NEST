@@ -296,10 +296,44 @@ export class UsersController {
 
   @Get('/curator/page')
   @MinRole(ROLE.CURATOR)
-  // @ApiPaginatedResponse(GetGroupResponseDto, {
-  //   description: 'Find all groups by curator',
-  // })
   async findCuratorInfo(@Request() req) {
     return await this.usersService.getCuratorInfo(req.user)
+  }
+
+  @Get('/teacher/page')
+  @MinRole(ROLE.TEACHER)
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'group', required: false },
+    { name: 'course', required: false },
+    { name: 'studentId', required: false },
+  ])
+  async findTeacherInfo(
+    @Request() req,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: UserColumns,
+    @Query('studentId') studentId: number,
+    @Query('groupId') groupId: number,
+    @Query('courseId') courseId: number,
+  ) {
+    return await this.usersService.getTeacherInfo(
+      req.user,
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.USERS}/teacher/page`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+      studentId,
+      groupId,
+      courseId,
+    )
   }
 }

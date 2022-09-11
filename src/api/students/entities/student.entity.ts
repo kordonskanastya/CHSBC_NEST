@@ -18,6 +18,7 @@ import { GradeHistory } from '../../grades-history/entities/grades-history.entit
 import { Grade } from '../../grades/entities/grade.entity'
 import { Course } from '../../courses/entities/course.entity'
 import { VotingResult } from '../../voting/entities/voting-result.entity'
+import { Vote } from '../../voting/entities/voting.entity'
 
 @Entity({ name: Entities.STUDENTS })
 export class Student extends BaseEntity {
@@ -48,7 +49,7 @@ export class Student extends BaseEntity {
   @ManyToOne(() => Group, (group) => group.students, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   group: Group
 
-  @OneToOne(() => User, (user) => user.id, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.id, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn()
   user: User
 
@@ -60,4 +61,7 @@ export class Student extends BaseEntity {
 
   @OneToMany(() => VotingResult, (VotingResultEntity) => VotingResultEntity.student)
   votingResults: VotingResult[]
+
+  @ManyToOne(() => Vote, (vote) => vote.students, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
+  vote: Vote
 }

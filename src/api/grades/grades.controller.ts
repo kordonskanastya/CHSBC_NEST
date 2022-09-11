@@ -37,6 +37,7 @@ export class GradesController {
     { name: 'search', required: false },
     { name: 'studentId', required: false },
     { name: 'courseId', required: false },
+    { name: 'groupId', required: false },
     { name: 'grade', required: false },
   ])
   async findAll(
@@ -47,6 +48,7 @@ export class GradesController {
     @Query('search') search: string,
     @Query('studentId') studentId: number,
     @Query('courseId') courseId: number,
+    @Query('groupId') groupId: number,
     @Query('grade') grade: number,
   ) {
     return await this.gradesService.findAll(
@@ -61,6 +63,7 @@ export class GradesController {
       orderBy,
       studentId,
       courseId,
+      groupId,
       grade,
     )
   }

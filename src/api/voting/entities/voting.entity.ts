@@ -12,6 +12,7 @@ import { Entities } from '../../common/enums'
 import { Course } from '../../courses/entities/course.entity'
 import { Group } from '../../groups/entities/group.entity'
 import { VotingResult } from './voting-result.entity'
+import { Student } from '../../students/entities/student.entity'
 
 @Entity({ name: Entities.VOTING })
 export class Vote extends BaseEntity {
@@ -50,4 +51,10 @@ export class Vote extends BaseEntity {
 
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
+
+  @OneToMany(() => Student, (student) => student.vote)
+  students: Student[]
+
+  @Column({ nullable: true })
+  isRevote: boolean
 }

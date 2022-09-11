@@ -356,8 +356,7 @@ export class UsersService {
     const query = this.usersRepository
       .createQueryBuilder('User')
       .leftJoinAndSelect('User.groups', 'Group')
-      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
-      .andWhere('User.role=:role', { role: ROLE.CURATOR })
+      .where('User.role=:role', { role: ROLE.CURATOR })
 
     if (groupName) {
       query.andWhere('Group.name LIKE :name', { name: `%${groupName}%` })

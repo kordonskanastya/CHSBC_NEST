@@ -126,6 +126,7 @@ export class CoursesController {
   }
 
   @Get('course/dropdown')
+  @MinRole(ROLE.STUDENT)
   @ApiOkResponse({ type: GetCourseResponseDto, description: 'Get course dropdown' })
   @ApiImplicitQueries([
     { name: 'page', required: false, description: 'default 1' },

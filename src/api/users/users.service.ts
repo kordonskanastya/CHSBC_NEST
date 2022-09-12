@@ -30,6 +30,11 @@ import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
 import { GetCuratorInfoDto } from './dto/get-curator-info.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
+import { Student } from '../students/entities/student.entity'
+import { Grade } from '../grades/entities/grade.entity'
+import { GetTeacherInfoDto } from './dto/get-teacher-info.dto'
+import { GRADE_COLUMN_LIST, GradeColumns } from '../grades/grades.service'
+import { SEMESTER } from '../courses/dto/create-course.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -431,7 +436,7 @@ export class UsersService {
     return await paginateAndPlainToClass(GetTeacherCoursesDto, query, options)
   }
 
-  async getCuratorInfo(token: TokenDto) {
+  async getCuratorInfo(token: TokenDto, studentId: number, groupId: number, semester: SEMESTER) {
     const { sub } = token || {}
     const curatorInfo = await this.usersRepository
       .createQueryBuilder('User')
@@ -441,7 +446,59 @@ export class UsersService {
       .leftJoinAndSelect('Grade.course', 'Course')
       .leftJoinAndSelect('Student.user', 'User_')
       .where('User.id=:id', { id: sub })
-      .getOne()
-    return plainToClass(GetCuratorInfoDto, curatorInfo, { excludeExtraneousValues: true })
+
+    if (studentId) {
+      curatorInfo.andWhere(`Student.id=:studentId`, { studentId })
+    }
+
+    if (groupId) {
+      curatorInfo.andWhere(`Group.id=:groupId`, { groupId })
+    }
+
+    if (semester) {
+      curatorInfo.andWhere(`Course.semester=:semester`, { semester })
+    }
+
+    return plainToClass(GetCuratorInfoDto, curatorInfo.getOne(), { excludeExtraneousValues: true })
+  }
+
+  async getTeacherInfo(
+    token: TokenDto,
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    orderByColumn: GradeColumns,
+    studentId: number,
+    groupId: number,
+    courseId: number,
+  ) {
+    const { sub } = token || {}
+    orderByColumn = orderByColumn || GradeColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(GRADE_COLUMN_LIST, orderByColumn)
+
+    const teacherInfoQuery = Grade.createQueryBuilder('Grade')
+      .leftJoinAndSelect('Grade.student', 'Student')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoin('Course.teacher', 'Teacher')
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('Teacher.id=:id', { id: sub })
+
+    if (studentId) {
+      teacherInfoQuery.andWhere(`Student.id=:studentId`, { studentId })
+    }
+
+    if (groupId) {
+      teacherInfoQuery.andWhere(`Group.id=:groupId`, { groupId })
+    }
+
+    if (courseId) {
+      teacherInfoQuery.andWhere(`Course.id=:courseId`, { courseId })
+    }
+
+    teacherInfoQuery.orderBy(`${orderByColumn}`, orderBy)
+
+    return await paginateAndPlainToClass(GetTeacherInfoDto, teacherInfoQuery, options)
   }
 }

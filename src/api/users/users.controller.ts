@@ -39,6 +39,8 @@ import { ApiPaginatedResponse } from '../../utils/paginate'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
+import { GradeColumns } from '../grades/grades.service'
+import { SEMESTER } from '../courses/dto/create-course.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -296,10 +298,54 @@ export class UsersController {
 
   @Get('/curator/page')
   @MinRole(ROLE.CURATOR)
-  // @ApiPaginatedResponse(GetGroupResponseDto, {
-  //   description: 'Find all groups by curator',
-  // })
-  async findCuratorInfo(@Request() req) {
-    return await this.usersService.getCuratorInfo(req.user)
+  @ApiImplicitQueries([
+    { name: 'groupId', required: false },
+    { name: 'studentId', required: false },
+    { name: 'semester', required: false },
+  ])
+  async findCuratorInfo(
+    @Request() req,
+    @Query('studentId') studentId: number,
+    @Query('groupId') groupId: number,
+    @Query('semester') semester: SEMESTER,
+  ) {
+    return await this.usersService.getCuratorInfo(req.user, studentId, groupId, semester)
+  }
+
+  @Get('/teacher/page')
+  @MinRole(ROLE.TEACHER)
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'groupId', required: false },
+    { name: 'courseId', required: false },
+    { name: 'studentId', required: false },
+  ])
+  async findTeacherInfo(
+    @Request() req,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: GradeColumns,
+    @Query('studentId') studentId: number,
+    @Query('groupId') groupId: number,
+    @Query('courseId') courseId: number,
+  ) {
+    return await this.usersService.getTeacherInfo(
+      req.user,
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.USERS}/teacher/page`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+      studentId,
+      groupId,
+      courseId,
+    )
   }
 }

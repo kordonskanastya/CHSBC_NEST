@@ -533,9 +533,8 @@ export class VotingService {
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
       .leftJoinAndSelect('Course_notRequired.teacher', 'Teacher_')
       .where('Group.id=:groupId', { groupId: student.group.id })
-      .where('Vote.status=:status', { status: VotingStatus.IN_PROGRESS })
+      .andWhere('Vote.status=:status', { status: VotingStatus.IN_PROGRESS })
       .getOne()
-
     return plainToClass(GetVoteForStudentPageDto, vote, { excludeExtraneousValues: true })
   }
 

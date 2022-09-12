@@ -22,8 +22,8 @@ export enum GradeColumns {
   COURSE_ID = 'Course.id',
   STUDENT_ID = 'Student.id',
   GRADE = 'Grade.grade',
-  CREATED = 'created',
-  UPDATED = 'updated',
+  CREATED = 'Grade.created',
+  UPDATED = 'Grade.updated',
 }
 
 export enum ReasonForChangeGrade {

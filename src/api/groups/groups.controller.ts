@@ -87,7 +87,7 @@ export class GroupsController {
   }
 
   @Get('dropdown/name')
-  @MinRole(ROLE.ADMIN)
+  @MinRole(ROLE.STUDENT)
   @ApiPaginatedResponse(CreateGroupResponseDto, {
     description: 'get dropdown list',
   })

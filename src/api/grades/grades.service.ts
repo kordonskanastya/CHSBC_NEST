@@ -113,7 +113,7 @@ export class GradesService {
       .getOne()
 
     if (!grades) {
-      throw new NotFoundException(`Not found grades id: ${id}`)
+      throw new NotFoundException(`Не знайдено оцінки з id: ${id}`)
     }
     return plainToClass(GetStudentForGradeDto, grades, {
       excludeExtraneousValues: true,
@@ -142,7 +142,7 @@ export class GradesService {
       .getOne()
 
     if (!grade) {
-      throw new BadRequestException(`This grade  not found.`)
+      throw new BadRequestException(`Оцінка не знайдена.`)
     }
 
     Object.assign(grade, updateGradeDto)
@@ -174,7 +174,7 @@ export class GradesService {
     const grade = await this.gradeRepository.findOne(id)
 
     if (!grade) {
-      throw new NotFoundException(`Not found grade id: ${id}`)
+      throw new NotFoundException(`Оцінку з id: ${id}`)
     }
 
     await this.gradeRepository.remove(grade, {

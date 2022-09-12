@@ -8,8 +8,8 @@ export class UpdateGradeDto {
   courseId: number
 
   @IsNumber()
-  @Min(0)
-  @Max(100)
+  @Min(0, { message: 'Мінімальне  значення оцінки 0' })
+  @Max(100, { message: 'Максимальне значення оцінки 100' })
   @ApiProperty({ example: 1 })
   grade: number
 

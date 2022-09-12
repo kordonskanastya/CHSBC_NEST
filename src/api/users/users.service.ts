@@ -481,9 +481,11 @@ export class UsersService {
       .leftJoinAndSelect('Grade.student', 'Student')
       .leftJoinAndSelect('Student.group', 'Group')
       .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Course.groups', 'Course_group')
       .leftJoin('Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
       .where('Teacher.id=:id', { id: sub })
+      .andWhere('Group.id=Course_group.id')
 
     if (studentId) {
       teacherInfoQuery.andWhere(`Student.id=:studentId`, { studentId })
@@ -500,5 +502,25 @@ export class UsersService {
     teacherInfoQuery.orderBy(`${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetTeacherInfoDto, teacherInfoQuery, options)
+  }
+
+  async getTeacherInfoById(id: number, courseId: number, token: TokenDto) {
+    const { sub } = token || {}
+    const teacherInfoQuery = await Grade.createQueryBuilder('Grade')
+      .leftJoinAndSelect('Grade.student', 'Student')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoin('Course.teacher', 'Teacher')
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('Teacher.id=:id', { id: sub })
+      .andWhere('Student.id=:id', { id })
+      .andWhere('Course.id=:courseId', { courseId })
+      .getOne()
+
+    if (!teacherInfoQuery) {
+      throw new BadRequestException('Інформацію про студента  не знайдено')
+    }
+
+    return plainToClass(GetTeacherInfoDto, teacherInfoQuery, { excludeExtraneousValues: true })
   }
 }

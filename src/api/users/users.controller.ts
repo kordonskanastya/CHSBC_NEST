@@ -39,8 +39,9 @@ import { ApiPaginatedResponse } from '../../utils/paginate'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
-import { GradeColumns } from '../grades/grades.service'
+import { GradeColumns, GradesService } from '../grades/grades.service'
 import { SEMESTER } from '../courses/dto/create-course.dto'
+import { UpdateGradeDto } from '../grades/dto/update-grade.dto'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -50,7 +51,7 @@ import { SEMESTER } from '../courses/dto/create-course.dto'
 @MinRole(ROLE.STUDENT)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService, private readonly gradesService: GradesService) {}
 
   @Post()
   @MinRole(ROLE.ADMIN)
@@ -347,5 +348,18 @@ export class UsersController {
       groupId,
       courseId,
     )
+  }
+
+  @Get('/teacher/page/student/:id([0-9]+)')
+  @MinRole(ROLE.TEACHER)
+  @ApiImplicitQueries([{ name: 'courseId', required: true }])
+  async findTeacherInfoById(@Param('id') id: number, @Request() req, @Query('courseId') courseId: number) {
+    return this.usersService.getTeacherInfoById(id, courseId, req.user)
+  }
+
+  @Patch('/teacher/page/student/:id([0-9]+)')
+  @MinRole(ROLE.TEACHER)
+  async patchTeacherInfoById(@Param('id') id: number, @Body() updateTeacherInfo: UpdateGradeDto, @Request() req) {
+    return this.gradesService.update(id, updateTeacherInfo, req.user)
   }
 }

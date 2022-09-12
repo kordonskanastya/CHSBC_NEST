@@ -535,6 +535,11 @@ export class VotingService {
       .where('Group.id=:groupId', { groupId: student.group.id })
       .andWhere('Vote.status=:status', { status: VotingStatus.IN_PROGRESS })
       .getOne()
+
+    if (!vote) {
+      throw new BadRequestException('Не знайдено доступних голосувань')
+    }
+
     return plainToClass(GetVoteForStudentPageDto, vote, { excludeExtraneousValues: true })
   }
 

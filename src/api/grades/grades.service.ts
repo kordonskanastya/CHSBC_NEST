@@ -16,6 +16,7 @@ import { GroupsColumns } from '../groups/groups.service'
 import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto'
 import { GradeHistory } from '../grades-history/entities/grades-history.entity'
 import { User } from '../users/entities/user.entity'
+import { GetTeacherInfoDto } from '../users/dto/get-teacher-info.dto'
 
 export enum GradeColumns {
   ID = 'Grade.id',
@@ -96,7 +97,7 @@ export class GradesService {
     return await paginateAndPlainToClass(GetStudentForGradeDto, query, options)
   }
 
-  async findOne(id: number) {
+  async findOneGradeByStudent(id: number) {
     const student = await Student.findOne(id)
 
     if (!student) {
@@ -118,6 +119,23 @@ export class GradesService {
     return plainToClass(GetStudentForGradeDto, grades, {
       excludeExtraneousValues: true,
     })
+  }
+
+  async findOne(id: number) {
+    const grade = this.gradeRepository
+      .createQueryBuilder('Grade')
+      .leftJoinAndSelect('Grade.student', 'Student')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('Grade.id=:id', { id })
+      .getOne()
+
+    if (!grade) {
+      throw new NotFoundException(`Не знайдено оцінки з id: ${id}`)
+    }
+
+    return plainToClass(GetTeacherInfoDto, grade, { excludeExtraneousValues: true })
   }
 
   async update(id: number, updateGradeDto: UpdateGradeDto, tokenDto?: TokenDto) {

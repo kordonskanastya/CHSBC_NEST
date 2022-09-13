@@ -350,11 +350,10 @@ export class UsersController {
     )
   }
 
-  @Get('/teacher/page/student/:id([0-9]+)')
+  @Get('/teacher/page/:id([0-9]+)')
   @MinRole(ROLE.TEACHER)
-  @ApiImplicitQueries([{ name: 'courseId', required: true }])
-  async findTeacherInfoById(@Param('id') id: number, @Request() req, @Query('courseId') courseId: number) {
-    return this.usersService.getTeacherInfoById(id, courseId, req.user)
+  async findTeacherInfoById(@Param('id') id: number) {
+    return this.gradesService.findOne(id)
   }
 
   @Patch('/teacher/page/student/:id([0-9]+)')

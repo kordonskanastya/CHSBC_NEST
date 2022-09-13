@@ -156,12 +156,16 @@ export class StudentsController {
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'teacherId', required: false },
+    { name: 'curatorId', required: false },
   ])
   async dropdownStudent(
     @Query('page') page = 1,
     @Query('orderByColumn') orderByColumn: StudentColumns,
     @Query('limit') limit = 10,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('teacherId') teacherId: number,
+    @Query('curatorId') curatorId: number,
   ) {
     return await this.studentsService.dropdownStudent(
       {
@@ -172,6 +176,8 @@ export class StudentsController {
       },
       orderBy,
       orderByColumn,
+      teacherId,
+      curatorId,
     )
   }
 

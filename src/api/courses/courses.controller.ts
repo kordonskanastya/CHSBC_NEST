@@ -135,6 +135,7 @@ export class CoursesController {
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'courseName', required: false, description: 'course name' },
     { name: 'isCompulsory', required: false },
+    { name: 'teacherId', required: false },
   ])
   async getCoursesDropdown(
     @Query('page') page = 1,
@@ -143,6 +144,7 @@ export class CoursesController {
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('courseName') courseName: string,
     @Query('isCompulsory') isCompulsory: boolean,
+    @Query('teacherId') teacherId: number,
   ) {
     return await this.coursesService.getCoursesDropdown(
       {
@@ -155,6 +157,7 @@ export class CoursesController {
       orderBy,
       courseName,
       isCompulsory,
+      teacherId,
     )
   }
 }

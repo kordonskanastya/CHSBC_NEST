@@ -306,13 +306,29 @@ export class StudentsService {
     }
   }
 
-  async dropdownStudent(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: StudentColumns) {
+  async dropdownStudent(
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    orderByColumn: StudentColumns,
+    teacherId: number,
+    curatorId: number,
+  ) {
     orderByColumn = orderByColumn || StudentColumns.ID
 
     const students = await this.studentsRepository
       .createQueryBuilder()
       .leftJoinAndSelect('Student.user', 'User')
+      .leftJoin('Student.group', 'Group')
+      .leftJoin('Group.courses', 'Course')
       .where('User.role=:role', { role: ROLE.STUDENT })
+
+    if (teacherId) {
+      students.andWhere('Course.teacherId=:teacherId', { teacherId })
+    }
+
+    if (curatorId) {
+      students.andWhere('Group.curatorId=:curatorId', { curatorId })
+    }
 
     students.orderBy(`Student.${orderByColumn}`, orderBy)
 

@@ -98,6 +98,8 @@ export class GroupsController {
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GroupsColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'name', required: false },
+    { name: 'teacherId', required: false },
+    { name: 'curatorId', required: false },
   ])
   async dropdownName(
     @Query('page') page = 1,
@@ -105,6 +107,8 @@ export class GroupsController {
     @Query('orderByColumn') orderByColumn: GroupsColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('name') name: string,
+    @Query('teacherId') teacherId: number,
+    @Query('curatorId') curatorId: number,
   ) {
     return await this.groupsService.dropdownName(
       {
@@ -116,6 +120,8 @@ export class GroupsController {
       orderByColumn,
       orderBy,
       name,
+      teacherId,
+      curatorId,
     )
   }
 

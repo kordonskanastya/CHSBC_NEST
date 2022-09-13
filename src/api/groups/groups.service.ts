@@ -181,7 +181,14 @@ export class GroupsService {
     }
   }
 
-  async dropdownName(options: IPaginationOptions, orderByColumn: GroupsColumns, orderBy: 'ASC' | 'DESC', name: string) {
+  async dropdownName(
+    options: IPaginationOptions,
+    orderByColumn: GroupsColumns,
+    orderBy: 'ASC' | 'DESC',
+    name: string,
+    teacherId: number,
+    curatorId: number,
+  ) {
     orderByColumn = orderByColumn || GroupsColumns.ID
     orderBy = orderBy || 'ASC'
 
@@ -190,12 +197,21 @@ export class GroupsService {
     const query = this.groupsRepository
       .createQueryBuilder('Group')
       .leftJoinAndSelect('Group.curator', 'User')
+      .leftJoin('Group.courses', 'Course')
       .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
 
     if (name) {
       query
         .andWhere("(Group.deletedOrderNumber  <> '') IS  TRUE")
         .orWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
+    }
+
+    if (teacherId) {
+      query.andWhere('Course.teacherId=:teacherId', { teacherId })
+    }
+
+    if (curatorId) {
+      query.andWhere('User.id=:curatorId', { curatorId })
     }
 
     query.orderBy(`Group.${orderByColumn}`, orderBy)

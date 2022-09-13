@@ -295,6 +295,7 @@ export class CoursesService {
     orderBy: 'ASC' | 'DESC',
     courseName: string,
     isCompulsory: boolean,
+    teacherId: number,
   ) {
     orderByColumn = orderByColumn || CourseColumns.ID
     orderBy = orderBy || 'ASC'
@@ -307,6 +308,10 @@ export class CoursesService {
 
     if (isCompulsory) {
       courses.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
+    }
+
+    if (teacherId) {
+      courses.andWhere('Course.teacherId=:teacherId', { teacherId })
     }
 
     courses.orderBy(`Course.${orderByColumn}`, orderBy)

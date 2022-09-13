@@ -57,7 +57,7 @@ export class GradesService {
     groupId: number,
     grade: number,
   ) {
-    orderByColumn = orderByColumn || GradeColumns.ID
+    orderByColumn = orderByColumn || GradeColumns.STUDENT_ID
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(GRADE_COLUMN_LIST, orderByColumn)

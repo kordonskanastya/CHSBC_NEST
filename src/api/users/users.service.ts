@@ -481,9 +481,11 @@ export class UsersService {
       .leftJoinAndSelect('Grade.student', 'Student')
       .leftJoinAndSelect('Student.group', 'Group')
       .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Course.groups', 'Course_group')
       .leftJoin('Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
       .where('Teacher.id=:id', { id: sub })
+      .andWhere('Group.id=Course_group.id')
 
     if (studentId) {
       teacherInfoQuery.andWhere(`Student.id=:studentId`, { studentId })

@@ -19,6 +19,8 @@ export enum GradesHistoryColumns {
   USER_ID = 'User.id',
   STUDENT_ID = 'Student.id',
   GRADE = 'GradeHistory.grade',
+  CREATED = 'GradeHistory.createdAt',
+  UPDATED = 'GradeHistory.updatedAt',
 }
 
 export const GRADES_HISTORY_COLUMN_LIST = enumToArray(GradesHistoryColumns)

@@ -8,7 +8,7 @@ import { GradesModule } from '../grades/grades.module'
 import { VotingModule } from '../voting/voting.module'
 
 @Module({
-  imports: [DatabaseModule, UsersModule, forwardRef(() => GradesModule), VotingModule],
+  imports: [DatabaseModule, forwardRef(() => UsersModule), forwardRef(() => GradesModule), VotingModule],
   controllers: [StudentsController],
   providers: [StudentsService, ...studentProviders],
   exports: [StudentsService, ...studentProviders],

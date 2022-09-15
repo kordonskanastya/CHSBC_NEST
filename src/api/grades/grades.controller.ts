@@ -71,7 +71,7 @@ export class GradesController {
   @Get('/student/:id([0-9]+)')
   @MinRole(ROLE.STUDENT)
   async findOne(@Param('id') id: string) {
-    return await this.gradesService.findOne(+id)
+    return await this.gradesService.findOneGradeByStudent(+id)
   }
 
   @Patch('/student/:id([0-9]+)')

@@ -16,6 +16,7 @@ import { GroupsColumns } from '../groups/groups.service'
 import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto'
 import { GradeHistory } from '../grades-history/entities/grades-history.entity'
 import { User } from '../users/entities/user.entity'
+import { GetTeacherInfoDto } from '../users/dto/get-teacher-info.dto'
 
 export enum GradeColumns {
   ID = 'Grade.id',
@@ -56,7 +57,7 @@ export class GradesService {
     groupId: number,
     grade: number,
   ) {
-    orderByColumn = orderByColumn || GradeColumns.ID
+    orderByColumn = orderByColumn || GradeColumns.STUDENT_ID
     orderBy = orderBy || 'ASC'
 
     checkColumnExist(GRADE_COLUMN_LIST, orderByColumn)
@@ -96,7 +97,7 @@ export class GradesService {
     return await paginateAndPlainToClass(GetStudentForGradeDto, query, options)
   }
 
-  async findOne(id: number) {
+  async findOneGradeByStudent(id: number) {
     const student = await Student.findOne(id)
 
     if (!student) {
@@ -113,11 +114,28 @@ export class GradesService {
       .getOne()
 
     if (!grades) {
-      throw new NotFoundException(`Not found grades id: ${id}`)
+      throw new NotFoundException(`Не знайдено оцінки з id: ${id}`)
     }
     return plainToClass(GetStudentForGradeDto, grades, {
       excludeExtraneousValues: true,
     })
+  }
+
+  async findOne(id: number) {
+    const grade = this.gradeRepository
+      .createQueryBuilder('Grade')
+      .leftJoinAndSelect('Grade.student', 'Student')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('Grade.id=:id', { id })
+      .getOne()
+
+    if (!grade) {
+      throw new NotFoundException(`Не знайдено оцінки з id: ${id}`)
+    }
+
+    return plainToClass(GetTeacherInfoDto, grade, { excludeExtraneousValues: true })
   }
 
   async update(id: number, updateGradeDto: UpdateGradeDto, tokenDto?: TokenDto) {
@@ -142,7 +160,7 @@ export class GradesService {
       .getOne()
 
     if (!grade) {
-      throw new BadRequestException(`This grade  not found.`)
+      throw new BadRequestException(`Оцінка не знайдена.`)
     }
 
     Object.assign(grade, updateGradeDto)
@@ -174,7 +192,7 @@ export class GradesService {
     const grade = await this.gradeRepository.findOne(id)
 
     if (!grade) {
-      throw new NotFoundException(`Not found grade id: ${id}`)
+      throw new NotFoundException(`Оцінку з id: ${id}`)
     }
 
     await this.gradeRepository.remove(grade, {

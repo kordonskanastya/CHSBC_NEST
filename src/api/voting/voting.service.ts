@@ -17,7 +17,7 @@ import { Student } from '../students/entities/student.entity'
 import { GetOneVoteDto } from './dto/get-one-vote.dto'
 import { GetVotingResultDto } from './dto/getVotingResult.dto'
 import { VotingResult } from './entities/voting-result.entity'
-import { VoteStudentDto } from './dto/vote-student.dto'
+import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 import { GetVoteForStudentPageDto } from './dto/get-vote-for-student-page.dto'
 
 export enum VotingColumns {
@@ -315,6 +315,7 @@ export class VotingService {
         Object.assign(vote, { ...updateVotingDto, notRequiredCourses })
       }
     }
+    //region Переголосування
     if (updateVotingDto.isRevote === true) {
       const coursesAproovedIdSelect = await VotingResult.createQueryBuilder('vr')
         .leftJoinAndSelect('vr.course', 'Course')
@@ -367,6 +368,7 @@ export class VotingService {
           .execute()
       }
     }
+    //endregion
     try {
       await vote.save({ data: { id: sub } })
       return {
@@ -538,7 +540,7 @@ export class VotingService {
     return plainToClass(GetVoteForStudentPageDto, vote, { excludeExtraneousValues: true })
   }
 
-  async postVotingForStudent(voteStudentDto: VoteStudentDto, tokenDto: TokenDto) {
+  async postVotingForStudent(voteStudentDto: CreateStudentVoteDto, tokenDto: TokenDto) {
     const { sub } = tokenDto || {}
     const student = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.user', 'User')
@@ -568,21 +570,7 @@ export class VotingService {
       .where('Group.id=:studentGroup', { studentGroup: student.group.id })
       .getOne()
 
-    if (vote.status === VotingStatus.ENDED) {
-      throw new BadRequestException(`Голосування вже закінчено`)
-    }
-
-    if (vote.status === VotingStatus.NEW) {
-      throw new BadRequestException(`Голосування ще не почалося`)
-    }
-
-    if (vote.status === VotingStatus.NEED_REVOTE) {
-      throw new BadRequestException(`Переголосування ще не почалося`)
-    }
-
-    if (vote.status === VotingStatus.REVOTE_ENDED) {
-      throw new BadRequestException(`Переголосування вже закінчено`)
-    }
+    await this.checkVotingStatus(vote)
 
     vote.groups.map((group) => {
       if (student.group.id !== group.id) {
@@ -607,6 +595,73 @@ export class VotingService {
       }
     })
     return { message: 'Ваш голос надісланий та збережений' }
+  }
+
+  async updateVotingForStudent(voteStudentDto: CreateStudentVoteDto, tokenDto: TokenDto) {
+    const { sub } = tokenDto || {}
+    const student = await Student.findOne({
+      relations: ['group'],
+      where: {
+        user: sub,
+      },
+    })
+    const coursesIds = Array.isArray(voteStudentDto.courses) ? voteStudentDto.courses : [voteStudentDto.courses]
+    const courses = await Course.findByIds(coursesIds)
+
+    if (!courses || courses.length !== coursesIds.length) {
+      throw new BadRequestException(`Предмет з іd: ${voteStudentDto.courses} не існує.`)
+    }
+
+    const group = await Group.findOne({
+      join: { alias: 'Group', leftJoinAndSelect: { vote: 'Group.vote' } },
+      where: {
+        id: student.group.id,
+      },
+    })
+
+    await this.checkVotingStatus(group.vote)
+
+    const votingResultStudent = await VotingResult.find({
+      relations: ['student', 'course'],
+      where: {
+        student,
+      },
+    })
+
+    votingResultStudent.map(async (voteResultStudent, key) => {
+      voteResultStudent.course = courses[key]
+      try {
+        await voteResultStudent.save({ data: { id: sub } })
+      } catch (e) {
+        throw new NotAcceptableException('Не вишло зберегти результат. ' + e.message)
+      }
+    })
+    return {
+      success: true,
+    }
+  }
+
+  async getVotingReviewForStudent(tokenDto: TokenDto) {
+    const { sub } = tokenDto || {}
+    const student = await Student.findOne({
+      relations: ['group'],
+      where: {
+        user: sub,
+      },
+    })
+
+    const votingResultsStudent = await VotingResult.find({
+      relations: ['student', 'course'],
+      where: {
+        student,
+      },
+    })
+
+    const selectedItems = []
+    votingResultsStudent.map((votingResultStudent) => {
+      selectedItems.push(votingResultStudent.course)
+    })
+    return selectedItems
   }
 
   async getCoursesIdsNeedRevote() {
@@ -652,5 +707,23 @@ export class VotingService {
         .where('id=:id', { id: result.voteId })
         .execute()
     })
+  }
+
+  async checkVotingStatus(vote: Vote) {
+    if (vote.status === VotingStatus.ENDED) {
+      throw new BadRequestException(`Голосування вже закінчено`)
+    }
+
+    if (vote.status === VotingStatus.NEW) {
+      throw new BadRequestException(`Голосування ще не почалося`)
+    }
+
+    if (vote.status === VotingStatus.NEED_REVOTE) {
+      throw new BadRequestException(`Переголосування ще не почалося`)
+    }
+
+    if (vote.status === VotingStatus.REVOTE_ENDED) {
+      throw new BadRequestException(`Переголосування вже закінчено`)
+    }
   }
 }

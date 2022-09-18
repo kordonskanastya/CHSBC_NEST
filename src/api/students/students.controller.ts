@@ -184,6 +184,7 @@ export class StudentsController {
   @Get('page/voting')
   @MinRole(ROLE.STUDENT)
   async getVotingForStudent(@Request() req) {
+    await this.votingService.updateStatusVoting()
     return await this.votingService.getVotingForStudent(req.user)
   }
 

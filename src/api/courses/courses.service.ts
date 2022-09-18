@@ -84,9 +84,9 @@ export class CoursesService {
     if (!course) {
       throw new BadRequestException(`Не вишло створити предмет`)
     } else {
-      const students = await Student.createQueryBuilder().getMany()
+      const students = await Student.createQueryBuilder().leftJoinAndSelect('Student.group', 'Group').getMany()
       students.map(async (student) => {
-        await this.gradeRepository.create({ grade: 0, student, course }).save({ data: { id: sub } })
+        await this.gradeRepository.create({ grade: null, student, course }).save({ data: { id: sub } })
       })
     }
     return plainToClass(CreateCourseResponseDto, course, {

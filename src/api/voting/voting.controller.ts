@@ -124,4 +124,10 @@ export class VotingController {
   async findOneVotingResult(@Param('id') id: string) {
     return await this.votingService.findOneVotingResult(+id)
   }
+
+  @Post('/course/:id([0-9]+)/submit')
+  @MinRole(ROLE.ADMIN)
+  async submitCoursesToStudents(@Param('id') id: string, @Request() req) {
+    return await this.votingService.submitCourse(+id, req.user)
+  }
 }

@@ -15,7 +15,7 @@ import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
 import { Student } from '../students/entities/student.entity'
 import { GetOneVoteDto } from './dto/get-one-vote.dto'
-import { GetVotingResultDto } from './dto/getVotingResult.dto'
+import { GetVotingResultDto } from './dto/get-voting-result.dto'
 import { VotingResult } from './entities/voting-result.entity'
 import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 import { GetVoteForStudentPageDto } from './dto/get-vote-for-student-page.dto'
@@ -632,6 +632,46 @@ export class VotingService {
 
     if (vote.status === VotingStatus.REVOTE_ENDED) {
       throw new BadRequestException(`Переголосування вже закінчено`)
+    }
+  }
+
+  async submitCourse(id: number, tokenDto: TokenDto) {
+    await this.updateStatusVoting()
+    const { sub } = tokenDto
+    const resultsForOneCourse = await VotingResult.find({
+      relations: ['course', 'vote'],
+      join: {
+        alias: 'VotingResult',
+        leftJoinAndSelect: {
+          Student: 'VotingResult.student',
+          Course: 'Student.courses',
+        },
+      },
+      where: {
+        course: id,
+        vote: {
+          status: VotingStatus.ENDED || VotingStatus.REVOTE_ENDED,
+        },
+      },
+    })
+    if (!resultsForOneCourse) {
+      throw new BadRequestException('Результатів для цього предиету не знайдено')
+    }
+
+    resultsForOneCourse.map(async (resultForOneCourse) => {
+      resultForOneCourse.student.courses.push(resultForOneCourse.course)
+      Object.assign(resultForOneCourse.student, {
+        ...resultForOneCourse.student,
+        courses: resultForOneCourse.student.courses,
+      })
+      try {
+        await resultForOneCourse.student.save({ data: { id: sub } })
+      } catch (e) {
+        throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
+      }
+    })
+    return {
+      success: true,
     }
   }
 }

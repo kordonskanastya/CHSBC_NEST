@@ -39,7 +39,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { RolesGuard } from '../../auth/roles/roles.guard'
 import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
 import { VotingService } from '../voting/voting.service'
-import { VoteStudentDto } from '../voting/dto/vote-student.dto'
+import { CreateStudentVoteDto } from '../voting/dto/create-student-vote.dto'
 
 @Controller(Entities.STUDENTS)
 @ApiTags(capitalize(Entities.STUDENTS))
@@ -184,13 +184,26 @@ export class StudentsController {
   @Get('page/voting')
   @MinRole(ROLE.STUDENT)
   async getVotingForStudent(@Request() req) {
+    await this.votingService.updateStatusVoting()
     return await this.votingService.getVotingForStudent(req.user)
   }
 
   @Post('page/voting')
   @MinRole(ROLE.STUDENT)
-  async postVotingForStudent(@Request() req, @Body() voteStudentDto: VoteStudentDto) {
+  async postVotingForStudent(@Request() req, @Body() voteStudentDto: CreateStudentVoteDto) {
     return await this.votingService.postVotingForStudent(voteStudentDto, req.user)
+  }
+
+  @Patch('page/voting')
+  @MinRole(ROLE.STUDENT)
+  async patchVotingForStudent(@Request() req, @Body() updateStudentVoteDto: CreateStudentVoteDto) {
+    return await this.votingService.updateVotingForStudent(updateStudentVoteDto, req.user)
+  }
+
+  @Get('page/voting/review')
+  @MinRole(ROLE.STUDENT)
+  async getVotingReviewForStudent(@Request() req) {
+    return await this.votingService.getVotingReviewForStudent(req.user)
   }
 
   @Get('get-individual-plan/:id([0-9]+)')

@@ -19,12 +19,4 @@ export class GetLoggerVotingDto {
   @Expose()
   @ApiProperty({ type: Date })
   endDate: Date
-
-  @Expose()
-  @ApiProperty({ type: Number })
-  tookPart: number
-
-  @Expose()
-  @ApiProperty({ type: String })
-  status: string
 }

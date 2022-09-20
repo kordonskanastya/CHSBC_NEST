@@ -85,7 +85,7 @@ export class StudentsService {
       throw new BadRequestException('Не вишло створити студента')
     } else {
       courses.map(async (course) => {
-        await this.gradeRepository.create({ grade: 0, student, course }).save({ data: { id: sub } })
+        await this.gradeRepository.create({ grade: null, student, course }).save({ data: { id: sub } })
       })
     }
     return plainToClass(CreateStudentResponseDto, student, {

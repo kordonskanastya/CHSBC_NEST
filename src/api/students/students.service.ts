@@ -20,6 +20,7 @@ import { GetStudentDropdownNameDto } from './dto/get-student-dropdown-name.dto'
 import { Grade } from '../grades/entities/grade.entity'
 import { Course } from '../courses/entities/course.entity'
 import { GetStudentIndividualPlanDto } from './dto/get-student-individual-plan.dto'
+import { ExelService } from '../../services/exel.service'
 
 export enum StudentColumns {
   ID = 'id',
@@ -351,5 +352,10 @@ export class StudentsService {
     }
 
     return plainToClass(GetStudentIndividualPlanDto, student, { excludeExtraneousValues: true })
+  }
+
+  async downloadIndividualPlan(id: number) {
+    const student = await this.getIndividualPlan(id)
+    return new ExelService().exportUsersToExcel(student)
   }
 }

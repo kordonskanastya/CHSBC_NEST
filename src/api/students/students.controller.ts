@@ -4,11 +4,13 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
   Query,
   Request,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -210,5 +212,13 @@ export class StudentsController {
   @MinRole(ROLE.STUDENT)
   async getIndividualPlan(@Param('id') id: string) {
     return await this.studentsService.getIndividualPlan(+id)
+  }
+
+  @Get('download-individual-plan/:id([0-9]+)')
+  @Header('Content-Type', 'text/xlsx')
+  @MinRole(ROLE.STUDENT)
+  async downloadIndividualPlan(@Param('id') id: string, @Res() res) {
+    const indPlan = await this.studentsService.downloadIndividualPlan(+id)
+    return res.download(`${indPlan}`)
   }
 }

@@ -9,7 +9,7 @@ export enum SEMESTER {
 export class CreateCourseDto {
   @IsString()
   @MinLength(2, { message: 'Назва предмету  має містити 2 та більше символи' })
-  @MaxLength(30, { message: 'Назва предмету може містити максимум 30 символів' })
+  @MaxLength(50, { message: 'Назва предмету може містити максимум 50 символів' })
   @ApiProperty({ required: true, example: 'English b1-1' })
   name: string
 

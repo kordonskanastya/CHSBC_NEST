@@ -4,7 +4,6 @@ import {
   Controller,
   Delete,
   Get,
-  Header,
   Param,
   Patch,
   Post,
@@ -215,10 +214,10 @@ export class StudentsController {
   }
 
   @Get('download-individual-plan/:id([0-9]+)')
-  @Header('Content-Type', 'text/xlsx')
+  // @Header('Content-Type', 'text/xlsx')
   @MinRole(ROLE.STUDENT)
   async downloadIndividualPlan(@Param('id') id: string, @Res() res) {
-    const indPlan = await this.studentsService.downloadIndividualPlan(+id)
-    return res.download(`${indPlan}`)
+    const pathToIndividualFile = await this.studentsService.downloadIndividualPlan(+id)
+    return res.download(pathToIndividualFile)
   }
 }

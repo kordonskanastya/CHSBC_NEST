@@ -357,7 +357,7 @@ export class StudentsService {
   async downloadIndividualPlan(id: number) {
     const student = await this.getIndividualPlan(id)
     try {
-      return await new ExelService().exportUsersToExcel(student)
+      return await new ExelService().exportIndividualPlanToExcel(student)
     } catch (e) {
       throw new BadRequestException(e)
     }

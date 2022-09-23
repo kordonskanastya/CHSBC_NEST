@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import { randomUUID } from 'crypto'
 
 export class ExelService {
-  exportUsersToExcel(dataFrom) {
+  exportIndividualPlanToExcel(data) {
     const headingColumnNames = [
       'Предмет',
       'Викладач',
@@ -17,7 +17,7 @@ export class ExelService {
     ]
     const worksheetName = 'Індивідуальний план'
     const filePath = `student-individual-plan_${randomUUID()}.xlsx`
-    const data = dataFrom.grades.map((grade) => {
+    const dataToExport = data.grades.map((grade) => {
       return [
         grade.course.name,
         `${grade.course.teacher.lastName} ${grade.course.teacher.firstName[0]}.${grade.course.teacher.patronymic[0]}`,
@@ -29,7 +29,7 @@ export class ExelService {
       ]
     })
     const workBook = XLSX.utils.book_new()
-    const worksheetData = [headingColumnNames, ...data]
+    const worksheetData = [headingColumnNames, ...dataToExport]
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
 
     XLSX.utils.book_append_sheet(workBook, worksheet, worksheetName)

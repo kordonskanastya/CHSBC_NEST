@@ -3,7 +3,7 @@ import { CreateVotingDto } from './dto/create-voting.dto'
 import { UpdateVotingDto } from './dto/update-voting.dto'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { VOTE_REPOSITORY } from '../../constants'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { Vote } from './entities/voting.entity'
 import { Group } from '../groups/entities/group.entity'
 import { Course } from '../courses/entities/course.entity'
@@ -635,10 +635,10 @@ export class VotingService {
     }
   }
 
-  async submitCourse(id: number, tokenDto: TokenDto) {
+  async submitCourse(ids: number[], tokenDto: TokenDto) {
     await this.updateStatusVoting()
     const { sub } = tokenDto
-    const resultsForOneCourse = await VotingResult.find({
+    const resultsForCourses = await VotingResult.find({
       relations: ['course', 'vote'],
       join: {
         alias: 'VotingResult',
@@ -648,17 +648,17 @@ export class VotingService {
         },
       },
       where: {
-        course: id,
+        course: In(ids),
         vote: {
           status: VotingStatus.ENDED || VotingStatus.REVOTE_ENDED,
         },
       },
     })
-    if (!resultsForOneCourse) {
-      throw new BadRequestException('Результатів для цього предиету не знайдено')
+    if (!resultsForCourses) {
+      throw new BadRequestException(`Результатів для  предметів з id: ${ids}  не знайдено`)
     }
 
-    resultsForOneCourse.map(async (resultForOneCourse) => {
+    resultsForCourses.map(async (resultForOneCourse) => {
       resultForOneCourse.student.courses.push(resultForOneCourse.course)
       Object.assign(resultForOneCourse.student, {
         ...resultForOneCourse.student,

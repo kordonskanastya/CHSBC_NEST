@@ -368,7 +368,7 @@ export class UsersService {
     }
 
     if (curatorId) {
-      query.andWhere('User.curatorId = :curatorId', { curatorId })
+      query.andWhere('User.id = :curatorId', { curatorId })
     }
 
     query.orderBy(`User.${orderByColumn}`, orderBy)

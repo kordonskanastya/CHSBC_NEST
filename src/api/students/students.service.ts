@@ -21,6 +21,7 @@ import { Grade } from '../grades/entities/grade.entity'
 import { Course } from '../courses/entities/course.entity'
 import { GetStudentIndividualPlanDto } from './dto/get-student-individual-plan.dto'
 import { ExelService } from '../../services/exel.service'
+import { SEMESTER } from '../courses/dto/create-course.dto'
 
 export enum StudentColumns {
   ID = 'id',
@@ -336,7 +337,7 @@ export class StudentsService {
     return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
   }
 
-  async getIndividualPlan(id: number) {
+  async getIndividualPlan(id: number, semester: SEMESTER) {
     const student = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
       .leftJoin('Student.courses', 'St_course')
@@ -345,6 +346,7 @@ export class StudentsService {
       .leftJoinAndSelect('Student.user', 'User')
       .where('User.id=:id', { id })
       .andWhere('St_course.id=Course.id')
+      .andWhere('Course.semester=:semester', { semester })
       .getOne()
 
     if (!student) {
@@ -354,8 +356,8 @@ export class StudentsService {
     return plainToClass(GetStudentIndividualPlanDto, student, { excludeExtraneousValues: true })
   }
 
-  async downloadIndividualPlan(id: number) {
-    const student = await this.getIndividualPlan(id)
+  async downloadIndividualPlan(id: number, semester: SEMESTER) {
+    const student = await this.getIndividualPlan(id, semester)
     try {
       return await new ExelService().exportUsersToExcel(student)
     } catch (e) {

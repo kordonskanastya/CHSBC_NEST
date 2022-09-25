@@ -348,7 +348,7 @@ export class UsersService {
     return paginateAndPlainToClass(GetUserDropdownResponseDto, administrators, options)
   }
 
-  async getGroupsByCurator(
+  async getCuratorsGroups(
     options: IPaginationOptions,
     groupName: string,
     curatorId: number,
@@ -368,7 +368,7 @@ export class UsersService {
     }
 
     if (curatorId) {
-      query.andWhere('Group.curatorId = :curatorId', { curatorId })
+      query.andWhere('User.curatorId = :curatorId', { curatorId })
     }
 
     query.orderBy(`User.${orderByColumn}`, orderBy)

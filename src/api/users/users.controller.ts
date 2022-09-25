@@ -245,7 +245,7 @@ export class UsersController {
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('orderByColumn') orderByColumn: UserColumns,
   ) {
-    return await this.usersService.getGroupsByCurator(
+    return await this.usersService.getCuratorsGroups(
       {
         page,
         limit: Math.min(limit, 100),

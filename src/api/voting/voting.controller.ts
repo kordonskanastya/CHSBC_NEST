@@ -125,9 +125,10 @@ export class VotingController {
     return await this.votingService.findOneVotingResult(+id)
   }
 
-  @Post('/course/:id([0-9]+)/submit')
+  @Post('/courses/submit')
   @MinRole(ROLE.ADMIN)
-  async submitCoursesToStudents(@Param('id') id: string, @Request() req) {
-    return await this.votingService.submitCourse(+id, req.user)
+  @ApiImplicitQueries([{ name: 'course', required: false, type: 'array' }])
+  async submitCoursesToStudents(@Query('course') ids: number[], @Request() req) {
+    return await this.votingService.submitCourse(ids, req.user)
   }
 }

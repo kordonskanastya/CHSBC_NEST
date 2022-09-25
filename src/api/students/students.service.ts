@@ -350,7 +350,11 @@ export class StudentsService {
       .getOne()
 
     if (!student) {
-      throw new NotFoundException(`Студент з id: ${id} не знайдений `)
+      throw new NotFoundException(
+        `Індивідуальний план для студента ${await User.findOne(44).then(
+          (user) => user.lastName + ' ' + user.firstName[0] + '.' + user.patronymic[0],
+        )}  для ${semester} семестру не знайдений `,
+      )
     }
 
     return plainToClass(GetStudentIndividualPlanDto, student, { excludeExtraneousValues: true })

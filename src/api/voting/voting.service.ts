@@ -19,6 +19,7 @@ import { GetVotingResultDto } from './dto/get-voting-result.dto'
 import { VotingResult } from './entities/voting-result.entity'
 import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 import { GetVoteForStudentPageDto } from './dto/get-vote-for-student-page.dto'
+import { GetCourseVotesTeacherDto } from '../courses/dto/get-course-votes-teacher.dto'
 
 export enum VotingColumns {
   ID = 'id',
@@ -654,6 +655,7 @@ export class VotingService {
         },
       },
     })
+
     if (!resultsForCourses) {
       throw new BadRequestException(`Результатів для  предметів з id: ${ids}  не знайдено`)
     }
@@ -664,14 +666,44 @@ export class VotingService {
         ...resultForOneCourse.student,
         courses: resultForOneCourse.student.courses,
       })
+
       try {
         await resultForOneCourse.student.save({ data: { id: sub } })
       } catch (e) {
         throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
       }
     })
+
     return {
       success: true,
     }
+  }
+
+  async getVotingCoursesByVotingId(id: number) {
+    const vote = await Vote.findOne({
+      relations: ['requiredCourses', 'notRequiredCourses', 'requiredCourses.teacher', 'notRequiredCourses.teacher'],
+      where: {
+        id,
+      },
+    })
+
+    if (!vote) {
+      throw new BadRequestException(`Предмети для голосування з id:${id} не знайдено`)
+    }
+
+    const coursesids = [
+      ...vote.requiredCourses.map((course) => course.id),
+      ...vote.notRequiredCourses.map((course) => course.id),
+    ]
+
+    const courses = await Course.createQueryBuilder()
+      .leftJoinAndSelect('Course.teacher', 'Teacher')
+      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt', (qb) =>
+        qb.where('Vt.voteId=:id', { id }),
+      )
+      .andWhere(`Course.id IN (:...ids)`, { ids: coursesids })
+      .getMany()
+
+    return plainToClass(GetCourseVotesTeacherDto, courses, { excludeExtraneousValues: true })
   }
 }

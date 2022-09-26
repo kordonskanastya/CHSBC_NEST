@@ -131,4 +131,10 @@ export class VotingController {
   async submitCoursesToStudents(@Query('course') ids: number[], @Request() req) {
     return await this.votingService.submitCourse(ids, req.user)
   }
+
+  @Get(':id([0-9]+)/courses')
+  @MinRole(ROLE.ADMIN)
+  async getVotingCourses(@Param('id') id: string) {
+    return await this.votingService.getVotingCoursesByVotingId(+id)
+  }
 }

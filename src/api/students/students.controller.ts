@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   Request,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -40,6 +41,7 @@ import { RolesGuard } from '../../auth/roles/roles.guard'
 import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
 import { VotingService } from '../voting/voting.service'
 import { CreateStudentVoteDto } from '../voting/dto/create-student-vote.dto'
+import { SEMESTER } from '../courses/dto/create-course.dto'
 
 @Controller(Entities.STUDENTS)
 @ApiTags(capitalize(Entities.STUDENTS))
@@ -208,7 +210,16 @@ export class StudentsController {
 
   @Get('get-individual-plan/:id([0-9]+)')
   @MinRole(ROLE.STUDENT)
-  async getIndividualPlan(@Param('id') id: string) {
-    return await this.studentsService.getIndividualPlan(+id)
+  @ApiImplicitQueries([{ name: 'semester', required: true }])
+  async getIndividualPlan(@Param('id') id: string, @Query('semester') semester: SEMESTER) {
+    return await this.studentsService.getIndividualPlan(+id, semester)
+  }
+
+  @Get('download-individual-plan/:id([0-9]+)')
+  @MinRole(ROLE.STUDENT)
+  @ApiImplicitQueries([{ name: 'semester', required: true }])
+  async downloadIndividualPlan(@Param('id') id: string, @Query('semester') semester: SEMESTER, @Res() res) {
+    const pathToIndividualFile = await this.studentsService.downloadIndividualPlan(+id, semester)
+    return res.download(pathToIndividualFile)
   }
 }

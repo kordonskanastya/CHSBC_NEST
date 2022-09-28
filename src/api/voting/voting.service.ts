@@ -3,7 +3,7 @@ import { CreateVotingDto } from './dto/create-voting.dto'
 import { UpdateVotingDto } from './dto/update-voting.dto'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { VOTE_REPOSITORY } from '../../constants'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { Vote } from './entities/voting.entity'
 import { Group } from '../groups/entities/group.entity'
 import { Course } from '../courses/entities/course.entity'
@@ -19,6 +19,7 @@ import { GetVotingResultDto } from './dto/get-voting-result.dto'
 import { VotingResult } from './entities/voting-result.entity'
 import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 import { GetVoteForStudentPageDto } from './dto/get-vote-for-student-page.dto'
+import { GetCourseVotesTeacherDto } from '../courses/dto/get-course-votes-teacher.dto'
 
 export enum VotingColumns {
   ID = 'id',
@@ -635,10 +636,10 @@ export class VotingService {
     }
   }
 
-  async submitCourse(id: number, tokenDto: TokenDto) {
+  async submitCourse(ids: number[], tokenDto: TokenDto) {
     await this.updateStatusVoting()
     const { sub } = tokenDto
-    const resultsForOneCourse = await VotingResult.find({
+    const resultsForCourses = await VotingResult.find({
       relations: ['course', 'vote'],
       join: {
         alias: 'VotingResult',
@@ -648,30 +649,61 @@ export class VotingService {
         },
       },
       where: {
-        course: id,
+        course: In(ids),
         vote: {
           status: VotingStatus.ENDED || VotingStatus.REVOTE_ENDED,
         },
       },
     })
-    if (!resultsForOneCourse) {
-      throw new BadRequestException('Результатів для цього предиету не знайдено')
+
+    if (!resultsForCourses) {
+      throw new BadRequestException(`Результатів для  предметів з id: ${ids}  не знайдено`)
     }
 
-    resultsForOneCourse.map(async (resultForOneCourse) => {
+    resultsForCourses.map(async (resultForOneCourse) => {
       resultForOneCourse.student.courses.push(resultForOneCourse.course)
       Object.assign(resultForOneCourse.student, {
         ...resultForOneCourse.student,
         courses: resultForOneCourse.student.courses,
       })
+
       try {
         await resultForOneCourse.student.save({ data: { id: sub } })
       } catch (e) {
         throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
       }
     })
+
     return {
       success: true,
     }
+  }
+
+  async getVotingCoursesByVotingId(id: number) {
+    const vote = await Vote.findOne({
+      relations: ['requiredCourses', 'notRequiredCourses', 'requiredCourses.teacher', 'notRequiredCourses.teacher'],
+      where: {
+        id,
+      },
+    })
+
+    if (!vote) {
+      throw new BadRequestException(`Предмети для голосування з id:${id} не знайдено`)
+    }
+
+    const coursesids = [
+      ...vote.requiredCourses.map((course) => course.id),
+      ...vote.notRequiredCourses.map((course) => course.id),
+    ]
+
+    const courses = await Course.createQueryBuilder()
+      .leftJoinAndSelect('Course.teacher', 'Teacher')
+      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt', (qb) =>
+        qb.where('Vt.voteId=:id', { id }),
+      )
+      .andWhere(`Course.id IN (:...ids)`, { ids: coursesids })
+      .getMany()
+
+    return plainToClass(GetCourseVotesTeacherDto, courses, { excludeExtraneousValues: true })
   }
 }

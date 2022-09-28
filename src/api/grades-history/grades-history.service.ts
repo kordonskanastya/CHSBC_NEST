@@ -118,13 +118,19 @@ export class GradesHistoryService {
   async findOne(id: number, courseId: number, semester: SEMESTER) {
     const query = this.studentRepository
       .createQueryBuilder('Student')
-      .leftJoinAndSelect('Student.gradesHistories', 'GradeHistory_Student')
-      .leftJoinAndSelect(GradeHistory, 'GradeHistory', 'GradeHistory.studentId=Student.id')
+      .innerJoinAndSelect('Student.gradesHistories', 'GradeHistory_Student')
+      .innerJoinAndSelect(GradeHistory, 'GradeHistory', 'GradeHistory.studentId=Student.id')
       .leftJoinAndSelect('Student.user', 'User')
       .leftJoinAndSelect('GradeHistory_Student.course', 'Course')
       .leftJoinAndSelect('GradeHistory_Student.userChanged', 'UserChanged')
       .leftJoinAndSelect('Student.group', 'Group')
       .where('Student.id=:id', { id })
+
+    const student = await query.getOne()
+
+    if (!student) {
+      throw new NotFoundException(`Студента з id: ${id} не знайдено`)
+    }
 
     if (semester) {
       query.andWhere(`Course.semester=:semester`, { semester })
@@ -135,9 +141,9 @@ export class GradesHistoryService {
     }
 
     if (!(await query.getOne())) {
-      throw new NotFoundException(`Студента з id: ${id} не знайдено`)
+      Object.assign(student, { ...student, gradesHistories: [] })
+      return plainToClass(GetGradesHistoryDto, student, { excludeExtraneousValues: true })
     }
-
     return plainToClass(GetGradesHistoryDto, query.getOne(), { excludeExtraneousValues: true })
   }
 }

@@ -51,14 +51,15 @@
       "@nestjs/swagger": "^5.1.0",
       "@nestjs/typeorm": "^8.0.2",
       "@types/faker": "^5.5.9",
-      "faker": "^5.5.3",
       "bcrypt": "^5.0.1",
       "class-transformer": "0.4.0",
       "class-validator": "^0.13.1",
       "country-code-switch": "^1.0.1",
       "country-state-city": "^3.0.1",
       "env-cmd": "^10.1.0",
+      "faker": "^5.5.3",
       "moment": "^2.29.1",
+      "mysql": "^2.14.1",
       "nest-winston": "^1.6.1",
       "nestjs-pino": "^2.5.0",
       "nestjs-swagger-api-implicit-queries-decorator": "^1.0.0",
@@ -80,7 +81,7 @@
       "typeorm": "0.2.44",
       "winston": "^3.3.3",
       "winston-daily-rotate-file": "^4.5.5",
-      "mysql": "^2.14.1"
+      "xlsx": "^0.18.5"
    },
    "devDependencies": {
       "@nestjs/cli": "^8.0.0",

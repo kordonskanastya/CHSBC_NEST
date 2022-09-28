@@ -42,3 +42,4 @@ yarn.lock
 .env.stage
 .env.production
 .nvmrc
+/src/upload/

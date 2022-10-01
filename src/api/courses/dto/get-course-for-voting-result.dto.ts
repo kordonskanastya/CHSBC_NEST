@@ -3,7 +3,7 @@ import { GetCourseDropdownResponseDto } from './get-course-dropdown-response.dto
 import { Expose, Type } from 'class-transformer'
 import { GetUserDropdownResponseDto } from '../../users/dto/get-user-dropdown-response.dto'
 
-export class GetCourseTeacherDto extends PartialType(GetCourseDropdownResponseDto) {
+export class GetCourseForVotingResultDto extends PartialType(GetCourseDropdownResponseDto) {
   @Expose()
   @ApiProperty({ type: Number })
   semester: number

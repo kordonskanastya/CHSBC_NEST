@@ -29,8 +29,8 @@ export class GetCourseResponseDto {
   semester: number
 
   @Expose()
-  @ApiProperty({ type: Boolean })
-  isCompulsory: boolean
+  @ApiProperty({ type: String })
+  type: string
 
   @Expose()
   @ApiProperty({ type: Boolean })

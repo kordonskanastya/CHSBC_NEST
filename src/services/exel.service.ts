@@ -25,7 +25,7 @@ export class ExelService {
         grade.course.lectureHours,
         grade.course.isExam ? 'Екзамен' : 'Залік',
         grade.grade,
-        grade.course.isCompulsory ? `Обов'язковий` : 'Профільний',
+        grade.course.type,
       ]
     })
     const workBook = XLSX.utils.book_new()

@@ -41,8 +41,8 @@ export class Course extends BaseEntity {
   @Column({ nullable: false })
   semester: number
 
-  @Column({ nullable: false })
-  isCompulsory: boolean
+  @Column({ nullable: true })
+  type: string
 
   @ManyToOne(() => User, (user) => user.courses, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   teacher: User

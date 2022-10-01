@@ -32,6 +32,13 @@ export enum CourseColumns {
   UPDATED = 'updated',
 }
 
+export enum CourseType {
+  GENERAL_COMPETENCE = 'Загальна компетентність',
+  PROFESSIONAL_COMPETENCE = 'Фахова компетентність',
+  SELECTIVE_GENERAL_COMPETENCE = 'Вибіркова загальна компетентність',
+  SELECTIVE_PROFESSIONAL_COMPETENCE = 'Вибіркова фахова компетентність',
+}
+
 export const COURSE_COLUMN_LIST = enumToArray(CourseColumns)
 export const COURSE_COLUMNS = enumToObject(CourseColumns)
 
@@ -96,7 +103,7 @@ export class CoursesService {
         })
         .getMany()
       studentsInGroup.map(async (student) => {
-        if (course.isCompulsory) {
+        if (course.type == CourseType.GENERAL_COMPETENCE) {
           student.courses.push(course)
           Object.assign(student, { ...student, courses: student.courses })
           await student.save({ data: { id: sub } })
@@ -120,7 +127,7 @@ export class CoursesService {
     isExam: boolean,
     isActive: boolean,
     semester: number,
-    isCompulsory: boolean,
+    type: string,
     teacher: number,
     groups: number[],
   ) {
@@ -174,8 +181,8 @@ export class CoursesService {
       query.andWhere('Course.semester=:semester', { semester })
     }
 
-    if (isCompulsory) {
-      query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
+    if (type) {
+      query.andWhere('Course.type=:type', { type })
     }
 
     if (teacher) {

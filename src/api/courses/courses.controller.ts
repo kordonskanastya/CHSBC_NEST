@@ -21,7 +21,7 @@ import { RolesGuard } from '../../auth/roles/roles.guard'
 import { capitalize } from '../../utils/common'
 import { ApiPaginatedResponse } from '../../utils/paginate'
 import { Entities } from '../common/enums'
-import { CourseColumns, CoursesService } from './courses.service'
+import { CourseColumns, CoursesService, CourseType } from './courses.service'
 import { CreateCourseDto } from './dto/create-course.dto'
 import { GetCourseResponseDto } from './dto/get-course-response.dto'
 import { UpdateCourseDto } from './dto/update-course.dto'
@@ -60,7 +60,7 @@ export class CoursesController {
     { name: 'isExam', required: false },
     { name: 'isActive', required: false },
     { name: 'semester', required: false },
-    { name: 'isCompulsory', required: false },
+    { name: 'type', required: false, enum: CourseType },
     { name: 'teacher', required: false },
     { name: 'groups', required: false, type: 'array' },
   ])
@@ -77,7 +77,7 @@ export class CoursesController {
     @Query('isExam') isExam: boolean,
     @Query('isActive') isActive: boolean,
     @Query('semester') semester: number,
-    @Query('isCompulsory') isCompulsory: boolean,
+    @Query('type') type: string,
     @Query('teacher') teacher: number,
     @Query('groups') groups: number[],
   ) {
@@ -101,7 +101,7 @@ export class CoursesController {
       isExam,
       isActive,
       semester,
-      isCompulsory,
+      type,
       teacher,
       groups,
     )
@@ -125,7 +125,7 @@ export class CoursesController {
     return await this.coursesService.remove(+id, req.user)
   }
 
-  @Get('course/dropdown')
+  @Get('name')
   @MinRole(ROLE.STUDENT)
   @ApiOkResponse({ type: GetCourseResponseDto, description: 'Get course dropdown' })
   @ApiImplicitQueries([

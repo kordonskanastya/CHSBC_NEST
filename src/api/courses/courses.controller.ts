@@ -134,7 +134,7 @@ export class CoursesController {
     { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: CourseColumns },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'courseName', required: false, description: 'course name' },
-    { name: 'isCompulsory', required: false },
+    { name: 'type', required: false, enum: CourseType },
     { name: 'teacherId', required: false },
   ])
   async getCoursesDropdown(
@@ -143,7 +143,7 @@ export class CoursesController {
     @Query('orderByColumn') orderByColumn: CourseColumns,
     @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('courseName') courseName: string,
-    @Query('isCompulsory') isCompulsory: boolean,
+    @Query('type') type: CourseType,
     @Query('teacherId') teacherId: number,
   ) {
     return await this.coursesService.getCoursesDropdown(
@@ -156,7 +156,7 @@ export class CoursesController {
       orderByColumn,
       orderBy,
       courseName,
-      isCompulsory,
+      type,
       teacherId,
     )
   }

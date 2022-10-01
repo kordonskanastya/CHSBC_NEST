@@ -9,6 +9,10 @@ export class GetCourseTeacherDto extends PartialType(GetCourseDropdownResponseDt
   semester: number
 
   @Expose()
+  @ApiProperty({ type: String })
+  type: string
+
+  @Expose()
   @Type(() => GetUserDropdownResponseDto)
   @ApiProperty({ type: GetUserDropdownResponseDto })
   teacher: GetUserDropdownResponseDto

@@ -25,7 +25,7 @@ export enum CourseColumns {
   LECTURE_HOURS = 'lectureHours',
   IS_ACTIVE = 'isActive',
   SEMESTER = 'semester',
-  IS_COMPULSORY = 'isCompulsory',
+  TYPE = 'type',
   TEACHER = 'teacher',
   GROUPS = 'groups',
   CREATED = 'created',
@@ -315,7 +315,7 @@ export class CoursesService {
     orderByColumn: CourseColumns,
     orderBy: 'ASC' | 'DESC',
     courseName: string,
-    isCompulsory: boolean,
+    type: CourseType,
     teacherId: number,
   ) {
     orderByColumn = orderByColumn || CourseColumns.ID
@@ -327,8 +327,8 @@ export class CoursesService {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
     }
 
-    if (isCompulsory) {
-      courses.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
+    if (type) {
+      courses.andWhere('Course.type=:type', { type })
     }
 
     if (teacherId) {

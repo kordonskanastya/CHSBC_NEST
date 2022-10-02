@@ -35,7 +35,7 @@ export enum VotingColumns {
 export enum VotingStatus {
   NEW = 'Нове',
   IN_PROGRESS = 'У прогресі',
-  ENDED = 'Потребує перегляду',
+  NEEDS_REVIEW = 'Потребує перегляду',
   REVOTE_IN_PROGRESS = 'Переголосування у прогресі',
   REVOTE_ENDED = 'Переголосування закінчене',
 }
@@ -358,7 +358,7 @@ export class VotingService {
     await this.votingRepository
       .createQueryBuilder()
       .update(Vote)
-      .set({ status: VotingStatus.ENDED })
+      .set({ status: VotingStatus.NEEDS_REVIEW })
       .where(`"endDate"::timestamp<now()`)
       .execute()
     await Vote.createQueryBuilder()
@@ -623,7 +623,7 @@ export class VotingService {
   }
 
   async checkVotingStatus(vote: Vote) {
-    if (vote.status === VotingStatus.ENDED) {
+    if (vote.status === VotingStatus.NEEDS_REVIEW) {
       throw new BadRequestException(`Голосування вже закінчено`)
     }
 
@@ -651,7 +651,7 @@ export class VotingService {
       where: {
         course: In(ids),
         vote: {
-          status: VotingStatus.ENDED || VotingStatus.REVOTE_ENDED,
+          status: VotingStatus.NEEDS_REVIEW || VotingStatus.REVOTE_ENDED,
         },
       },
     })

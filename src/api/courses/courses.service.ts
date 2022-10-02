@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { plainToClass } from 'class-transformer'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { COURSE_REPOSITORY, GRADE_REPOSITORY } from '../../constants'
 import { Group } from '../groups/entities/group.entity'
@@ -103,7 +103,7 @@ export class CoursesService {
         })
         .getMany()
       studentsInGroup.map(async (student) => {
-        if (course.type == CourseType.GENERAL_COMPETENCE) {
+        if (course.type == CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE) {
           student.courses.push(course)
           Object.assign(student, { ...student, courses: student.courses })
           await student.save({ data: { id: sub } })
@@ -220,7 +220,7 @@ export class CoursesService {
   async update(id: number, updateCourseDto: UpdateCourseDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
 
-    const course = await this.coursesRepository.findOne(id)
+    const course = await this.coursesRepository.findOne({ relations: ['groups'], where: { id: id } })
 
     if (!course) {
       throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
@@ -279,7 +279,56 @@ export class CoursesService {
         }
       }
     }
+    if (updateCourseDto.type) {
+      const students = await Student.find({
+        relations: ['courses'],
+        join: {
+          alias: 'Student',
+          leftJoinAndSelect: {
+            Grade: 'Student.grades',
+            Course: 'Grade.course',
+          },
+        },
+        where: {
+          group: In(course.groups.map((group) => group.id)),
+        },
+      })
 
+      if (course.type === CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE) {
+        students.map(async (student) => {
+          student.courses.push(course)
+          Object.assign(student, { ...student, courses: student.courses })
+          await Grade.createQueryBuilder()
+            .update()
+            .set({ grade: null })
+            .where('courseId=:courseId', { courseId: course.id })
+            .execute()
+          try {
+            await student.save({ data: { id: sub } })
+          } catch (e) {
+            throw new NotAcceptableException('Не вишло зберегти предмет для студента .' + e.message)
+          }
+        })
+      } else {
+        students.map(async (student) => {
+          const indexOfCourse = student.courses.findIndex((stud_course) => {
+            return stud_course.id === course.id
+          })
+          student.courses.splice(indexOfCourse, 1)
+          Object.assign(student, { ...student, courses: student.courses })
+          await Grade.createQueryBuilder()
+            .update()
+            .set({ grade: null })
+            .where('courseId=:courseId', { courseId: course.id })
+            .execute()
+          try {
+            await student.save({ data: { id: sub } })
+          } catch (e) {
+            throw new NotAcceptableException('Не вишло зберегти предмет для студента .' + e.message)
+          }
+        })
+      }
+    }
     try {
       await course.save({ data: { id: sub } })
     } catch (e) {

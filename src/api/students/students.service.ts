@@ -21,7 +21,8 @@ import { Grade } from '../grades/entities/grade.entity'
 import { Course } from '../courses/entities/course.entity'
 import { GetStudentIndividualPlanDto } from './dto/get-student-individual-plan.dto'
 import { ExelService } from '../../services/exel.service'
-import { SEMESTER } from '../courses/dto/create-course.dto'
+import { CourseType, SEMESTER } from '../courses/courses.service'
+import { UpdateIndividualPlanDto } from './dto/update-individual-plan.dto'
 
 export enum StudentColumns {
   ID = 'id',
@@ -230,10 +231,6 @@ export class StudentsService {
     { user, ...updateStudentDto }: UpdateStudentDto,
     { sub, role }: TokenDto,
   ): Promise<UpdateResponseDto> {
-    // if (await this.studentsRepository.createQueryBuilder().where({ edeboId: updateStudentDto.edeboId }).getOne()) {
-    //   throw new BadRequestException(`Студент з таким ЕДЕБО : ${updateStudentDto.edeboId} вже існує`)
-    // }
-
     if (user && user.role && user.role !== ROLE.STUDENT) {
       throw new BadRequestException(`Студент не може бути змінений , бо має роль :${user.role}`)
     }
@@ -346,8 +343,6 @@ export class StudentsService {
       .leftJoinAndSelect('Student.user', 'User')
       .where('User.id=:id', { id })
       .andWhere('St_course.id=Course.id')
-      .andWhere('Course.semester=:semester', { semester })
-      .getOne()
 
     if (!student) {
       throw new NotFoundException(
@@ -356,8 +351,11 @@ export class StudentsService {
         )}  для ${semester} семестру не знайдений `,
       )
     }
+    if (semester) {
+      student.andWhere('Course.semester=:semester', { semester })
+    }
 
-    return plainToClass(GetStudentIndividualPlanDto, student, { excludeExtraneousValues: true })
+    return plainToClass(GetStudentIndividualPlanDto, student.getOne(), { excludeExtraneousValues: true })
   }
 
   async downloadIndividualPlan(id: number, semester: SEMESTER) {
@@ -366,6 +364,53 @@ export class StudentsService {
       return await new ExelService().exportIndividualPlanToExcel(student)
     } catch (e) {
       throw new BadRequestException(e)
+    }
+  }
+
+  async editIndividualPlan(id: number, updateIndividualPlan: UpdateIndividualPlanDto, token: TokenDto) {
+    const { sub } = token
+    const student = await Student.createQueryBuilder()
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Student.courses', 'St_course')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Course.teacher', 'Teacher')
+      .leftJoinAndSelect('Student.user', 'User')
+      .where('User.id=:id', { id })
+      .andWhere('St_course.id=Course.id')
+      .getOne()
+
+    if (!student) {
+      throw new NotFoundException(
+        `Індивідуальний план для студента ${await User.findOne(44).then(
+          (user) => user.lastName + ' ' + user.firstName[0] + '.' + user.patronymic[0] || '',
+        )}  не знайдений `,
+      )
+    }
+    const coursesIds_ = Array.isArray(updateIndividualPlan.courses)
+      ? updateIndividualPlan.courses
+      : [updateIndividualPlan.courses]
+    const courses = await Course.findByIds(coursesIds_)
+
+    if (!courses || courses.length !== coursesIds_.length) {
+      throw new BadRequestException(`Предмет з іd: ${updateIndividualPlan.courses} не існує .`)
+    }
+
+    const studentRequiredCourses = []
+    student.courses.map((course) => {
+      if (course.type === CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE) {
+        studentRequiredCourses.push(course)
+      }
+    })
+    Object.assign(student, { ...student, courses: [...studentRequiredCourses, ...courses] })
+
+    try {
+      await student.save({ data: { id: sub } })
+      return {
+        message: 'Індивідуальний план успішно відредагований',
+        success: true,
+      }
+    } catch (e) {
+      throw new BadRequestException('Не вишло зберегти індивідуальний план.' + e.message)
     }
   }
 }

@@ -699,7 +699,7 @@ export class VotingService {
     if (!vote) {
       throw new BadRequestException(`Предмети для голосування з id:${id} не знайдено`)
     }
-    const courses = [...vote.requiredCourses, ...vote.notRequiredCourses]
-    return plainToClass(GetVotingSubmitDto, { ...vote, courses: courses }, { excludeExtraneousValues: true })
+
+    return plainToClass(GetVotingSubmitDto, vote, { excludeExtraneousValues: true })
   }
 }

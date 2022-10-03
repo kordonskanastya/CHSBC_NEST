@@ -1,8 +1,9 @@
 import { Expose, Type } from 'class-transformer'
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, PartialType } from '@nestjs/swagger'
 import { GetUserDropdownResponseDto } from '../../users/dto/get-user-dropdown-response.dto'
+import { GetCourseDropdownResponseDto } from './get-course-dropdown-response.dto'
 
-export class GetCourseSemesterTeacherDto {
+export class GetCourseSemesterTeacherDto extends PartialType(GetCourseDropdownResponseDto) {
   @Expose()
   @ApiProperty({ type: Number })
   id: number

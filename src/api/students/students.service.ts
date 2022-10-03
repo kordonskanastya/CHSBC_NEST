@@ -334,25 +334,29 @@ export class StudentsService {
     return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
   }
 
-  async getIndividualPlan(id: number, semester: SEMESTER) {
+  async getIndividualPlan(user_id: number, semester: SEMESTER) {
     const student = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
       .leftJoin('Student.courses', 'St_course')
       .leftJoinAndSelect('Grade.course', 'Course')
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
-      .where('User.id=:id', { id })
+      .where('User.id=:user_id', { user_id })
       .andWhere('St_course.id=Course.id')
 
-    if (!student) {
+    if (!(await student.getOne())) {
+      throw new NotFoundException(`Студента  з id: ${user_id} не знайдено`)
+    }
+
+    if (semester) {
+      student.andWhere('Course.semester=:semester', { semester })
+    }
+    if (!(await student.getOne())) {
       throw new NotFoundException(
-        `Індивідуальний план для студента ${await User.findOne(44).then(
+        `Індивідуальний план для студента ${await User.findOne(user_id).then(
           (user) => user.lastName + ' ' + user.firstName[0] + '.' + user.patronymic[0],
         )}  для ${semester} семестру не знайдений `,
       )
-    }
-    if (semester) {
-      student.andWhere('Course.semester=:semester', { semester })
     }
 
     return plainToClass(GetStudentIndividualPlanDto, student.getOne(), { excludeExtraneousValues: true })

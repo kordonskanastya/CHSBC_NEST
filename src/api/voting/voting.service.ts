@@ -19,7 +19,7 @@ import { GetVotingResultDto } from './dto/get-voting-result.dto'
 import { VotingResult } from './entities/voting-result.entity'
 import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 import { GetVoteForStudentPageDto } from './dto/get-vote-for-student-page.dto'
-import { GetCourseVotesTeacherDto } from '../courses/dto/get-course-votes-teacher.dto'
+import { GetVotingSubmitDto } from './dto/get-voting-submit.dto'
 
 export enum VotingColumns {
   ID = 'id',
@@ -680,31 +680,26 @@ export class VotingService {
     }
   }
 
-  async getVotingCoursesByVotingId(id: number) {
-    const vote = await Vote.findOne({
-      relations: ['requiredCourses', 'notRequiredCourses', 'requiredCourses.teacher', 'notRequiredCourses.teacher'],
-      where: {
-        id,
-      },
-    })
+  async getSubmitCoursesForm(id: number) {
+    const vote = await Vote.createQueryBuilder()
+      .leftJoinAndSelect('Vote.requiredCourses', 'RequiredCourses')
+      .leftJoinAndSelect('Vote.notRequiredCourses', 'NotRequiredCourses')
+      .leftJoinAndSelect('RequiredCourses.teacher', 'RequiredCoursesTeacher')
+      .leftJoinAndSelect('NotRequiredCourses.teacher', 'NotRequiredCoursesTeacher')
+      .leftJoinAndSelect('Vote.groups', 'Group')
+      .loadRelationCountAndMap('NotRequiredCourses.allVotes', 'RequiredCourses.votingResults', 'Vt', (qb) =>
+        qb.where('Vt.voteId=:id', { id }),
+      )
+      .loadRelationCountAndMap('RequiredCourses.allVotes', 'NotRequiredCourses.votingResults', 'Vt', (qb) =>
+        qb.where('Vt.voteId=:id', { id }),
+      )
+      .where('Vote.id=:id', { id })
+      .getOne()
 
     if (!vote) {
       throw new BadRequestException(`Предмети для голосування з id:${id} не знайдено`)
     }
 
-    const coursesids = [
-      ...vote.requiredCourses.map((course) => course.id),
-      ...vote.notRequiredCourses.map((course) => course.id),
-    ]
-
-    const courses = await Course.createQueryBuilder()
-      .leftJoinAndSelect('Course.teacher', 'Teacher')
-      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt', (qb) =>
-        qb.where('Vt.voteId=:id', { id }),
-      )
-      .andWhere(`Course.id IN (:...ids)`, { ids: coursesids })
-      .getMany()
-
-    return plainToClass(GetCourseVotesTeacherDto, courses, { excludeExtraneousValues: true })
+    return plainToClass(GetVotingSubmitDto, vote, { excludeExtraneousValues: true })
   }
 }

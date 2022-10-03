@@ -136,9 +136,9 @@ export class VotingController {
     return await this.votingService.submitCourseByVoteId(coursesIds, req.user, +voteId)
   }
 
-  @Get(':id([0-9]+)/courses')
+  @Get(':id([0-9]+)/submit-form')
   @MinRole(ROLE.ADMIN)
-  async getVotingCourses(@Param('id') id: string) {
-    return await this.votingService.getVotingCoursesByVotingId(+id)
+  async getSubmitCoursesForm(@Param('id') id: string) {
+    return await this.votingService.getSubmitCoursesForm(+id)
   }
 }

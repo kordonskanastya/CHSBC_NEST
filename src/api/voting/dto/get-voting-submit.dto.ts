@@ -2,7 +2,6 @@ import { Expose, Type } from 'class-transformer'
 import { ApiProperty } from '@nestjs/swagger'
 import { CreateGroupResponseDto } from '../../groups/dto/create-group-response.dto'
 import { GetCourseSemesterTeacherDto } from '../../courses/dto/get-course-semester-teacher.dto'
-import { GetCourseDropdownResponseDto } from '../../courses/dto/get-course-dropdown-response.dto'
 
 export class GetVotingSubmitDto {
   @Expose()
@@ -27,9 +26,4 @@ export class GetVotingSubmitDto {
   @Type(() => GetCourseSemesterTeacherDto)
   @ApiProperty({ type: GetCourseSemesterTeacherDto })
   notRequiredCourses: GetCourseSemesterTeacherDto
-
-  @Expose()
-  @Type(() => GetCourseDropdownResponseDto)
-  @ApiProperty({ type: GetCourseDropdownResponseDto })
-  courses: GetCourseDropdownResponseDto
 }

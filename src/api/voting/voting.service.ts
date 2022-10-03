@@ -636,7 +636,7 @@ export class VotingService {
     }
   }
 
-  async submitCourse(ids: number[], tokenDto: TokenDto) {
+  async submitCourseByVoteId(ids: number[], tokenDto: TokenDto, voteId: number) {
     await this.updateStatusVoting()
     const { sub } = tokenDto
     const resultsForCourses = await VotingResult.find({
@@ -652,6 +652,7 @@ export class VotingService {
         course: In(ids),
         vote: {
           status: VotingStatus.NEEDS_REVIEW || VotingStatus.REVOTE_ENDED,
+          id: voteId,
         },
       },
     })

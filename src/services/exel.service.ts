@@ -4,6 +4,7 @@ import * as os from 'os'
 import * as fs from 'fs'
 import { randomUUID } from 'crypto'
 import { CourseType } from '../api/courses/courses.service'
+import { Student } from '../api/students/entities/student.entity'
 
 export class ExelService {
   exportIndividualPlanToExcel(data) {
@@ -45,5 +46,10 @@ export class ExelService {
         resolve(file_name)
       })
     })
+  }
+
+  exportGradesToExel(data: Student) {
+    const headingColumnNames = ['ПІБ', 'Група', ...data.grades.map((grade) => grade.course.name)]
+    console.log(headingColumnNames)
   }
 }

@@ -217,4 +217,8 @@ export class GradesService {
     query.orderBy(`Group.${orderByColumn}`, orderBy).having('Count(Course.id)>0')
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
+
+  async downloadGrade(id: number) {
+    const data = this.findOne(id)
+  }
 }

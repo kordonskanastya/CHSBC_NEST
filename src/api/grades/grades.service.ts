@@ -17,6 +17,7 @@ import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto
 import { GradeHistory } from '../grades-history/entities/grades-history.entity'
 import { User } from '../users/entities/user.entity'
 import { GetTeacherInfoDto } from '../users/dto/get-teacher-info.dto'
+import { ExelService } from '../../services/exel.service'
 
 export enum GradeColumns {
   ID = 'Grade.id',
@@ -218,7 +219,12 @@ export class GradesService {
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
 
-  async downloadGrade(id: number) {
-    const data = this.findOne(id)
+  async downloadStudentsGrades(id: number) {
+    const data = await this.findOneGradeByStudent(id)
+    try {
+      return await new ExelService().exportGradesToExel(data)
+    } catch (e) {
+      throw new BadRequestException(e)
+    }
   }
 }

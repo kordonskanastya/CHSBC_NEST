@@ -41,7 +41,8 @@ import { RolesGuard } from '../../auth/roles/roles.guard'
 import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
 import { VotingService } from '../voting/voting.service'
 import { CreateStudentVoteDto } from '../voting/dto/create-student-vote.dto'
-import { SEMESTER } from '../courses/dto/create-course.dto'
+import { UpdateIndividualPlanDto } from './dto/update-individual-plan.dto'
+import { SEMESTER } from '../courses/courses.service'
 
 @Controller(Entities.STUDENTS)
 @ApiTags(capitalize(Entities.STUDENTS))
@@ -210,7 +211,7 @@ export class StudentsController {
 
   @Get('get-individual-plan/:id([0-9]+)')
   @MinRole(ROLE.STUDENT)
-  @ApiImplicitQueries([{ name: 'semester', required: true }])
+  @ApiImplicitQueries([{ name: 'semester', required: false }])
   async getIndividualPlan(@Param('id') id: string, @Query('semester') semester: SEMESTER) {
     return await this.studentsService.getIndividualPlan(+id, semester)
   }
@@ -221,5 +222,15 @@ export class StudentsController {
   async downloadIndividualPlan(@Param('id') id: string, @Query('semester') semester: SEMESTER, @Res() res) {
     const pathToIndividualFile = await this.studentsService.downloadIndividualPlan(+id, semester)
     return res.download(pathToIndividualFile)
+  }
+
+  @Patch(':id([0-9]+)/edit-individual-plan')
+  @MinRole(ROLE.ADMIN)
+  async editIndividualPlan(
+    @Param('id') id: string,
+    @Body() updateIndividualPlan: UpdateIndividualPlanDto,
+    @Request() req,
+  ) {
+    return this.studentsService.editIndividualPlan(+id, updateIndividualPlan, req.user)
   }
 }

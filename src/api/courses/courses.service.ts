@@ -32,6 +32,11 @@ export enum CourseColumns {
   UPDATED = 'updated',
 }
 
+export enum SEMESTER {
+  FIRST = 1,
+  SECOND = 2,
+}
+
 export enum CourseType {
   GENERAL_COMPETENCE = 'Загальна компетентність',
   PROFESSIONAL_COMPETENCE = 'Фахова компетентність',

@@ -636,7 +636,7 @@ export class VotingService {
     }
   }
 
-  async submitCourse(ids: number[], tokenDto: TokenDto) {
+  async submitCourseByVoteId(course_ids: number[], tokenDto: TokenDto, voteId: number) {
     await this.updateStatusVoting()
     const { sub } = tokenDto
     const resultsForCourses = await VotingResult.find({
@@ -649,15 +649,16 @@ export class VotingService {
         },
       },
       where: {
-        course: In(ids),
+        course: In(course_ids),
         vote: {
           status: VotingStatus.NEEDS_REVIEW || VotingStatus.REVOTE_ENDED,
+          id: voteId,
         },
       },
     })
 
     if (!resultsForCourses) {
-      throw new BadRequestException(`Результатів для  предметів з id: ${ids}  не знайдено`)
+      throw new BadRequestException(`Результатів для предметів з id: ${course_ids}  не знайдено`)
     }
 
     resultsForCourses.map(async (resultForOneCourse) => {

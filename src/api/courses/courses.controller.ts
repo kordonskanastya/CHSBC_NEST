@@ -136,6 +136,7 @@ export class CoursesController {
     { name: 'courseName', required: false, description: 'course name' },
     { name: 'type', required: false, enum: CourseType },
     { name: 'teacherId', required: false },
+    { name: 'curatorId', required: false },
   ])
   async getCoursesDropdown(
     @Query('page') page = 1,
@@ -145,6 +146,7 @@ export class CoursesController {
     @Query('courseName') courseName: string,
     @Query('type') type: CourseType,
     @Query('teacherId') teacherId: number,
+    @Query('curatorId') curatorId: number,
   ) {
     return await this.coursesService.getCoursesDropdown(
       {
@@ -158,6 +160,7 @@ export class CoursesController {
       courseName,
       type,
       teacherId,
+      curatorId,
     )
   }
 }

@@ -368,11 +368,14 @@ export class CoursesService {
     courseName: string,
     type: CourseType,
     teacherId: number,
+    curatorId: number,
   ) {
     orderByColumn = orderByColumn || CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
-    const courses = await this.coursesRepository.createQueryBuilder('Course')
+    const courses = await this.coursesRepository
+      .createQueryBuilder('Course')
+      .leftJoinAndSelect('Course.groups', 'Group')
 
     if (courseName) {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
@@ -384,6 +387,10 @@ export class CoursesService {
 
     if (teacherId) {
       courses.andWhere('Course.teacherId=:teacherId', { teacherId })
+    }
+
+    if (curatorId) {
+      courses.andWhere('Group.curatorId=:curatorId', { curatorId })
     }
 
     courses.orderBy(`Course.${orderByColumn}`, orderBy)

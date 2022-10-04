@@ -3,7 +3,7 @@ import { CreateVotingDto } from './dto/create-voting.dto'
 import { UpdateVotingDto } from './dto/update-voting.dto'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { VOTE_REPOSITORY } from '../../constants'
-import { In, Repository } from 'typeorm'
+import { In, Not, Repository } from 'typeorm'
 import { Vote } from './entities/voting.entity'
 import { Group } from '../groups/entities/group.entity'
 import { Course } from '../courses/entities/course.entity'
@@ -50,6 +50,8 @@ export class VotingService {
     @Inject(VOTE_REPOSITORY)
     private votingRepository: Repository<Vote>,
   ) {}
+
+  private minQuantityVotesToApproveCourse = 15
 
   async create(createVotingDto: CreateVotingDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
@@ -350,18 +352,21 @@ export class VotingService {
         .update(Vote)
         .set({ status: VotingStatus.NEW })
         .where(`"startDate"::timestamp>now()`)
+        .andWhere('isRevote=false')
         .execute()
       await this.votingRepository
         .createQueryBuilder()
         .update(Vote)
         .set({ status: VotingStatus.IN_PROGRESS })
         .where(`now() between "startDate"::timestamp and "endDate"::timestamp`)
+        .andWhere('isRevote=false')
         .execute()
       await this.votingRepository
         .createQueryBuilder()
         .update(Vote)
         .set({ status: VotingStatus.NEEDS_REVIEW })
         .where(`"endDate"::timestamp<now()`)
+        .andWhere('isRevote=false')
         .execute()
       await Vote.createQueryBuilder()
         .update(Vote)
@@ -481,7 +486,16 @@ export class VotingService {
       .leftJoinAndSelect('Course_notRequired.teacher', 'Teacher_')
       .where('Group.id=:groupId', { groupId: student.group.id })
       .andWhere('Vote.status=:status', { status: VotingStatus.IN_PROGRESS })
+      .orWhere('Vote.status=:status', { status: VotingStatus.REVOTE_IN_PROGRESS })
       .getOne()
+
+    if (vote?.isRevote) {
+      await this.getStudentsWhoShouldNotVoteId(vote.id).then((b) => {
+        if (b.indexOf(student.id) !== -1) {
+          return plainToClass(GetVoteForStudentPageDto, {})
+        }
+      })
+    }
     return plainToClass(GetVoteForStudentPageDto, vote, { excludeExtraneousValues: true })
   }
 
@@ -515,7 +529,7 @@ export class VotingService {
       .leftJoinAndSelect('Vote.groups', 'Group')
       .where('Group.id=:studentGroup', { studentGroup: student.group.id })
       .getOne()
-
+    console.log(vote)
     await this.checkVotingStatus(vote)
 
     vote.groups.map((group) => {
@@ -531,6 +545,15 @@ export class VotingService {
 
     if (votingResultsStudents.length > 0) {
       throw new BadRequestException('Ви вже проголосували')
+    }
+
+    if (vote.isRevote) {
+      await this.getStudentsWhoShouldNotVoteId(vote.id).then((b) => {
+        console.log(b)
+        if (b.indexOf(student.id) !== -1) {
+          throw new BadRequestException('Ви не можете преголосовувати')
+        }
+      })
     }
 
     courses.map(async (course) => {
@@ -633,7 +656,7 @@ export class VotingService {
   }
 
   async checkVotingStatus(vote: Vote) {
-    if (vote.status === VotingStatus.NEEDS_REVIEW || VotingStatus.APPROVED) {
+    if (vote.status === VotingStatus.NEEDS_REVIEW || vote.status === VotingStatus.APPROVED) {
       throw new BadRequestException(`Голосування вже закінчено`)
     }
 
@@ -718,5 +741,27 @@ export class VotingService {
     }
 
     return plainToClass(GetVotingSubmitDto, vote, { excludeExtraneousValues: true })
+  }
+
+  async getStudentsWhoShouldNotVoteId(id) {
+    const coursesApprovedIdSelect = await VotingResult.createQueryBuilder('vr')
+      .leftJoinAndSelect('vr.course', 'Course')
+      .select('Course.id as id')
+      .groupBy('Course.id')
+      .andWhere('vr."voteId"=:id', { id })
+      .having('count(vr."courseId")>=:minQuantityVotesToApproveCourse', {
+        minQuantityVotesToApproveCourse: this.minQuantityVotesToApproveCourse,
+      })
+      .getRawMany()
+    const voteRes = await VotingResult.find({
+      relations: ['vote', 'course', 'student'],
+      where: {
+        course: {
+          id: In(coursesApprovedIdSelect.map((course) => course.id)),
+        },
+      },
+    })
+    await VotingResult.delete({ course: Not(In(coursesApprovedIdSelect.map((course) => course.id))), vote: { id } })
+    return voteRes.map((res) => res.student.id)
   }
 }

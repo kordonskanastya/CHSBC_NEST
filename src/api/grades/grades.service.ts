@@ -17,6 +17,7 @@ import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto
 import { GradeHistory } from '../grades-history/entities/grades-history.entity'
 import { User } from '../users/entities/user.entity'
 import { GetTeacherInfoDto } from '../users/dto/get-teacher-info.dto'
+import { SEMESTER } from '../courses/courses.service'
 
 export enum GradeColumns {
   ID = 'Grade.id',
@@ -56,6 +57,7 @@ export class GradesService {
     courseId: number,
     groupId: number,
     grade: number,
+    semester: SEMESTER,
   ) {
     orderByColumn = orderByColumn || GradeColumns.STUDENT_ID
     orderBy = orderBy || 'ASC'
@@ -93,11 +95,15 @@ export class GradesService {
       query.andWhere(`Group.id=:groupId`, { groupId })
     }
 
+    if (semester) {
+      query.andWhere('Course.semester=:semester', { semester })
+    }
+
     query.orderBy(`${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetStudentForGradeDto, query, options)
   }
 
-  async findOneGradeByStudent(id: number) {
+  async findOneGradeByStudent(id: number, semester: SEMESTER) {
     const student = await Student.findOne(id)
 
     if (!student) {
@@ -111,12 +117,16 @@ export class GradesService {
       .leftJoinAndSelect('Grade.course', 'Course')
       .leftJoinAndSelect('Student.user', 'User')
       .andWhere('Student.id=:id', { id })
-      .getOne()
 
-    if (!grades) {
+    if (!(await grades.getOne())) {
       throw new NotFoundException(`Не знайдено оцінки з id: ${id}`)
     }
-    return plainToClass(GetStudentForGradeDto, grades, {
+
+    if (semester) {
+      grades.andWhere('Course.semester=:semester', { semester })
+    }
+
+    return plainToClass(GetStudentForGradeDto, await grades.getOne(), {
       excludeExtraneousValues: true,
     })
   }

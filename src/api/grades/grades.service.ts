@@ -58,6 +58,7 @@ export class GradesService {
     courseId: number,
     groupId: number,
     grade: number,
+    semester: SEMESTER,
   ) {
     orderByColumn = orderByColumn || GradeColumns.STUDENT_ID
     orderBy = orderBy || 'ASC'
@@ -228,8 +229,8 @@ export class GradesService {
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
   }
 
-  async downloadStudentsGrades(id: number) {
-    const data = await this.findOneGradeByStudent(id)
+  async downloadStudentsGrades(id: number, semester: SEMESTER) {
+    const data = await this.findOneGradeByStudent(id, semester)
     try {
       return await new ExelService().exportGradesToExel(data)
     } catch (e) {

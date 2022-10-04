@@ -122,8 +122,9 @@ export class GradesController {
 
   @Get('download-grades/:id([0-9]+)')
   @MinRole(ROLE.STUDENT)
-  async downloadIndividualPlan(@Param('id') id: string, @Res() res) {
-    const pathToGradesFile = await this.gradesService.downloadStudentsGrades(+id)
+  @ApiImplicitQueries([{ name: 'semester', required: false }])
+  async downloadIndividualPlan(@Param('id') id: string, @Query('semester') semester: SEMESTER, @Res() res) {
+    const pathToGradesFile = await this.gradesService.downloadStudentsGrades(+id, semester)
     return res.download(pathToGradesFile)
   }
 }

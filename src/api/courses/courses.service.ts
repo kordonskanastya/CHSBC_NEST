@@ -96,10 +96,6 @@ export class CoursesService {
     if (!course) {
       throw new BadRequestException(`Не вишло створити предмет`)
     } else {
-      const students = await Student.createQueryBuilder().getMany()
-      students.map(async (student) => {
-        await this.gradeRepository.create({ grade: null, student, course }).save({ data: { id: sub } })
-      })
       const studentsInGroup = await Student.createQueryBuilder()
         .leftJoinAndSelect('Student.courses', 'Course')
         .leftJoinAndSelect('Student.group', 'Group')
@@ -108,10 +104,11 @@ export class CoursesService {
         })
         .getMany()
       studentsInGroup.map(async (student) => {
-        if (course.type == CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE) {
+        if (course.type == CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE) {
           student.courses.push(course)
           Object.assign(student, { ...student, courses: student.courses })
           await student.save({ data: { id: sub } })
+          await this.gradeRepository.create({ grade: 0, student, course }).save({ data: { id: sub } })
         }
       })
     }
@@ -371,11 +368,14 @@ export class CoursesService {
     courseName: string,
     type: CourseType,
     teacherId: number,
+    curatorId: number,
   ) {
     orderByColumn = orderByColumn || CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
-    const courses = await this.coursesRepository.createQueryBuilder('Course')
+    const courses = await this.coursesRepository
+      .createQueryBuilder('Course')
+      .leftJoinAndSelect('Course.groups', 'Group')
 
     if (courseName) {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
@@ -387,6 +387,10 @@ export class CoursesService {
 
     if (teacherId) {
       courses.andWhere('Course.teacherId=:teacherId', { teacherId })
+    }
+
+    if (curatorId) {
+      courses.andWhere('Group.curatorId=:curatorId', { curatorId })
     }
 
     courses.orderBy(`Course.${orderByColumn}`, orderBy)

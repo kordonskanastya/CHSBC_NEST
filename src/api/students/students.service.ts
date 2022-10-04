@@ -71,7 +71,6 @@ export class StudentsService {
     }
 
     const { id: userId } = await this.usersService.create(user, tokenDto)
-    const courses = await Course.createQueryBuilder().getMany()
     const student = await this.studentsRepository
       .create({
         ...createStudentDto,
@@ -86,11 +85,8 @@ export class StudentsService {
 
     if (!student) {
       throw new BadRequestException('Не вишло створити студента')
-    } else {
-      courses.map(async (course) => {
-        await this.gradeRepository.create({ grade: null, student, course }).save({ data: { id: sub } })
-      })
     }
+
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,
     })
@@ -334,25 +330,39 @@ export class StudentsService {
     return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
   }
 
-  async getIndividualPlan(id: number, semester: SEMESTER) {
+  async getIndividualPlan(user_id: number, semester: SEMESTER) {
     const student = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
       .leftJoin('Student.courses', 'St_course')
       .leftJoinAndSelect('Grade.course', 'Course')
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
-      .where('User.id=:id', { id })
+      .where('User.id=:user_id', { user_id })
       .andWhere('St_course.id=Course.id')
 
-    if (!student) {
+    const student_ = await Student.createQueryBuilder()
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Student.user', 'User')
+      .getOne()
+    if (!student_) {
+      throw new BadRequestException(`Студента не знайдено`)
+    }
+
+    if (!(await student.getOne())) {
+      Object.assign(student_, { ...student_, grades: [] })
+      return plainToClass(GetStudentIndividualPlanDto, student_, { excludeExtraneousValues: true })
+    }
+
+    if (semester) {
+      student.andWhere('Course.semester=:semester', { semester })
+    }
+
+    if (!(await student.getOne())) {
       throw new NotFoundException(
-        `Індивідуальний план для студента ${await User.findOne(44).then(
+        `Індивідуальний план для студента ${await User.findOne(user_id).then(
           (user) => user.lastName + ' ' + user.firstName[0] + '.' + user.patronymic[0],
         )}  для ${semester} семестру не знайдений `,
       )
-    }
-    if (semester) {
-      student.andWhere('Course.semester=:semester', { semester })
     }
 
     return plainToClass(GetStudentIndividualPlanDto, student.getOne(), { excludeExtraneousValues: true })

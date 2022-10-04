@@ -25,6 +25,7 @@ import { ApiPaginatedResponse } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
 import { PaginationTypeEnum } from 'nestjs-typeorm-paginate'
+import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 
 @Controller(Entities.VOTING)
 @ApiTags(capitalize(Entities.VOTING))
@@ -127,18 +128,17 @@ export class VotingController {
 
   @Post(':id([0-9]+)/courses/submit')
   @MinRole(ROLE.ADMIN)
-  @ApiImplicitQueries([{ name: 'course', required: false, type: 'array' }])
   async submitCoursesToStudentsByVoteId(
     @Param('id') voteId: string,
-    @Query('course') coursesIds: number[],
+    @Body() submitCourseDto: CreateStudentVoteDto,
     @Request() req,
   ) {
-    return await this.votingService.submitCourseByVoteId(coursesIds, req.user, +voteId)
+    return await this.votingService.submitCourseByVoteId(submitCourseDto.courses, req.user, +voteId)
   }
 
-  @Get(':id([0-9]+)/courses')
+  @Get(':id([0-9]+)/submit-form')
   @MinRole(ROLE.ADMIN)
-  async getVotingCourses(@Param('id') id: string) {
-    return await this.votingService.getVotingCoursesByVotingId(+id)
+  async getSubmitCoursesForm(@Param('id') id: string) {
+    return await this.votingService.getSubmitCoursesForm(+id)
   }
 }

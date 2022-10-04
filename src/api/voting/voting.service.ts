@@ -3,7 +3,7 @@ import { CreateVotingDto } from './dto/create-voting.dto'
 import { UpdateVotingDto } from './dto/update-voting.dto'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { VOTE_REPOSITORY } from '../../constants'
-import { In, Repository } from 'typeorm'
+import { In, Not, Repository } from 'typeorm'
 import { Vote } from './entities/voting.entity'
 import { Group } from '../groups/entities/group.entity'
 import { Course } from '../courses/entities/course.entity'
@@ -19,7 +19,7 @@ import { GetVotingResultDto } from './dto/get-voting-result.dto'
 import { VotingResult } from './entities/voting-result.entity'
 import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 import { GetVoteForStudentPageDto } from './dto/get-vote-for-student-page.dto'
-import { GetCourseVotesTeacherDto } from '../courses/dto/get-course-votes-teacher.dto'
+import { GetVotingSubmitDto } from './dto/get-voting-submit.dto'
 
 export enum VotingColumns {
   ID = 'id',
@@ -38,6 +38,7 @@ export enum VotingStatus {
   NEEDS_REVIEW = 'Потребує перегляду',
   REVOTE_IN_PROGRESS = 'Переголосування у прогресі',
   REVOTE_ENDED = 'Переголосування закінчене',
+  APPROVED = 'Затвердженно',
 }
 
 export const VOTING_COLUMN_LIST = enumToArray(VotingColumns)
@@ -49,6 +50,8 @@ export class VotingService {
     @Inject(VOTE_REPOSITORY)
     private votingRepository: Repository<Vote>,
   ) {}
+
+  private minQuantityVotesToApproveCourse = 15
 
   async create(createVotingDto: CreateVotingDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
@@ -343,37 +346,49 @@ export class VotingService {
   }
 
   async updateStatusVoting() {
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.NEW })
-      .where(`"startDate"::timestamp>now()`)
-      .execute()
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.IN_PROGRESS })
-      .where(`now() between "startDate"::timestamp and "endDate"::timestamp`)
-      .execute()
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.NEEDS_REVIEW })
-      .where(`"endDate"::timestamp<now()`)
-      .execute()
-    await Vote.createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.REVOTE_IN_PROGRESS })
-      .andWhere('isRevote=true')
-      .andWhere(`now() between "startDate"::timestamp and "endDate"::timestamp`)
-      .execute()
-    await Vote.createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.REVOTE_ENDED })
-      .andWhere('isRevote=true')
-      .andWhere(`"endDate"::timestamp<now()`)
-      .execute()
-    await this.updateTookPart()
+    try {
+      await this.votingRepository
+        .createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.NEW })
+        .where(`"startDate"::timestamp>now()`)
+        .andWhere('isRevote=false')
+        .execute()
+      await this.votingRepository
+        .createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.IN_PROGRESS })
+        .where(`now() between "startDate"::timestamp and "endDate"::timestamp`)
+        .andWhere('isRevote=false')
+        .execute()
+      await this.votingRepository
+        .createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.NEEDS_REVIEW })
+        .where(`"endDate"::timestamp<now()`)
+        .andWhere('isRevote=false')
+        .execute()
+      await Vote.createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.REVOTE_IN_PROGRESS })
+        .andWhere('isRevote=true')
+        .andWhere(`now() between "startDate"::timestamp and "endDate"::timestamp`)
+        .execute()
+      await Vote.createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.REVOTE_ENDED })
+        .andWhere('isRevote=true')
+        .andWhere(`"endDate"::timestamp<now()`)
+        .execute()
+      await Vote.createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.APPROVED })
+        .where('isApproved=true')
+        .execute()
+      await this.updateTookPart()
+    } catch (e) {
+      throw new BadRequestException('Не вишло оновити статус: ' + e.message)
+    }
   }
 
   async findOneVotingResult(id: number) {
@@ -471,7 +486,16 @@ export class VotingService {
       .leftJoinAndSelect('Course_notRequired.teacher', 'Teacher_')
       .where('Group.id=:groupId', { groupId: student.group.id })
       .andWhere('Vote.status=:status', { status: VotingStatus.IN_PROGRESS })
+      .orWhere('Vote.status=:status', { status: VotingStatus.REVOTE_IN_PROGRESS })
       .getOne()
+
+    if (vote?.isRevote) {
+      await this.getStudentsWhoShouldNotVoteId(vote.id).then((b) => {
+        if (b.indexOf(student.id) !== -1) {
+          return plainToClass(GetVoteForStudentPageDto, {})
+        }
+      })
+    }
     return plainToClass(GetVoteForStudentPageDto, vote, { excludeExtraneousValues: true })
   }
 
@@ -505,7 +529,7 @@ export class VotingService {
       .leftJoinAndSelect('Vote.groups', 'Group')
       .where('Group.id=:studentGroup', { studentGroup: student.group.id })
       .getOne()
-
+    console.log(vote)
     await this.checkVotingStatus(vote)
 
     vote.groups.map((group) => {
@@ -521,6 +545,15 @@ export class VotingService {
 
     if (votingResultsStudents.length > 0) {
       throw new BadRequestException('Ви вже проголосували')
+    }
+
+    if (vote.isRevote) {
+      await this.getStudentsWhoShouldNotVoteId(vote.id).then((b) => {
+        console.log(b)
+        if (b.indexOf(student.id) !== -1) {
+          throw new BadRequestException('Ви не можете преголосовувати')
+        }
+      })
     }
 
     courses.map(async (course) => {
@@ -623,7 +656,7 @@ export class VotingService {
   }
 
   async checkVotingStatus(vote: Vote) {
-    if (vote.status === VotingStatus.NEEDS_REVIEW) {
+    if (vote.status === VotingStatus.NEEDS_REVIEW || vote.status === VotingStatus.APPROVED) {
       throw new BadRequestException(`Голосування вже закінчено`)
     }
 
@@ -670,41 +703,65 @@ export class VotingService {
 
       try {
         await resultForOneCourse.student.save({ data: { id: sub } })
+        await this.votingRepository
+          .createQueryBuilder()
+          .update(Vote)
+          .set({
+            status: VotingStatus.APPROVED,
+            isApproved: true,
+          })
+          .execute()
       } catch (e) {
         throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
       }
     })
-
     return {
       success: true,
     }
   }
 
-  async getVotingCoursesByVotingId(id: number) {
-    const vote = await Vote.findOne({
-      relations: ['requiredCourses', 'notRequiredCourses', 'requiredCourses.teacher', 'notRequiredCourses.teacher'],
-      where: {
-        id,
-      },
-    })
+  async getSubmitCoursesForm(id: number) {
+    const vote = await Vote.createQueryBuilder()
+      .leftJoinAndSelect('Vote.requiredCourses', 'RequiredCourses')
+      .leftJoinAndSelect('Vote.notRequiredCourses', 'NotRequiredCourses')
+      .leftJoinAndSelect('RequiredCourses.teacher', 'RequiredCoursesTeacher')
+      .leftJoinAndSelect('NotRequiredCourses.teacher', 'NotRequiredCoursesTeacher')
+      .leftJoinAndSelect('Vote.groups', 'Group')
+      .loadRelationCountAndMap('NotRequiredCourses.allVotes', 'RequiredCourses.votingResults', 'Vt', (qb) =>
+        qb.where('Vt.voteId=:id', { id }),
+      )
+      .loadRelationCountAndMap('RequiredCourses.allVotes', 'NotRequiredCourses.votingResults', 'Vt', (qb) =>
+        qb.where('Vt.voteId=:id', { id }),
+      )
+      .where('Vote.id=:id', { id })
+      .getOne()
 
     if (!vote) {
       throw new BadRequestException(`Предмети для голосування з id:${id} не знайдено`)
     }
 
-    const coursesids = [
-      ...vote.requiredCourses.map((course) => course.id),
-      ...vote.notRequiredCourses.map((course) => course.id),
-    ]
+    return plainToClass(GetVotingSubmitDto, vote, { excludeExtraneousValues: true })
+  }
 
-    const courses = await Course.createQueryBuilder()
-      .leftJoinAndSelect('Course.teacher', 'Teacher')
-      .loadRelationCountAndMap('Course.allVotes', 'Course.votingResults', 'Vt', (qb) =>
-        qb.where('Vt.voteId=:id', { id }),
-      )
-      .andWhere(`Course.id IN (:...ids)`, { ids: coursesids })
-      .getMany()
-
-    return plainToClass(GetCourseVotesTeacherDto, courses, { excludeExtraneousValues: true })
+  async getStudentsWhoShouldNotVoteId(id) {
+    const coursesApprovedIdSelect = await VotingResult.createQueryBuilder('vr')
+      .leftJoinAndSelect('vr.course', 'Course')
+      .select('Course.id as id')
+      .groupBy('Course.id')
+      .andWhere('vr."voteId"=:id', { id })
+      .having('count(vr."courseId")>=:minQuantityVotesToApproveCourse', {
+        minQuantityVotesToApproveCourse: this.minQuantityVotesToApproveCourse,
+      })
+      .getRawMany()
+    const voteRes = await VotingResult.find({
+      relations: ['vote', 'course', 'student'],
+      where: {
+        course: {
+          id: In(coursesApprovedIdSelect.map((course) => course.id)),
+        },
+      },
+    })
+    await VotingResult.delete({ course: Not(In(coursesApprovedIdSelect.map((course) => course.id))), vote: { id } })
+    return voteRes.map((res) => res.student.id)
   }
 }

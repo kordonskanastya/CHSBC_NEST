@@ -13,6 +13,7 @@ import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorato
 import { PaginationTypeEnum } from 'nestjs-typeorm-paginate'
 import { GetGradeResponseDto } from './dto/get-grade-response.dto'
 import { CreateGroupResponseDto } from '../groups/dto/create-group-response.dto'
+import { SEMESTER } from '../courses/courses.service'
 
 @Controller(Entities.GRADES)
 @ApiTags(capitalize(Entities.GRADES))
@@ -39,6 +40,7 @@ export class GradesController {
     { name: 'courseId', required: false },
     { name: 'groupId', required: false },
     { name: 'grade', required: false },
+    { name: 'semester', required: false },
   ])
   async findAll(
     @Query('page') page = 1,
@@ -50,6 +52,7 @@ export class GradesController {
     @Query('courseId') courseId: number,
     @Query('groupId') groupId: number,
     @Query('grade') grade: number,
+    @Query('semester') semester: SEMESTER,
   ) {
     return await this.gradesService.findAll(
       {
@@ -65,13 +68,15 @@ export class GradesController {
       courseId,
       groupId,
       grade,
+      semester,
     )
   }
 
   @Get('/student/:id([0-9]+)')
   @MinRole(ROLE.STUDENT)
-  async findOne(@Param('id') id: string) {
-    return await this.gradesService.findOneGradeByStudent(+id)
+  @ApiImplicitQueries([{ name: 'semester', required: false }])
+  async findOne(@Param('id') id: string, @Query('semester') semester: SEMESTER) {
+    return await this.gradesService.findOneGradeByStudent(+id, semester)
   }
 
   @Patch('/student/:id([0-9]+)')

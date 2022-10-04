@@ -71,7 +71,6 @@ export class StudentsService {
     }
 
     const { id: userId } = await this.usersService.create(user, tokenDto)
-    const courses = await Course.createQueryBuilder().getMany()
     const student = await this.studentsRepository
       .create({
         ...createStudentDto,
@@ -86,11 +85,8 @@ export class StudentsService {
 
     if (!student) {
       throw new BadRequestException('Не вишло створити студента')
-    } else {
-      courses.map(async (course) => {
-        await this.gradeRepository.create({ grade: null, student, course }).save({ data: { id: sub } })
-      })
     }
+
     return plainToClass(CreateStudentResponseDto, student, {
       excludeExtraneousValues: true,
     })

@@ -342,15 +342,25 @@ export class StudentsService {
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
       .where('User.id=:user_id', { user_id })
-    //.andWhere('St_course.id=Course.id')
-    console.log(await student.getOne())
+      .andWhere('St_course.id=Course.id')
+
+    const student_ = await Student.createQueryBuilder()
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Student.user', 'User')
+      .getOne()
+    if (!student_) {
+      throw new BadRequestException(`Студента не знайдено`)
+    }
+
     if (!(await student.getOne())) {
-      throw new NotFoundException(`Студента  з id: ${user_id} не знайдено`)
+      Object.assign(student_, { ...student_, grades: [] })
+      return plainToClass(GetStudentIndividualPlanDto, student_, { excludeExtraneousValues: true })
     }
 
     if (semester) {
       student.andWhere('Course.semester=:semester', { semester })
     }
+
     if (!(await student.getOne())) {
       throw new NotFoundException(
         `Індивідуальний план для студента ${await User.findOne(user_id).then(

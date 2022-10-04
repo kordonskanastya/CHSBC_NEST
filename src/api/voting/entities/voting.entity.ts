@@ -57,4 +57,7 @@ export class Vote extends BaseEntity {
 
   @Column({ nullable: true })
   isRevote: boolean
+
+  @Column({ nullable: false, default: false })
+  isApproved: boolean
 }

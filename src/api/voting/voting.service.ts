@@ -38,6 +38,7 @@ export enum VotingStatus {
   NEEDS_REVIEW = 'Потребує перегляду',
   REVOTE_IN_PROGRESS = 'Переголосування у прогресі',
   REVOTE_ENDED = 'Переголосування закінчене',
+  APPROVED = 'Затвердженно',
 }
 
 export const VOTING_COLUMN_LIST = enumToArray(VotingColumns)
@@ -343,37 +344,46 @@ export class VotingService {
   }
 
   async updateStatusVoting() {
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.NEW })
-      .where(`"startDate"::timestamp>now()`)
-      .execute()
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.IN_PROGRESS })
-      .where(`now() between "startDate"::timestamp and "endDate"::timestamp`)
-      .execute()
-    await this.votingRepository
-      .createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.NEEDS_REVIEW })
-      .where(`"endDate"::timestamp<now()`)
-      .execute()
-    await Vote.createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.REVOTE_IN_PROGRESS })
-      .andWhere('isRevote=true')
-      .andWhere(`now() between "startDate"::timestamp and "endDate"::timestamp`)
-      .execute()
-    await Vote.createQueryBuilder()
-      .update(Vote)
-      .set({ status: VotingStatus.REVOTE_ENDED })
-      .andWhere('isRevote=true')
-      .andWhere(`"endDate"::timestamp<now()`)
-      .execute()
-    await this.updateTookPart()
+    try {
+      await this.votingRepository
+        .createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.NEW })
+        .where(`"startDate"::timestamp>now()`)
+        .execute()
+      await this.votingRepository
+        .createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.IN_PROGRESS })
+        .where(`now() between "startDate"::timestamp and "endDate"::timestamp`)
+        .execute()
+      await this.votingRepository
+        .createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.NEEDS_REVIEW })
+        .where(`"endDate"::timestamp<now()`)
+        .execute()
+      await Vote.createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.REVOTE_IN_PROGRESS })
+        .andWhere('isRevote=true')
+        .andWhere(`now() between "startDate"::timestamp and "endDate"::timestamp`)
+        .execute()
+      await Vote.createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.REVOTE_ENDED })
+        .andWhere('isRevote=true')
+        .andWhere(`"endDate"::timestamp<now()`)
+        .execute()
+      await Vote.createQueryBuilder()
+        .update(Vote)
+        .set({ status: VotingStatus.APPROVED })
+        .where('isApproved=true')
+        .execute()
+      await this.updateTookPart()
+    } catch (e) {
+      throw new BadRequestException('Не вишло оновити статус: ' + e.message)
+    }
   }
 
   async findOneVotingResult(id: number) {
@@ -623,7 +633,7 @@ export class VotingService {
   }
 
   async checkVotingStatus(vote: Vote) {
-    if (vote.status === VotingStatus.NEEDS_REVIEW) {
+    if (vote.status === VotingStatus.NEEDS_REVIEW || VotingStatus.APPROVED) {
       throw new BadRequestException(`Голосування вже закінчено`)
     }
 
@@ -670,11 +680,18 @@ export class VotingService {
 
       try {
         await resultForOneCourse.student.save({ data: { id: sub } })
+        await this.votingRepository
+          .createQueryBuilder()
+          .update(Vote)
+          .set({
+            status: VotingStatus.APPROVED,
+            isApproved: true,
+          })
+          .execute()
       } catch (e) {
         throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
       }
     })
-
     return {
       success: true,
     }

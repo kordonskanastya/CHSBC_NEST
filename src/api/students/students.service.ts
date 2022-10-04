@@ -342,8 +342,8 @@ export class StudentsService {
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
       .where('User.id=:user_id', { user_id })
-      .andWhere('St_course.id=Course.id')
-
+    //.andWhere('St_course.id=Course.id')
+    console.log(await student.getOne())
     if (!(await student.getOne())) {
       throw new NotFoundException(`Студента  з id: ${user_id} не знайдено`)
     }

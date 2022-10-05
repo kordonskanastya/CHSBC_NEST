@@ -302,7 +302,7 @@ export class CoursesService {
           Object.assign(student, { ...student, courses: student.courses })
           await Grade.createQueryBuilder()
             .update()
-            .set({ grade: null })
+            .set({ grade: 0 })
             .where('courseId=:courseId', { courseId: course.id })
             .execute()
           try {
@@ -318,11 +318,7 @@ export class CoursesService {
           })
           student.courses.splice(indexOfCourse, 1)
           Object.assign(student, { ...student, courses: student.courses })
-          await Grade.createQueryBuilder()
-            .update()
-            .set({ grade: null })
-            .where('courseId=:courseId', { courseId: course.id })
-            .execute()
+          await Grade.delete({ course })
           try {
             await student.save({ data: { id: sub } })
           } catch (e) {

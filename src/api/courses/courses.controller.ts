@@ -21,7 +21,7 @@ import { RolesGuard } from '../../auth/roles/roles.guard'
 import { capitalize } from '../../utils/common'
 import { ApiPaginatedResponse } from '../../utils/paginate'
 import { Entities } from '../common/enums'
-import { CourseColumns, CoursesService, CourseType } from './courses.service'
+import { CourseColumns, CoursesService, CourseType, SEMESTER } from './courses.service'
 import { CreateCourseDto } from './dto/create-course.dto'
 import { GetCourseResponseDto } from './dto/get-course-response.dto'
 import { UpdateCourseDto } from './dto/update-course.dto'
@@ -137,6 +137,7 @@ export class CoursesController {
     { name: 'type', required: false, enum: CourseType },
     { name: 'teacherId', required: false },
     { name: 'curatorId', required: false },
+    { name: 'semester', required: false },
   ])
   async getCoursesDropdown(
     @Query('page') page = 1,
@@ -147,6 +148,7 @@ export class CoursesController {
     @Query('type') type: CourseType,
     @Query('teacherId') teacherId: number,
     @Query('curatorId') curatorId: number,
+    @Query('semester') semester: SEMESTER,
   ) {
     return await this.coursesService.getCoursesDropdown(
       {
@@ -161,6 +163,7 @@ export class CoursesController {
       type,
       teacherId,
       curatorId,
+      semester,
     )
   }
 }

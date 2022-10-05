@@ -327,6 +327,59 @@ export class CoursesService {
         })
       }
     }
+
+    if (updateCourseDto.groups) {
+      let deletedGroupIdArray = []
+      const hash = Object.create(null)
+      const courseOld = await Course.findOne(id, { relations: ['groups'] })
+
+      if (courseOld.groups) {
+        courseOld.groups.forEach(function (group) {
+          hash[group.id] = { value: group.id }
+        })
+        // insertedArray = updateCourseDto.groups.filter(function (a) {
+        //   const r = !hash[a]
+        //   if (hash[a]) {
+        //     delete hash[a]
+        //   }
+        //   return r
+        // })
+        deletedGroupIdArray = Object.keys(hash).map(function (k) {
+          return hash[k].value
+        })
+        const students = []
+        await Group.findByIds(updateCourseDto.groups, {
+          join: {
+            alias: 'Group',
+            leftJoinAndSelect: {
+              Student: 'Group.students',
+              Course: 'Student.courses',
+            },
+          },
+        }).then((groups) => groups.map((group) => group.students.map((student) => students.push(student))))
+        students.map(async (student) => {
+          if (course.type === CourseType.PROFESSIONAL_COMPETENCE || course.type === CourseType.GENERAL_COMPETENCE) {
+            student.courses.push(course)
+            await this.gradeRepository.create({ grade: 0, student, course }).save({
+              data: { id: sub },
+            })
+          }
+        })
+        if (deletedGroupIdArray.length > 0) {
+          await Student.find({
+            where: {
+              group: {
+                id: In(deletedGroupIdArray),
+              },
+            },
+          }).then((students) =>
+            students.map(async (student) => {
+              await Grade.delete({ student })
+            }),
+          )
+        }
+      }
+    }
     try {
       await course.save({ data: { id: sub } })
     } catch (e) {

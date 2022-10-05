@@ -90,8 +90,12 @@ export class StudentsService {
       const student_ = await Student.findOne(student.id, { relations: ['courses'] })
 
       group_.courses.map(async (course) => {
-        student_.courses.push(course)
-        await this.gradeRepository.create({ grade: 0, student: student_, course }).save({ data: { id: sub } })
+        if (course.type === CourseType.PROFESSIONAL_COMPETENCE || course.type === CourseType.GENERAL_COMPETENCE) {
+          student_.courses.push(course)
+          await this.gradeRepository.create({ grade: 0, student: student_, course }).save({
+            data: { id: sub },
+          })
+        }
       })
 
       Object.assign(student_, { ...student_, courses: student_.courses })

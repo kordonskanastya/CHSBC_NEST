@@ -365,6 +365,7 @@ export class CoursesService {
     type: CourseType,
     teacherId: number,
     curatorId: number,
+    semester: SEMESTER,
   ) {
     orderByColumn = orderByColumn || CourseColumns.ID
     orderBy = orderBy || 'ASC'
@@ -387,6 +388,10 @@ export class CoursesService {
 
     if (curatorId) {
       courses.andWhere('Group.curatorId=:curatorId', { curatorId })
+    }
+
+    if (semester) {
+      courses.andWhere('Course.semester=:semester', { semester })
     }
 
     courses.orderBy(`Course.${orderByColumn}`, orderBy)

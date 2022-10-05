@@ -85,6 +85,17 @@ export class StudentsService {
 
     if (!student) {
       throw new BadRequestException('Не вишло створити студента')
+    } else {
+      const group_ = await Group.findOne(group.id, { relations: ['courses'] })
+      const student_ = await Student.findOne(student.id, { relations: ['courses'] })
+
+      group_.courses.map(async (course) => {
+        student_.courses.push(course)
+        await this.gradeRepository.create({ grade: 0, student: student_, course }).save({ data: { id: sub } })
+      })
+
+      Object.assign(student_, { ...student_, courses: student_.courses })
+      await student_.save({ data: { id: sub } })
     }
 
     return plainToClass(CreateStudentResponseDto, student, {

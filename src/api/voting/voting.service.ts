@@ -485,10 +485,11 @@ export class VotingService {
       .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
       .leftJoinAndSelect('Course_notRequired.teacher', 'Teacher_')
       .where('Group.id=:groupId', { groupId: student.group.id })
-      .andWhere('Vote.status=:status', { status: VotingStatus.IN_PROGRESS })
-      .orWhere('Vote.status=:status', { status: VotingStatus.REVOTE_IN_PROGRESS })
+      .andWhere('(Vote.status=:statusInProgress OR Vote.status=:statusRevote )', {
+        statusInProgress: VotingStatus.IN_PROGRESS,
+        statusRevote: VotingStatus.REVOTE_IN_PROGRESS,
+      })
       .getOne()
-
     if (vote?.isRevote) {
       await this.getStudentsWhoShouldNotVoteId(vote.id).then((b) => {
         if (b.indexOf(student.id) !== -1) {

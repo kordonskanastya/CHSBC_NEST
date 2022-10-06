@@ -26,7 +26,7 @@ export class CreateCourseDto {
   isExam: boolean
 
   @IsEnum(SEMESTER, { message: 'Семестер має бути дійсним' })
-  @ApiProperty({ required: true, example: SEMESTER['1'] })
+  @ApiProperty({ required: true, example: SEMESTER.FIRST })
   semester: SEMESTER
 
   @IsEnum(CourseType, { message: 'Тип предмету не дійсний,перевірте тип' })

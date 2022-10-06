@@ -20,6 +20,7 @@ import { VotingResult } from './entities/voting-result.entity'
 import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 import { GetVoteForStudentPageDto } from './dto/get-vote-for-student-page.dto'
 import { GetVotingSubmitDto } from './dto/get-voting-submit.dto'
+import { Grade } from '../grades/entities/grade.entity'
 
 export enum VotingColumns {
   ID = 'id',
@@ -510,14 +511,7 @@ export class VotingService {
       },
       relations: ['course', 'vote'],
     })
-    // if (vote?.isRevote) {
-    //   await this.getStudentsWhoShouldNotVoteId(vote.id).then((b) => {
-    //     if (b.indexOf(student.id) !== -1) {
-    //       return plainToClass(GetVoteForStudentPageDto, {})
-    //     }
-    //   })
-    // }
-    console.log(votedStud.map((result) => result.course.id))
+
     return plainToClass(
       GetVoteForStudentPageDto,
       {
@@ -576,15 +570,6 @@ export class VotingService {
     if (votingResultsStudents.length > 0) {
       throw new BadRequestException('Ви вже проголосували')
     }
-
-    // if (vote.isRevote) {
-    //   await this.getStudentsWhoShouldNotVoteId(vote.id).then((b) => {
-    //     console.log(b)
-    //     if (b.indexOf(student.id) !== -1) {
-    //       throw new BadRequestException('Ви не можете преголосовувати')
-    //     }
-    //   })
-    // }
 
     courses.map(async (course) => {
       try {
@@ -719,7 +704,7 @@ export class VotingService {
         },
       },
     })
-
+    console.log(resultsForCourses)
     if (!resultsForCourses) {
       throw new BadRequestException(`Результатів для предметів з id: ${course_ids}  не знайдено`)
     }
@@ -733,6 +718,11 @@ export class VotingService {
 
       try {
         await resultForOneCourse.student.save({ data: { id: sub } })
+        await Grade.create({
+          course: resultForOneCourse.course,
+          student: resultForOneCourse.student,
+          grade: 0,
+        }).save({ data: { id: sub } })
         await this.votingRepository
           .createQueryBuilder()
           .update(Vote)

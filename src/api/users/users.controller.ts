@@ -42,6 +42,7 @@ import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
 import { GradeColumns, GradesService } from '../grades/grades.service'
 import { UpdateGradeDto } from '../grades/dto/update-grade.dto'
 import { SEMESTER } from '../courses/courses.service'
+import { StudentColumns } from '../students/students.service'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))
@@ -300,6 +301,10 @@ export class UsersController {
   @Get('/curator/page')
   @MinRole(ROLE.CURATOR)
   @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: StudentColumns },
     { name: 'groupId', required: false },
     { name: 'studentId', required: false },
     { name: 'semester', required: false },
@@ -309,8 +314,25 @@ export class UsersController {
     @Query('studentId') studentId: number,
     @Query('groupId') groupId: number,
     @Query('semester') semester: SEMESTER,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('orderByColumn') orderByColumn: StudentColumns,
   ) {
-    return await this.usersService.getCuratorInfo(req.user, studentId, groupId, semester)
+    return await this.usersService.getCuratorInfo(
+      req.user,
+      {
+        page,
+        limit: Math.min(limit, 100),
+        route: `/${Entities.USERS}/curator/page`,
+        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
+      },
+      orderBy,
+      orderByColumn,
+      studentId,
+      groupId,
+      semester,
+    )
   }
 
   @Get('/teacher/page')
@@ -319,7 +341,7 @@ export class UsersController {
     { name: 'page', required: false, description: 'default 1' },
     { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
     { name: 'orderBy', required: false, description: 'default "ASC"' },
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: StudentColumns },
     { name: 'groupId', required: false },
     { name: 'courseId', required: false },
     { name: 'studentId', required: false },

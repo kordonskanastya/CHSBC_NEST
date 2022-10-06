@@ -1,4 +1,11 @@
-import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  NotAcceptableException,
+  NotFoundException,
+} from '@nestjs/common'
 import { plainToClass } from 'class-transformer'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { In, Repository } from 'typeorm'
@@ -46,6 +53,7 @@ export class StudentsService {
   constructor(
     @Inject(STUDENT_REPOSITORY)
     private studentsRepository: Repository<Student>,
+    @Inject(forwardRef(() => UsersService))
     private usersService: UsersService,
     @Inject(GRADE_REPOSITORY)
     private gradeRepository: Repository<Grade>,

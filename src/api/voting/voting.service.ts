@@ -36,6 +36,7 @@ export enum VotingStatus {
   NEW = 'Нове',
   IN_PROGRESS = 'У прогресі',
   NEEDS_REVIEW = 'Потребує перегляду',
+  NEW_REVOTE = 'Нове переголосування',
   REVOTE_IN_PROGRESS = 'Переголосування у прогресі',
   REVOTE_ENDED = 'Переголосування закінчене',
   APPROVED = 'Затвердженно',
@@ -490,6 +491,7 @@ export class VotingService {
         statusRevote: VotingStatus.REVOTE_IN_PROGRESS,
       })
       .getOne()
+
     const coursesApprovedIdSelect = await VotingResult.createQueryBuilder('vr')
       .leftJoinAndSelect('vr.course', 'Course')
       .select('Course.id as id')
@@ -738,6 +740,7 @@ export class VotingService {
             status: VotingStatus.APPROVED,
             isApproved: true,
           })
+          .where('isApproved=true')
           .execute()
       } catch (e) {
         throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)

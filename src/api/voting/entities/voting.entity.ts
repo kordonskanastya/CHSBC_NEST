@@ -55,7 +55,7 @@ export class Vote extends BaseEntity {
   @OneToMany(() => Student, (student) => student.vote)
   students: Student[]
 
-  @Column({ nullable: true })
+  @Column({ nullable: false, default: false })
   isRevote: boolean
 
   @Column({ nullable: false, default: false })

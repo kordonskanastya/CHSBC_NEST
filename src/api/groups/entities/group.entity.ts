@@ -44,6 +44,6 @@ export class Group extends BaseEntity {
   @ManyToMany(() => Course, (course) => course.groups, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   courses: Course[]
 
-  @ManyToOne(() => Vote, (vote) => vote.groups, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => Vote, (vote) => vote.groups, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   vote: Vote
 }

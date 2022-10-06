@@ -120,7 +120,7 @@ export class GradesController {
     )
   }
 
-  @Get('download-grades/:id([0-9]+)')
+  @Get('download-grades/student/:id([0-9]+)')
   @MinRole(ROLE.STUDENT)
   @ApiImplicitQueries([{ name: 'semester', required: false }])
   async downloadIndividualPlan(@Param('id') id: string, @Query('semester') semester: SEMESTER, @Res() res) {

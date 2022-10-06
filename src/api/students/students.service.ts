@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { plainToClass } from 'class-transformer'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { ROLE } from '../../auth/roles/role.enum'
 import { GRADE_REPOSITORY, STUDENT_REPOSITORY } from '../../constants'
@@ -406,7 +406,7 @@ export class StudentsService {
 
     if (!student) {
       throw new NotFoundException(
-        `Індивідуальний план для студента ${await User.findOne(44).then(
+        `Індивідуальний план для студента ${await User.findOne(id).then(
           (user) => user.lastName + ' ' + user.firstName[0] + '.' + user.patronymic[0] || '',
         )}  не знайдений `,
       )
@@ -421,11 +421,52 @@ export class StudentsService {
     }
 
     const studentRequiredCourses = []
+    let studentNotRequiredCourses = []
+
     student.courses.map((course) => {
-      if (course.type === CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE) {
+      if (course.type === CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE) {
         studentRequiredCourses.push(course)
+      } else {
+        studentNotRequiredCourses.push(course)
       }
     })
+
+    let deletedCoursesArrayId, insertedArrayCoursesId
+    const hash = Object.create(null)
+
+    studentNotRequiredCourses.forEach(function (course) {
+      hash[course.id] = { value: course.id }
+    })
+
+    studentNotRequiredCourses = Object.keys(hash).map(function (k) {
+      return hash[k].value
+    })
+
+    // eslint-disable-next-line prefer-const
+    deletedCoursesArrayId = Object.keys(hash).map(function (k) {
+      return hash[k].value
+    })
+
+    // eslint-disable-next-line prefer-const
+    insertedArrayCoursesId = updateIndividualPlan.courses.filter(function (a) {
+      const r = !hash[a]
+      if (hash[a]) {
+        delete hash[a]
+      }
+      return r
+    })
+
+    const deletedCourses = await Grade.find({ where: { course: In(deletedCoursesArrayId) } })
+    deletedCourses.map(async (course) => {
+      await course.remove({ data: { id: sub } })
+    })
+
+    const courses_ = await Course.find({ where: { id: In(insertedArrayCoursesId) } })
+
+    courses_.map(async (course) => {
+      await Grade.create({ course, student, grade: 0 }).save({ data: { id: sub } })
+    })
+
     Object.assign(student, { ...student, courses: [...studentRequiredCourses, ...courses] })
 
     try {

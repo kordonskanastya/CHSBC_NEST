@@ -17,7 +17,7 @@ export class ExelService {
       'Тип',
     ]
     const worksheetName = 'Індивідуальний план'
-    const filePath = `student-individual-plan_${randomUUID()}.xlsx`
+    const fileName = `student-individual-plan_${randomUUID()}.xlsx`
     const dataToExport = data.grades.map((grade) => {
       return [
         grade.course.name,
@@ -31,16 +31,37 @@ export class ExelService {
           : `Вибірковий`,
       ]
     })
-    const workBook = XLSX.utils.book_new()
     const worksheetData = [headingColumnNames, ...dataToExport]
+    return this.getPathOfTempFileWithData(headingColumnNames, worksheetData, worksheetName, fileName)
+  }
+
+  exportGradesToExel(data) {
+    const headingColumnNames = ['ПІБ', 'Група', ...data.grades.map((grade) => grade.course.name)]
+    const worksheetName = 'Оцінки'
+    const fileName = `student-grades_${randomUUID()}.xlsx`
+    const dataToExport = [
+      data.user.firstName,
+      data.group.name,
+      ...data.grades.map((grade) => {
+        return [grade.grade]
+      }),
+    ]
+    const worksheetData = [headingColumnNames, dataToExport]
+
+    return this.getPathOfTempFileWithData(headingColumnNames, worksheetData, worksheetName, fileName)
+  }
+
+  getPathOfTempFileWithData(headingColumnNames, worksheetData, worksheetName, fileName) {
+    const workBook = XLSX.utils.book_new()
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
 
     XLSX.utils.book_append_sheet(workBook, worksheet, worksheetName)
+
     return new Promise((resolve, reject) => {
       const tempPath = path.join(os.tmpdir(), 'foobar-')
       fs.mkdtemp(tempPath, (err, folder) => {
         if (err) return reject(err)
-        const file_name = path.join(folder, filePath)
+        const file_name = path.join(folder, fileName)
         XLSX.writeFile(workBook, path.resolve(file_name))
         resolve(file_name)
       })

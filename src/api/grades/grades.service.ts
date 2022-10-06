@@ -18,6 +18,7 @@ import { GradeHistory } from '../grades-history/entities/grades-history.entity'
 import { User } from '../users/entities/user.entity'
 import { GetTeacherInfoDto } from '../users/dto/get-teacher-info.dto'
 import { SEMESTER } from '../courses/courses.service'
+import { ExelService } from '../../services/exel.service'
 
 export enum GradeColumns {
   ID = 'Grade.id',
@@ -226,5 +227,14 @@ export class GradesService {
     }
     query.orderBy(`Group.${orderByColumn}`, orderBy).having('Count(Course.id)>0')
     return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
+  }
+
+  async downloadStudentsGrades(id: number, semester: SEMESTER) {
+    const data = await this.findOneGradeByStudent(id, semester)
+    try {
+      return await new ExelService().exportGradesToExel(data)
+    } catch (e) {
+      throw new BadRequestException(e)
+    }
   }
 }

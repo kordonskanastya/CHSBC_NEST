@@ -345,20 +345,22 @@ export class StudentsService {
     return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
   }
 
-  async getIndividualPlan(user_id: number, semester: SEMESTER) {
+  async getIndividualPlan(userId: number, semester: SEMESTER) {
     const student = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
       .leftJoin('Student.courses', 'St_course')
       .leftJoinAndSelect('Grade.course', 'Course')
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
-      .where('User.id=:user_id', { user_id })
+      .where('User.id=:userId', { userId })
       .andWhere('St_course.id=Course.id')
 
     const student_ = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
       .leftJoinAndSelect('Student.user', 'User')
+      .where('User.id=:userId', { userId })
       .getOne()
+
     if (!student_) {
       throw new BadRequestException(`Студента не знайдено`)
     }
@@ -374,7 +376,7 @@ export class StudentsService {
 
     if (!(await student.getOne())) {
       throw new NotFoundException(
-        `Індивідуальний план для студента ${await User.findOne(user_id).then(
+        `Індивідуальний план для студента ${await User.findOne(userId).then(
           (user) => user.lastName + ' ' + user.firstName[0] + '.' + user.patronymic[0],
         )}  для ${semester} семестру не знайдений `,
       )

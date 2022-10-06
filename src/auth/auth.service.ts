@@ -107,7 +107,6 @@ export class AuthService {
     if (!user.email) {
       return
     }
-
     try {
       const info: SentMessageInfo = await this.mailerService.sendMail({
         from: configService.getMailFrom(),
@@ -372,7 +371,7 @@ export class AuthService {
         <h2 id="info_block_subtitle">Для того щоб його використати тобі потрібно перейти в <a class="LinkToSite" href="google.com"> SMET</a></h2>
         <h2 class="info_block_subtitle_left_and_top">Ось твої дані для входу в електронну систему:</h2>
         <h2 class="info_block_subtitle_left">Логін: ${user.email}</h2>
-        <h2 class="info_block_subtitle_left">Пароль: ${user.password}</h2>
+        <h2 class="info_block_subtitle_left">Пароль: ${password}</h2>
         <h2 class="info_block_subtitle_left_and_top">Дякуємо що скористувався нашою системою. З повагою ЧДБК</h2>
     </div>
     <div class="footer">

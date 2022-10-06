@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Query, Request, Res, UseGuards } from '@nestjs/common'
 import { GradeColumns, GradesService } from './grades.service'
 import { UpdateGradeDto } from './dto/update-grade.dto'
 import { MinRole } from '../../auth/roles/roles.decorator'
@@ -118,5 +118,13 @@ export class GradesController {
       orderBy,
       groupName,
     )
+  }
+
+  @Get('download-grades/student/:id([0-9]+)')
+  @MinRole(ROLE.STUDENT)
+  @ApiImplicitQueries([{ name: 'semester', required: false }])
+  async downloadIndividualPlan(@Param('id') id: string, @Query('semester') semester: SEMESTER, @Res() res) {
+    const pathToGradesFile = await this.gradesService.downloadStudentsGrades(+id, semester)
+    return res.download(pathToGradesFile)
   }
 }

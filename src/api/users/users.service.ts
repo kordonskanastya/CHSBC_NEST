@@ -28,13 +28,14 @@ import { CreateUserResponseDto } from './dto/create-user-response.dto'
 import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto'
 import { ROLE } from '../../auth/roles/role.enum'
 import { GetGroupsByCuratorDto } from './dto/get-groups-by-curator.dto'
-import { GetCuratorInfoDto } from './dto/get-curator-info.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
 import { Student } from '../students/entities/student.entity'
 import { Grade } from '../grades/entities/grade.entity'
 import { GetTeacherInfoDto } from './dto/get-teacher-info.dto'
 import { GRADE_COLUMN_LIST, GradeColumns } from '../grades/grades.service'
 import { SEMESTER } from '../courses/courses.service'
+import { StudentColumns } from '../students/students.service'
+import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto'
 
 export enum UserColumns {
   ID = 'id',
@@ -436,16 +437,26 @@ export class UsersService {
     return await paginateAndPlainToClass(GetTeacherCoursesDto, query, options)
   }
 
-  async getCuratorInfo(token: TokenDto, studentId: number, groupId: number, semester: SEMESTER) {
+  async getCuratorInfo(
+    token: TokenDto,
+    options: IPaginationOptions,
+    orderBy: 'ASC' | 'DESC',
+    orderByColumn: StudentColumns,
+    studentId: number,
+    groupId: number,
+    semester: SEMESTER,
+  ) {
     const { sub } = token || {}
-    const curatorInfo = await this.usersRepository
-      .createQueryBuilder('User')
-      .leftJoinAndSelect('User.groups', 'Group')
-      .leftJoinAndSelect('Group.students', 'Student')
+    orderByColumn = orderByColumn || StudentColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    const curatorInfo = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
       .leftJoinAndSelect('Grade.course', 'Course')
-      .leftJoinAndSelect('Student.user', 'User_')
-      .where('User.id=:id', { id: sub })
+      .leftJoinAndSelect('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoin('Group.curator', 'Curator')
+      .where('Curator.id=:id', { id: sub })
 
     if (studentId) {
       curatorInfo.andWhere(`Student.id=:studentId`, { studentId })
@@ -459,7 +470,8 @@ export class UsersService {
       curatorInfo.andWhere(`Course.semester=:semester`, { semester })
     }
 
-    return plainToClass(GetCuratorInfoDto, curatorInfo.getOne(), { excludeExtraneousValues: true })
+    curatorInfo.orderBy(`Student.${orderByColumn}`, orderBy)
+    return await paginateAndPlainToClass(GetStudentForGradeDto, curatorInfo, options)
   }
 
   async getTeacherInfo(

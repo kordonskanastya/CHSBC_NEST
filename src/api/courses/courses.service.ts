@@ -281,52 +281,6 @@ export class CoursesService {
         }
       }
     }
-    if (updateCourseDto.type) {
-      const students = await Student.find({
-        relations: ['courses'],
-        join: {
-          alias: 'Student',
-          leftJoinAndSelect: {
-            Grade: 'Student.grades',
-            Course: 'Grade.course',
-          },
-        },
-        where: {
-          group: In(course.groups.map((group) => group.id)),
-        },
-      })
-
-      if (course.type === CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE) {
-        students.map(async (student) => {
-          student.courses.push(course)
-          Object.assign(student, { ...student, courses: student.courses })
-          await Grade.createQueryBuilder()
-            .update()
-            .set({ grade: 0 })
-            .where('courseId=:courseId', { courseId: course.id })
-            .execute()
-          try {
-            await student.save({ data: { id: sub } })
-          } catch (e) {
-            throw new NotAcceptableException('Не вишло зберегти предмет для студента .' + e.message)
-          }
-        })
-      } else {
-        students.map(async (student) => {
-          const indexOfCourse = student.courses.findIndex((stud_course) => {
-            return stud_course.id === course.id
-          })
-          student.courses.splice(indexOfCourse, 1)
-          Object.assign(student, { ...student, courses: student.courses })
-          await Grade.delete({ course })
-          try {
-            await student.save({ data: { id: sub } })
-          } catch (e) {
-            throw new NotAcceptableException('Не вишло зберегти предмет для студента .' + e.message)
-          }
-        })
-      }
-    }
 
     if (updateCourseDto.groups) {
       let deletedGroupIdArray = []
@@ -380,6 +334,7 @@ export class CoursesService {
         }
       }
     }
+
     try {
       await course.save({ data: { id: sub } })
     } catch (e) {

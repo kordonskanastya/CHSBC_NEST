@@ -16,4 +16,10 @@ export class GetVoteForStudentPageDto {
   @Expose()
   @ApiProperty({ type: Boolean })
   isRevote: boolean
+
+  @Expose()
+  approveCourse: number[]
+
+  @Expose()
+  studentVotes: number[]
 }

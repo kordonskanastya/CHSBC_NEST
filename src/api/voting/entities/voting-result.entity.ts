@@ -15,7 +15,7 @@ export class VotingResult extends BaseEntity {
   @ManyToOne(() => Course, (Course) => Course.votingResults)
   course: Course
 
-  @ManyToOne(() => Student, (Student) => Student.votingResults)
+  @ManyToOne(() => Student, (Student) => Student.votingResults, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   student: Student
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })

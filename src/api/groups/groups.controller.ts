@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { GroupsColumns, GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { Entities } from '../common/enums'
@@ -168,5 +168,11 @@ export class GroupsController {
   @MinRole(ROLE.ADMIN)
   async update(@Request() req, @Param('id') id: string, @Body() updateGroupDto: UpdateExactFieldDto) {
     return await this.groupsService.update(+id, updateGroupDto, req.user)
+  }
+
+  @Delete(':id([0-9]+)')
+  @MinRole(ROLE.ADMIN)
+  async delete(@Request() req, @Param('id') id: string) {
+    return await this.groupsService.remove(+id, req.user)
   }
 }

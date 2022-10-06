@@ -14,6 +14,7 @@ import { GetGroupResponseDto } from './dto/get-group-response.dto'
 import { User } from '../users/entities/user.entity'
 import { ROLE } from '../../auth/roles/role.enum'
 import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
+import { DeleteResponseDto } from '../common/dto/delete-response.dto'
 
 export enum GroupsColumns {
   ID = 'id',
@@ -164,17 +165,30 @@ export class GroupsService {
       Object.assign(group, { ...updateGroupDto, curator })
     }
 
-    if (updateGroupDto.deletedOrderNumber) {
-      await this.groupsRepository.createQueryBuilder().update().set({ curator: null }).where('id=:id', { id }).execute()
-    }
-
-    Object.assign(group, updateGroupDto)
-
     try {
       await group.save({ data: { id: sub } })
     } catch (e) {
       throw new NotAcceptableException('Не вишло зберегти групу. ' + e.message)
     }
+
+    return {
+      success: true,
+    }
+  }
+
+  async remove(id: number, token: TokenDto): Promise<DeleteResponseDto> {
+    const { sub } = token
+    const group = await this.groupsRepository.findOne(id)
+
+    if (!group) {
+      throw new NotFoundException(`Група з id: ${id} не знайдений`)
+    }
+
+    await this.groupsRepository.remove(group, {
+      data: {
+        id: sub,
+      },
+    })
 
     return {
       success: true,

@@ -34,7 +34,7 @@ import { Student } from '../students/entities/student.entity'
 import { Grade } from '../grades/entities/grade.entity'
 import { GetTeacherInfoDto } from './dto/get-teacher-info.dto'
 import { GRADE_COLUMN_LIST, GradeColumns } from '../grades/grades.service'
-import { SEMESTER } from '../courses/dto/create-course.dto'
+import { SEMESTER } from '../courses/courses.service'
 
 export enum UserColumns {
   ID = 'id',

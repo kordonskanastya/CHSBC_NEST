@@ -1,10 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { IsArray, IsBoolean, IsEnum, IsNumber, IsString, MaxLength, MinLength } from 'class-validator'
-
-export enum SEMESTER {
-  'FIRST' = 1,
-  'SECOND' = 2,
-}
+import { CourseType, SEMESTER } from '../courses.service'
 
 export class CreateCourseDto {
   @IsString()
@@ -29,13 +25,13 @@ export class CreateCourseDto {
   @ApiProperty({ required: true, example: false })
   isExam: boolean
 
-  @IsEnum(SEMESTER, { message: 'Семестер має бути дійсним значенням enum' })
-  @ApiProperty({ required: true, example: SEMESTER.FIRST })
+  @IsEnum(SEMESTER, { message: 'Семестер має бути дійсним' })
+  @ApiProperty({ required: true, example: SEMESTER['1'] })
   semester: SEMESTER
 
-  @IsBoolean()
-  @ApiProperty({ required: true, example: false })
-  isCompulsory: boolean
+  @IsEnum(CourseType, { message: 'Тип предмету не дійсний,перевірте тип' })
+  @ApiProperty({ required: true, example: CourseType.GENERAL_COMPETENCE })
+  type: CourseType
 
   @IsNumber()
   @ApiProperty({ required: true, example: 23 })

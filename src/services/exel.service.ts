@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as os from 'os'
 import * as fs from 'fs'
 import { randomUUID } from 'crypto'
+import { CourseType } from '../api/courses/courses.service'
 
 export class ExelService {
   exportIndividualPlanToExcel(data) {
@@ -25,7 +26,9 @@ export class ExelService {
         grade.course.lectureHours,
         grade.course.isExam ? 'Екзамен' : 'Залік',
         grade.grade,
-        grade.course.isCompulsory ? `Обов'язковий` : 'Профільний',
+        grade.course.type === CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE
+          ? `Обов'язковий`
+          : `Вибірковий`,
       ]
     })
     const workBook = XLSX.utils.book_new()

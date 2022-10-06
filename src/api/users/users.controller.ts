@@ -40,8 +40,8 @@ import { GetUserDropdownResponseDto } from './dto/get-user-dropdown-response.dto
 import { GetGroupResponseDto } from '../groups/dto/get-group-response.dto'
 import { GetTeacherCoursesDto } from './dto/get-teacher-courses.dto'
 import { GradeColumns, GradesService } from '../grades/grades.service'
-import { SEMESTER } from '../courses/dto/create-course.dto'
 import { UpdateGradeDto } from '../grades/dto/update-grade.dto'
+import { SEMESTER } from '../courses/courses.service'
 
 @Controller(Entities.USERS)
 @ApiTags(capitalize(Entities.USERS))

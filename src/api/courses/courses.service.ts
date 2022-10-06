@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { plainToClass } from 'class-transformer'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { COURSE_REPOSITORY, GRADE_REPOSITORY } from '../../constants'
 import { Group } from '../groups/entities/group.entity'
@@ -25,11 +25,23 @@ export enum CourseColumns {
   LECTURE_HOURS = 'lectureHours',
   IS_ACTIVE = 'isActive',
   SEMESTER = 'semester',
-  IS_COMPULSORY = 'isCompulsory',
+  TYPE = 'type',
   TEACHER = 'teacher',
   GROUPS = 'groups',
   CREATED = 'created',
   UPDATED = 'updated',
+}
+
+export enum SEMESTER {
+  FIRST = 1,
+  SECOND = 2,
+}
+
+export enum CourseType {
+  GENERAL_COMPETENCE = 'Загальна компетентність',
+  PROFESSIONAL_COMPETENCE = 'Фахова компетентність',
+  SELECTIVE_GENERAL_COMPETENCE = 'Вибіркова загальна компетентність',
+  SELECTIVE_PROFESSIONAL_COMPETENCE = 'Вибіркова фахова компетентність',
 }
 
 export const COURSE_COLUMN_LIST = enumToArray(CourseColumns)
@@ -84,10 +96,6 @@ export class CoursesService {
     if (!course) {
       throw new BadRequestException(`Не вишло створити предмет`)
     } else {
-      const students = await Student.createQueryBuilder().getMany()
-      students.map(async (student) => {
-        await this.gradeRepository.create({ grade: null, student, course }).save({ data: { id: sub } })
-      })
       const studentsInGroup = await Student.createQueryBuilder()
         .leftJoinAndSelect('Student.courses', 'Course')
         .leftJoinAndSelect('Student.group', 'Group')
@@ -96,10 +104,11 @@ export class CoursesService {
         })
         .getMany()
       studentsInGroup.map(async (student) => {
-        if (course.isCompulsory) {
+        if (course.type == CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE) {
           student.courses.push(course)
           Object.assign(student, { ...student, courses: student.courses })
           await student.save({ data: { id: sub } })
+          await this.gradeRepository.create({ grade: 0, student, course }).save({ data: { id: sub } })
         }
       })
     }
@@ -120,7 +129,7 @@ export class CoursesService {
     isExam: boolean,
     isActive: boolean,
     semester: number,
-    isCompulsory: boolean,
+    type: string,
     teacher: number,
     groups: number[],
   ) {
@@ -174,8 +183,8 @@ export class CoursesService {
       query.andWhere('Course.semester=:semester', { semester })
     }
 
-    if (isCompulsory) {
-      query.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
+    if (type) {
+      query.andWhere('Course.type=:type', { type })
     }
 
     if (teacher) {
@@ -213,7 +222,7 @@ export class CoursesService {
   async update(id: number, updateCourseDto: UpdateCourseDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
 
-    const course = await this.coursesRepository.findOne(id)
+    const course = await this.coursesRepository.findOne({ relations: ['groups'], where: { id: id } })
 
     if (!course) {
       throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
@@ -273,6 +282,59 @@ export class CoursesService {
       }
     }
 
+    if (updateCourseDto.groups) {
+      let deletedGroupIdArray = []
+      const hash = Object.create(null)
+      const courseOld = await Course.findOne(id, { relations: ['groups'] })
+
+      if (courseOld.groups) {
+        courseOld.groups.forEach(function (group) {
+          hash[group.id] = { value: group.id }
+        })
+        // insertedArray = updateCourseDto.groups.filter(function (a) {
+        //   const r = !hash[a]
+        //   if (hash[a]) {
+        //     delete hash[a]
+        //   }
+        //   return r
+        // })
+        deletedGroupIdArray = Object.keys(hash).map(function (k) {
+          return hash[k].value
+        })
+        const students = []
+        await Group.findByIds(updateCourseDto.groups, {
+          join: {
+            alias: 'Group',
+            leftJoinAndSelect: {
+              Student: 'Group.students',
+              Course: 'Student.courses',
+            },
+          },
+        }).then((groups) => groups.map((group) => group.students.map((student) => students.push(student))))
+        students.map(async (student) => {
+          if (course.type === CourseType.PROFESSIONAL_COMPETENCE || course.type === CourseType.GENERAL_COMPETENCE) {
+            student.courses.push(course)
+            await this.gradeRepository.create({ grade: 0, student, course }).save({
+              data: { id: sub },
+            })
+          }
+        })
+        if (deletedGroupIdArray.length > 0) {
+          await Student.find({
+            where: {
+              group: {
+                id: In(deletedGroupIdArray),
+              },
+            },
+          }).then((students) =>
+            students.map(async (student) => {
+              await Grade.delete({ student })
+            }),
+          )
+        }
+      }
+    }
+
     try {
       await course.save({ data: { id: sub } })
     } catch (e) {
@@ -308,24 +370,36 @@ export class CoursesService {
     orderByColumn: CourseColumns,
     orderBy: 'ASC' | 'DESC',
     courseName: string,
-    isCompulsory: boolean,
+    type: CourseType,
     teacherId: number,
+    curatorId: number,
+    semester: SEMESTER,
   ) {
     orderByColumn = orderByColumn || CourseColumns.ID
     orderBy = orderBy || 'ASC'
 
-    const courses = await this.coursesRepository.createQueryBuilder('Course')
+    const courses = await this.coursesRepository
+      .createQueryBuilder('Course')
+      .leftJoinAndSelect('Course.groups', 'Group')
 
     if (courseName) {
       courses.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${courseName}%` })
     }
 
-    if (isCompulsory) {
-      courses.andWhere('Course.isCompulsory=:isCompulsory', { isCompulsory })
+    if (type) {
+      courses.andWhere('Course.type=:type', { type })
     }
 
     if (teacherId) {
       courses.andWhere('Course.teacherId=:teacherId', { teacherId })
+    }
+
+    if (curatorId) {
+      courses.andWhere('Group.curatorId=:curatorId', { curatorId })
+    }
+
+    if (semester) {
+      courses.andWhere('Course.semester=:semester', { semester })
     }
 
     courses.orderBy(`Course.${orderByColumn}`, orderBy)

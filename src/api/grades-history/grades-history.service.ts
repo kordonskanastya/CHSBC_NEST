@@ -11,7 +11,7 @@ import { GetGradesHistoryResponseDto } from './dto/get-grades-history-response.d
 import { User } from '../users/entities/user.entity'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { GetGradesHistoryDto } from './dto/get-grades-history.dto'
-import { SEMESTER } from '../courses/dto/create-course.dto'
+import { SEMESTER } from '../courses/courses.service'
 
 export enum GradesHistoryColumns {
   ID = 'GradeHistory.id',

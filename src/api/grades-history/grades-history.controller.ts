@@ -11,7 +11,7 @@ import { ApiPaginatedResponse } from '../../utils/paginate'
 import { ApiImplicitQueries } from 'nestjs-swagger-api-implicit-queries-decorator'
 import { GetGradesHistoryResponseDto } from './dto/get-grades-history-response.dto'
 import { ReasonForChangeGrade } from '../grades/grades.service'
-import { SEMESTER } from '../courses/dto/create-course.dto'
+import { SEMESTER } from '../courses/courses.service'
 
 @Controller(Entities.GRADES_HISTORY)
 @ApiTags(capitalize(Entities.GRADES_HISTORY))

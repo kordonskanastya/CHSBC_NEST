@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { UpdateExactFieldDto } from './dto/update-exact-field.dto'
-import { GROUP_REPOSITORY } from '../../constants'
+import { GROUP_REPOSITORY, STUDENT_REPOSITORY } from "../../constants";
 import { Not, Repository } from 'typeorm'
 import { Group } from './entities/group.entity'
 import { CreateGroupResponseDto } from './dto/create-group-response.dto'
@@ -15,6 +15,7 @@ import { User } from '../users/entities/user.entity'
 import { ROLE } from '../../auth/roles/role.enum'
 import { GetUserDropdownResponseDto } from '../users/dto/get-user-dropdown-response.dto'
 import { DeleteResponseDto } from '../common/dto/delete-response.dto'
+import { Student } from "../students/entities/student.entity";
 
 export enum GroupsColumns {
   ID = 'id',
@@ -33,7 +34,9 @@ export const GROUPS_COLUMNS = enumToObject(GroupsColumns)
 export class GroupsService {
   constructor(
     @Inject(GROUP_REPOSITORY)
+    @Inject(STUDENT_REPOSITORY)
     private groupsRepository: Repository<Group>,
+    private studentRepository: Repository<Student>,
   ) {}
 
   async create(createGroupDto: CreateGroupDto, tokenDto?: TokenDto) {
@@ -179,6 +182,10 @@ export class GroupsService {
   async remove(id: number, token: TokenDto): Promise<DeleteResponseDto> {
     const { sub } = token
     const group = await this.groupsRepository.findOne(id)
+    group.students.map(async (student) => {
+      const userId = student.id
+      await this.studentRepository.remove(student, { data: { id: userId } })
+    })
 
     if (!group) {
       throw new NotFoundException(`Група з id: ${id} не знайдений`)

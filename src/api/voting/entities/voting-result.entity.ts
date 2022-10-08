@@ -12,7 +12,7 @@ export class VotingResult extends BaseEntity {
   @ManyToOne(() => Vote, (Vote) => Vote.results, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   vote: Vote
 
-  @ManyToOne(() => Course, (Course) => Course.votingResults)
+  @ManyToOne(() => Course, (Course) => Course.votingResults, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   course: Course
 
   @ManyToOne(() => Student, (Student) => Student.votingResults, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })

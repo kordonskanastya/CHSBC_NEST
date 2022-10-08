@@ -228,23 +228,6 @@ export class StudentsService {
     })
   }
 
-  async findOneByUserId(userId: number): Promise<GetStudentResponseDto> {
-    const student = await this.studentsRepository
-      .createQueryBuilder('Student')
-      .leftJoinAndSelect('Student.user', 'User')
-      .leftJoinAndSelect('Student.group', 'Group')
-      .where({ user: userId })
-      .getOne()
-
-    if (!student) {
-      throw new NotFoundException(`Студента з id:${userId}, не існує`)
-    }
-
-    return plainToClass(GetStudentResponseDto, student, {
-      excludeExtraneousValues: true,
-    })
-  }
-
   async update(
     id: number,
     { user, ...updateStudentDto }: UpdateStudentDto,

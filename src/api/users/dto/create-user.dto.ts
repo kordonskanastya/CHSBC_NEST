@@ -27,7 +27,7 @@ export class CreateUserDto {
   @ApiProperty({ required: true, example: 'ivanovych' })
   patronymic: string
 
-  @IsEmail()
+  @IsEmail({}, { message: 'Електронна адреса має бути дійсною' })
   @MinLength(5, { message: 'Електронна пошта має містити 5 та більше символів' })
   @MaxLength(100, { message: 'Електронна пошта може містити максимум 100 символів' })
   @Transform(({ value }: TransformFnParams) => value.toString().trim())

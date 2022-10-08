@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
@@ -13,6 +15,7 @@ import { hashPassword } from '../users.service'
 import { Entities } from '../../common/enums'
 import { Course } from '../../courses/entities/course.entity'
 import { Group } from '../../groups/entities/group.entity'
+import { Student } from '../../students/entities/student.entity'
 
 export interface RefreshToken {
   token: string
@@ -58,6 +61,10 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Group, (group) => group.curator, { onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   groups: Group[]
+
+  @OneToOne(() => Student, (student) => student.user, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @JoinColumn()
+  student: Student
 
   @BeforeInsert()
   async hashPassword() {

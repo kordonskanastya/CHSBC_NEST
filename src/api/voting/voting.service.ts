@@ -247,7 +247,8 @@ export class VotingService {
   async update(id: number, updateVotingDto: UpdateVotingDto, tokenDto?: TokenDto) {
     await this.updateStatusVoting()
     const { sub } = tokenDto || {}
-    const vote = await this.votingRepository.findOne(id)
+    const vote = await this.votingRepository.findOne(id, { relations: ['groups'] })
+    const votingGroupsId = vote.groups.map((group) => group.id)
 
     if (!vote) {
       throw new NotFoundException(`Голосування з id: ${id} не знайдено `)
@@ -294,6 +295,22 @@ export class VotingService {
       const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
       const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
       Object.assign(vote, { ...updateVotingDto, groups, requiredCourses, notRequiredCourses, students })
+
+      let deletedGroupsIdArray = []
+      const hash = Object.create(null)
+
+      votingGroupsId.forEach(function (groupId) {
+        hash[groupId] = { value: groupId }
+      })
+      deletedGroupsIdArray = Object.keys(hash).map(function (k) {
+        return hash[k].value
+      })
+      deletedGroupsIdArray.map(async (groupId) => {
+        const students = await Student.find({ where: { group: { id: groupId } } })
+        students.map(async (student) => {
+          await VotingResult.delete({ student })
+        })
+      })
     } else {
       if (updateVotingDto.requiredCourses && updateVotingDto.notRequiredCourses) {
         const requiredCourses = await getCourses(updateVotingDto.requiredCourses)
@@ -318,6 +335,7 @@ export class VotingService {
         Object.assign(vote, { ...updateVotingDto, notRequiredCourses })
       }
     }
+
     try {
       await vote.save({ data: { id: sub } })
       return {
@@ -655,10 +673,10 @@ export class VotingService {
       .select('distinct vr.voteId')
       .addSelect((subQuery) => {
         return subQuery
-          .select('COUNT(distinct c.id)', 'count')
-          .from('students', 'c')
-          .leftJoin('c.votingResults', 'res')
-          .where('res.studentId=c.id')
+          .select('COUNT(distinct student.id)', 'count')
+          .from('students', 'student')
+          .leftJoin('student.votingResults', 'res')
+          .where('res.studentId=student.id')
       }, 'count')
       .getRawMany()
     voteRes.map(async (result) => {
@@ -704,7 +722,7 @@ export class VotingService {
         },
       },
     })
-    console.log(resultsForCourses)
+
     if (!resultsForCourses) {
       throw new BadRequestException(`Результатів для предметів з id: ${course_ids}  не знайдено`)
     }
@@ -730,7 +748,7 @@ export class VotingService {
             status: VotingStatus.APPROVED,
             isApproved: true,
           })
-          .where('isApproved=true')
+          .where('id=:voteId', { voteId })
           .execute()
       } catch (e) {
         throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)

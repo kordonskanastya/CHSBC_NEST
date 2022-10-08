@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { plainToClass } from 'class-transformer'
-import { In, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { TokenDto } from '../../auth/dto/token.dto'
 import { COURSE_REPOSITORY, GRADE_REPOSITORY } from '../../constants'
 import { Group } from '../groups/entities/group.entity'
@@ -222,12 +222,12 @@ export class CoursesService {
   async update(id: number, updateCourseDto: UpdateCourseDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
 
-    const course = await this.coursesRepository.findOne({ relations: ['groups'], where: { id: id } })
-
+    const course = await this.coursesRepository.findOne(id, { relations: ['groups'] })
+    const courseGroups = course.groups.map((group) => group.id)
     if (!course) {
       throw new NotFoundException(`Предмет з id: ${id} не знайдений `)
     }
-    Object.assign(course, updateCourseDto)
+
     if (updateCourseDto.groups && updateCourseDto.teacher) {
       const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
       const groups = await Group.createQueryBuilder()
@@ -251,88 +251,60 @@ export class CoursesService {
       }
 
       Object.assign(course, { ...updateCourseDto, teacher, groups })
-    } else {
-      if (updateCourseDto.groups) {
-        const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
-        const groups = await Group.createQueryBuilder()
-          .where(`Group.id IN (:...ids)`, {
-            ids: groupIds,
-          })
-          .getMany()
 
-        if (!groups || groups.length !== groupIds.length) {
-          throw new BadRequestException(`Група з іd: ${updateCourseDto.groups} не існує .`)
-        }
-
-        Object.assign(course, { ...updateCourseDto, groups })
-      } else {
-        if (updateCourseDto.teacher) {
-          const teacher = await User.findOne(updateCourseDto.teacher)
-
-          if (!teacher) {
-            throw new BadRequestException(`Вчитель з іd: ${updateCourseDto.teacher} не існує.`)
-          }
-
-          if (teacher.role !== ROLE.TEACHER) {
-            throw new BadRequestException(`Користувач має роль : ${teacher.role},не teacher`)
-          }
-
-          Object.assign(course, { ...updateCourseDto, teacher })
-        }
-      }
-    }
-
-    if (updateCourseDto.groups) {
-      let deletedGroupIdArray = []
+      let insertedGroupsIdArray = [],
+        deletedGroupsIdArray = []
       const hash = Object.create(null)
-      const courseOld = await Course.findOne(id, { relations: ['groups'] })
 
-      if (courseOld.groups) {
-        courseOld.groups.forEach(function (group) {
-          hash[group.id] = { value: group.id }
+      courseGroups.forEach(function (groupId) {
+        hash[groupId] = { value: groupId }
+      })
+
+      insertedGroupsIdArray = course.groups
+        .map((group) => group.id)
+        .filter(function (groupId) {
+          const r = !hash[groupId]
+          if (hash[groupId]) {
+            delete hash[groupId]
+          }
+          return r
         })
-        // insertedArray = updateCourseDto.groups.filter(function (a) {
-        //   const r = !hash[a]
-        //   if (hash[a]) {
-        //     delete hash[a]
-        //   }
-        //   return r
-        // })
-        deletedGroupIdArray = Object.keys(hash).map(function (k) {
-          return hash[k].value
-        })
-        const students = []
-        await Group.findByIds(updateCourseDto.groups, {
-          join: {
-            alias: 'Group',
-            leftJoinAndSelect: {
-              Student: 'Group.students',
-              Course: 'Student.courses',
+      insertedGroupsIdArray.map(async (groupId) => {
+        const students = await Student.find({
+          relations: ['courses'],
+          where: {
+            group: {
+              id: groupId,
             },
           },
-        }).then((groups) => groups.map((group) => group.students.map((student) => students.push(student))))
+        })
         students.map(async (student) => {
-          if (course.type === CourseType.PROFESSIONAL_COMPETENCE || course.type === CourseType.GENERAL_COMPETENCE) {
-            student.courses.push(course)
-            await this.gradeRepository.create({ grade: 0, student, course }).save({
-              data: { id: sub },
-            })
+          if (student.courses.indexOf(course) === -1) {
+            if (course.type === CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE) {
+              student.courses.push(course)
+              Object.assign(student, { ...student, courses: student.courses })
+              await student.save({ data: { id: sub } })
+              await Grade.create({ student, course, grade: 0 }).save({ data: { id: sub } })
+            }
           }
         })
-        if (deletedGroupIdArray.length > 0) {
-          await Student.find({
-            where: {
-              group: {
-                id: In(deletedGroupIdArray),
-              },
+      })
+      deletedGroupsIdArray = Object.keys(hash).map(function (k) {
+        return hash[k].value
+      })
+      deletedGroupsIdArray.map(async (groupId) => {
+        const students = await Student.find({
+          relations: ['courses'],
+          where: {
+            group: {
+              id: groupId,
             },
-          }).then((students) =>
-            students.map(async (student) => {
-              await Grade.delete({ student })
-            }),
-          )
-        }
-      }
+          },
+        })
+        students.map(async (student) => {
+          await Grade.delete({ student })
+        })
+      })
     }
 
     try {

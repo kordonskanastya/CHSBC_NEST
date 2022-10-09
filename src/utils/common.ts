@@ -35,3 +35,17 @@ export async function getDatabaseCurrentTimestamp() {
 
   return moment(current_timestamp)
 }
+
+export function groupBy(list, keyGetter) {
+  const map = new Map()
+  list.forEach((item) => {
+    const key = keyGetter(item)
+    const collection = map.get(key)
+    if (!collection) {
+      map.set(key, [item.course])
+    } else {
+      collection.push(item.course)
+    }
+  })
+  return Array.from(map, ([name, value]) => ({ name, value }))
+}

@@ -39,7 +39,6 @@ export enum VotingStatus {
   NEEDS_REVIEW = 'Потребує перегляду',
   NEW_REVOTE = 'Нове переголосування',
   REVOTE_IN_PROGRESS = 'Переголосування у прогресі',
-  REVOTE_ENDED = 'Переголосування закінчене',
   APPROVED = 'Затвердженно',
 }
 
@@ -396,7 +395,7 @@ export class VotingService {
         .execute()
       await Vote.createQueryBuilder()
         .update(Vote)
-        .set({ status: VotingStatus.REVOTE_ENDED })
+        .set({ status: VotingStatus.NEEDS_REVIEW })
         .andWhere('isRevote=true')
         .andWhere(`"endDate"::timestamp<now()`)
         .execute()
@@ -583,7 +582,9 @@ export class VotingService {
 
     const votingResultsStudents = await VotingResult.createQueryBuilder('vr')
       .leftJoinAndSelect('vr.student', 'Student')
+      .leftJoinAndSelect('vr.vote', 'Vote')
       .where('Student.id=:id', { id: student.id })
+      .andWhere('Vote.id=:voteId', { voteId: vote.id })
       .getMany()
 
     if (votingResultsStudents.length > 0) {
@@ -680,6 +681,7 @@ export class VotingService {
           .where('res.studentId=student.id')
       }, 'count')
       .getRawMany()
+
     voteRes.map(async (result) => {
       await Vote.createQueryBuilder()
         .update(Vote)
@@ -687,6 +689,10 @@ export class VotingService {
         .where('id=:id', { id: result.voteId })
         .execute()
     })
+
+    if (voteRes.length === 0) {
+      await Vote.createQueryBuilder().update(Vote).set({ tookPart: 0 }).execute()
+    }
   }
 
   async checkVotingStatus(vote: Vote) {
@@ -696,10 +702,6 @@ export class VotingService {
 
     if (vote.status === VotingStatus.NEW) {
       throw new BadRequestException(`Голосування ще не почалося`)
-    }
-
-    if (vote.status === VotingStatus.REVOTE_ENDED) {
-      throw new BadRequestException(`Переголосування вже закінчено`)
     }
   }
 
@@ -718,7 +720,7 @@ export class VotingService {
       where: {
         course: In(course_ids),
         vote: {
-          status: VotingStatus.NEEDS_REVIEW || VotingStatus.REVOTE_ENDED,
+          status: VotingStatus.NEEDS_REVIEW,
           id: voteId,
         },
       },

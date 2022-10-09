@@ -9,7 +9,7 @@ import { Group } from '../groups/entities/group.entity'
 import { Course } from '../courses/entities/course.entity'
 import { plainToClass } from 'class-transformer'
 import { CreateCourseResponseDto } from '../courses/dto/create-course-response.dto'
-import { checkColumnExist, enumToArray, enumToObject, groupBy } from '../../utils/common'
+import { checkColumnExist, differenceInArray, enumToArray, enumToObject, groupBy } from '../../utils/common'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
@@ -287,7 +287,6 @@ export class VotingService {
         .getMany()
       return { groups, students }
     }
-    Object.assign(vote, updateVotingDto)
 
     if (updateVotingDto.groups && updateVotingDto.requiredCourses && updateVotingDto.notRequiredCourses) {
       const { groups, students } = await getGroups(updateVotingDto.groups)
@@ -295,15 +294,7 @@ export class VotingService {
       const notRequiredCourses = await getCourses(updateVotingDto.notRequiredCourses)
       Object.assign(vote, { ...updateVotingDto, groups, requiredCourses, notRequiredCourses, students })
 
-      let deletedGroupsIdArray = []
-      const hash = Object.create(null)
-
-      votingGroupsId.forEach(function (groupId) {
-        hash[groupId] = { value: groupId }
-      })
-      deletedGroupsIdArray = Object.keys(hash).map(function (k) {
-        return hash[k].value
-      })
+      const deletedGroupsIdArray = differenceInArray(votingGroupsId, updateVotingDto.groups)
       deletedGroupsIdArray.map(async (groupId) => {
         const students = await Student.find({ where: { group: { id: groupId } } })
         students.map(async (student) => {

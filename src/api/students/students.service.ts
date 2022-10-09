@@ -320,7 +320,7 @@ export class StudentsService {
       .createQueryBuilder()
       .leftJoinAndSelect('Student.user', 'User')
       .leftJoin('Student.group', 'Group')
-      .leftJoin('Group.courses', 'Course')
+      .leftJoin('Student.courses', 'Course')
       .where('User.role=:role', { role: ROLE.STUDENT })
 
     if (teacherId) {
@@ -340,11 +340,11 @@ export class StudentsService {
     const student = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
       .leftJoin('Student.courses', 'St_course')
-      .leftJoinAndSelect('Grade.course', 'Course')
-      .leftJoinAndSelect('Course.teacher', 'Teacher')
+      .leftJoinAndSelect('Grade.course', 'Grade_Course')
+      .leftJoinAndSelect('Grade_Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
       .where('User.id=:userId', { userId })
-      .andWhere('St_course.id=Course.id')
+      .andWhere('St_course.id=Grade_Course.id')
 
     const student_ = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')

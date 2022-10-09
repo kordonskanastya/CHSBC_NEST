@@ -9,7 +9,7 @@ import { Group } from '../groups/entities/group.entity'
 import { Course } from '../courses/entities/course.entity'
 import { plainToClass } from 'class-transformer'
 import { CreateCourseResponseDto } from '../courses/dto/create-course-response.dto'
-import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
+import { checkColumnExist, enumToArray, enumToObject, groupBy } from '../../utils/common'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
@@ -510,35 +510,36 @@ export class VotingService {
         statusRevote: VotingStatus.REVOTE_IN_PROGRESS,
       })
       .getOne()
-
-    const coursesApprovedIdSelect = await VotingResult.createQueryBuilder('vr')
-      .leftJoinAndSelect('vr.course', 'Course')
-      .select('Course.id as id')
-      .groupBy('Course.id')
-      .andWhere('vr."voteId"=:id', { id: vote.id })
-      .having('count(vr."courseId")>=:minQuantityVotesToApproveCourse', {
-        minQuantityVotesToApproveCourse: this.minQuantityVotesToApproveCourse,
-      })
-      .getRawMany()
-    const votedStud = await VotingResult.find({
-      where: {
-        student,
-        vote: {
-          id: vote.id,
+    if (vote) {
+      const coursesApprovedIdSelect = await VotingResult.createQueryBuilder('vr')
+        .leftJoinAndSelect('vr.course', 'Course')
+        .select('Course.id as id')
+        .groupBy('Course.id')
+        .andWhere('vr."voteId"=:id', { id: vote.id })
+        .having('count(vr."courseId")>=:minQuantityVotesToApproveCourse', {
+          minQuantityVotesToApproveCourse: this.minQuantityVotesToApproveCourse,
+        })
+        .getRawMany()
+      const votedStud = await VotingResult.find({
+        where: {
+          student,
+          vote: {
+            id: vote.id,
+          },
         },
-      },
-      relations: ['course', 'vote'],
-    })
+        relations: ['course', 'vote'],
+      })
 
-    return plainToClass(
-      GetVoteForStudentPageDto,
-      {
-        ...vote,
-        approveCourse: coursesApprovedIdSelect.map((course) => course.id),
-        studentVotes: votedStud.map((result) => result.course.id),
-      },
-      { excludeExtraneousValues: true },
-    )
+      return plainToClass(
+        GetVoteForStudentPageDto,
+        {
+          ...vote,
+          approveCourse: coursesApprovedIdSelect.map((course) => course.id),
+          studentVotes: votedStud.map((result) => result.course.id),
+        },
+        { excludeExtraneousValues: true },
+      )
+    }
   }
 
   async postVotingForStudent(voteStudentDto: CreateStudentVoteDto, tokenDto: TokenDto) {
@@ -727,33 +728,43 @@ export class VotingService {
       throw new BadRequestException(`Результатів для предметів з id: ${course_ids}  не знайдено`)
     }
 
-    resultsForCourses.map(async (resultForOneCourse) => {
-      resultForOneCourse.student.courses.push(resultForOneCourse.course)
-      Object.assign(resultForOneCourse.student, {
-        ...resultForOneCourse.student,
-        courses: resultForOneCourse.student.courses,
-      })
-
+    const studentVotedCourses = groupBy(resultsForCourses, (res) => res.student.id)
+    studentVotedCourses.map(async (studVoteResult) => {
+      const student = await Student.findOne(studVoteResult.name, { relations: ['courses'] })
+      const newCourses = [...student.courses, ...studVoteResult.value]
+      Object.assign(student, { ...student, courses: newCourses })
       try {
-        await resultForOneCourse.student.save({ data: { id: sub } })
+        await student.save({ data: { id: sub } })
+      } catch (e) {
+        throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
+      }
+    })
+
+    resultsForCourses.map(async (resultForOneCourse) => {
+      try {
         await Grade.create({
           course: resultForOneCourse.course,
           student: resultForOneCourse.student,
           grade: 0,
         }).save({ data: { id: sub } })
-        await this.votingRepository
-          .createQueryBuilder()
-          .update(Vote)
-          .set({
-            status: VotingStatus.APPROVED,
-            isApproved: true,
-          })
-          .where('id=:voteId', { voteId })
-          .execute()
       } catch (e) {
         throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
       }
     })
+
+    try {
+      await this.votingRepository
+        .createQueryBuilder()
+        .update(Vote)
+        .set({
+          status: VotingStatus.APPROVED,
+          isApproved: true,
+        })
+        .where('id=:voteId', { voteId })
+        .execute()
+    } catch (e) {
+      throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
+    }
     return {
       success: true,
     }
@@ -781,26 +792,4 @@ export class VotingService {
 
     return plainToClass(GetVotingSubmitDto, vote, { excludeExtraneousValues: true })
   }
-
-  // async getStudentsWhoShouldNotVoteId(id) {
-  //   const coursesApprovedIdSelect = await VotingResult.createQueryBuilder('vr')
-  //     .leftJoinAndSelect('vr.course', 'Course')
-  //     .select('Course.id as id')
-  //     .groupBy('Course.id')
-  //     .andWhere('vr."voteId"=:id', { id })
-  //     .having('count(vr."courseId")>=:minQuantityVotesToApproveCourse', {
-  //       minQuantityVotesToApproveCourse: this.minQuantityVotesToApproveCourse,
-  //     })
-  //     .getRawMany()
-  //   const voteRes = await VotingResult.find({
-  //     relations: ['vote', 'course', 'student'],
-  //     where: {
-  //       course: {
-  //         id: In(coursesApprovedIdSelect.map((course) => course.id)),
-  //       },
-  //     },
-  //   })
-  //   await VotingResult.delete({ course: Not(In(coursesApprovedIdSelect.map((course) => course.id))), vote: { id } })
-  //   return voteRes.map((res) => res.student.id)
-  // }
 }

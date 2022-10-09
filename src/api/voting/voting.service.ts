@@ -583,7 +583,9 @@ export class VotingService {
 
     const votingResultsStudents = await VotingResult.createQueryBuilder('vr')
       .leftJoinAndSelect('vr.student', 'Student')
+      .leftJoinAndSelect('vr.vote', 'Vote')
       .where('Student.id=:id', { id: student.id })
+      .andWhere('Vote.id=:voteId', { voteId: vote.id })
       .getMany()
 
     if (votingResultsStudents.length > 0) {

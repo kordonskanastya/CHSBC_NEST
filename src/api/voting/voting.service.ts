@@ -39,7 +39,6 @@ export enum VotingStatus {
   NEEDS_REVIEW = 'Потребує перегляду',
   NEW_REVOTE = 'Нове переголосування',
   REVOTE_IN_PROGRESS = 'Переголосування у прогресі',
-  REVOTE_ENDED = 'Переголосування закінчене',
   APPROVED = 'Затвердженно',
 }
 
@@ -396,7 +395,7 @@ export class VotingService {
         .execute()
       await Vote.createQueryBuilder()
         .update(Vote)
-        .set({ status: VotingStatus.REVOTE_ENDED })
+        .set({ status: VotingStatus.NEEDS_REVIEW })
         .andWhere('isRevote=true')
         .andWhere(`"endDate"::timestamp<now()`)
         .execute()
@@ -699,10 +698,6 @@ export class VotingService {
     if (vote.status === VotingStatus.NEW) {
       throw new BadRequestException(`Голосування ще не почалося`)
     }
-
-    if (vote.status === VotingStatus.REVOTE_ENDED) {
-      throw new BadRequestException(`Переголосування вже закінчено`)
-    }
   }
 
   async submitCourseByVoteId(course_ids: number[], tokenDto: TokenDto, voteId: number) {
@@ -720,7 +715,7 @@ export class VotingService {
       where: {
         course: In(course_ids),
         vote: {
-          status: VotingStatus.NEEDS_REVIEW || VotingStatus.REVOTE_ENDED,
+          status: VotingStatus.NEEDS_REVIEW,
           id: voteId,
         },
       },

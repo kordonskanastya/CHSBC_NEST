@@ -49,3 +49,9 @@ export function groupBy(list, keyGetter) {
   })
   return Array.from(map, ([name, value]) => ({ name, value }))
 }
+
+export function differenceInArray(a, b) {
+  return a.filter(function (x) {
+    return b.indexOf(x) < 0
+  })
+}

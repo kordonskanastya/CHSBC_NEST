@@ -320,7 +320,7 @@ export class StudentsService {
       .createQueryBuilder()
       .leftJoinAndSelect('Student.user', 'User')
       .leftJoin('Student.group', 'Group')
-      .leftJoin('Group.courses', 'Course')
+      .leftJoin('Student.courses', 'Course')
       .where('User.role=:role', { role: ROLE.STUDENT })
 
     if (teacherId) {

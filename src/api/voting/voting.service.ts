@@ -681,6 +681,7 @@ export class VotingService {
           .where('res.studentId=student.id')
       }, 'count')
       .getRawMany()
+
     voteRes.map(async (result) => {
       await Vote.createQueryBuilder()
         .update(Vote)
@@ -688,6 +689,10 @@ export class VotingService {
         .where('id=:id', { id: result.voteId })
         .execute()
     })
+
+    if (voteRes.length === 0) {
+      await Vote.createQueryBuilder().update(Vote).set({ tookPart: 0 }).execute()
+    }
   }
 
   async checkVotingStatus(vote: Vote) {

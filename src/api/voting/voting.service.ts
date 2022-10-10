@@ -9,7 +9,7 @@ import { Group } from '../groups/entities/group.entity'
 import { Course } from '../courses/entities/course.entity'
 import { plainToClass } from 'class-transformer'
 import { CreateCourseResponseDto } from '../courses/dto/create-course-response.dto'
-import { checkColumnExist, differenceInArray, enumToArray, enumToObject, groupBy } from '../../utils/common'
+import { checkColumnExist, differenceInArray, enumToArray, enumToObject } from '../../utils/common'
 import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { GetVotingDto } from './dto/get-voting.dto'
@@ -517,18 +517,38 @@ export class VotingService {
             id: vote.id,
           },
         },
-        relations: ['course', 'vote'],
+        relations: ['course', 'vote', 'student'],
       })
+
+      function groupByTable(list, keyGetter) {
+        const map = new Map()
+        list.forEach((item) => {
+          const key = keyGetter(item)
+          const collection = map.get(key)
+          if (!collection) {
+            map.set(key, item.course.id)
+          } else {
+            collection.push(item.course.id)
+          }
+        })
+        return Array.from(map, ([table, courseId]) => [table, courseId])
+      }
+
+      const tableCourses = groupByTable(votedStud, (res) => res.tableCourse)
 
       return plainToClass(
         GetVoteForStudentPageDto,
         {
           ...vote,
           approveCourse: coursesApprovedIdSelect.map((course) => course.id),
-          studentVotes: votedStud.map((result) => result.course.id),
+          studentVotes: tableCourses,
         },
         { excludeExtraneousValues: true },
       )
+    } else {
+      return {
+        hasVote: false,
+      }
     }
   }
 
@@ -547,11 +567,7 @@ export class VotingService {
     }
 
     const coursesIds = Array.isArray(voteStudentDto.courses) ? voteStudentDto.courses : [voteStudentDto.courses]
-    const courses = await Course.createQueryBuilder()
-      .where(`Course.id IN (:...ids)`, {
-        ids: coursesIds,
-      })
-      .getMany()
+    const courses = await Course.findByIds(coursesIds)
 
     if (!courses || courses.length !== coursesIds.length) {
       throw new BadRequestException(`Предмет з іd: ${voteStudentDto.courses} не існує.`)
@@ -584,7 +600,12 @@ export class VotingService {
 
     courses.map(async (course) => {
       try {
-        await VotingResult.create({ student, course, vote }).save({ data: { id: sub } })
+        await VotingResult.create({
+          student,
+          course,
+          vote,
+          tableCourse: voteStudentDto.courses.indexOf(course.id),
+        }).save({ data: { id: sub } })
       } catch (e) {
         throw new NotAcceptableException('Не вишло зберегти голосування.' + e.message)
       }
@@ -719,6 +740,20 @@ export class VotingService {
 
     if (!resultsForCourses) {
       throw new BadRequestException(`Результатів для предметів з id: ${course_ids}  не знайдено`)
+    }
+
+    function groupBy(list, keyGetter) {
+      const map = new Map()
+      list.forEach((item) => {
+        const key = keyGetter(item)
+        const collection = map.get(key)
+        if (!collection) {
+          map.set(key, [item.course])
+        } else {
+          collection.push(item.course)
+        }
+      })
+      return Array.from(map, ([name, value]) => ({ name, value }))
     }
 
     const studentVotedCourses = groupBy(resultsForCourses, (res) => res.student.id)

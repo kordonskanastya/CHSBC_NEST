@@ -531,7 +531,7 @@ export class VotingService {
             collection.push(item.course.id)
           }
         })
-        return Array.from(map, ([table, courseId]) => [table, courseId])
+        return Array.from(map, ([table, courseId]) => ({ table, courseId }))
       }
 
       const tableCourses = groupByTable(votedStud, (res) => res.tableCourse)

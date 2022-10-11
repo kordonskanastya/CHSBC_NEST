@@ -37,7 +37,7 @@ export enum VotingStatus {
   NEW = 'Нове',
   IN_PROGRESS = 'У прогресі',
   NEEDS_REVIEW = 'Потребує перегляду',
-  NEW_REVOTE = 'Нове переголосування',
+  NEW_REVOTE = 'Заплановане переголосування',
   REVOTE_IN_PROGRESS = 'Переголосування у прогресі',
   APPROVED = 'Затвердженно',
 }
@@ -53,7 +53,7 @@ export class VotingService {
   ) {}
 
   private minQuantityVotesToApproveCourse = 3
-  private votings = new Map()
+  private studentVotingList = new Map()
 
   async create(createVotingDto: CreateVotingDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
@@ -393,6 +393,12 @@ export class VotingService {
         .execute()
       await Vote.createQueryBuilder()
         .update(Vote)
+        .set({ status: VotingStatus.NEW_REVOTE })
+        .where(`"startDate"::timestamp>now()`)
+        .andWhere('isRevote=true')
+        .execute()
+      await Vote.createQueryBuilder()
+        .update(Vote)
         .set({ status: VotingStatus.APPROVED })
         .where('isApproved=true')
         .execute()
@@ -512,14 +518,12 @@ export class VotingService {
         })
         .getRawMany()
 
-      const votedStud = new Map(this.votings)
-      this.votings.clear()
       return plainToClass(
         GetVoteForStudentPageDto,
         {
           ...vote,
           approveCourse: coursesApprovedIdSelect.map((course) => course.id),
-          studentVotes: Array.from(votedStud, (value) => value),
+          studentVotes: Array.from(this.studentVotingList, (value) => value),
         },
         { excludeExtraneousValues: true },
       )
@@ -586,7 +590,7 @@ export class VotingService {
 
     sortArray(courses, voteStudentDto.courses).map(async (course, index) => {
       try {
-        this.votings.set(index, course.id)
+        this.studentVotingList.set(index, course.id)
         await VotingResult.create({
           student,
           course,

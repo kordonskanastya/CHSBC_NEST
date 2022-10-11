@@ -1,4 +1,12 @@
-import { BaseEntity, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm'
 import { Entities } from '../../common/enums'
 import { Course } from '../../courses/entities/course.entity'
 import { Student } from '../../students/entities/student.entity'
@@ -23,4 +31,7 @@ export class VotingResult extends BaseEntity {
 
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   updated: Date
+
+  @Column({ nullable: true })
+  tableIndex: number
 }

@@ -53,7 +53,6 @@ export class VotingService {
   ) {}
 
   private minQuantityVotesToApproveCourse = 3
-  private studentVotingList = new Map()
 
   async create(createVotingDto: CreateVotingDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
@@ -517,13 +516,17 @@ export class VotingService {
           minQuantityVotesToApproveCourse: this.minQuantityVotesToApproveCourse,
         })
         .getRawMany()
-
+      const voteResults = await VotingResult.find({ where: { student, vote }, relations: ['course'] })
+      const studentVotes = new Map()
+      voteResults.map((voteResult) => {
+        studentVotes.set(voteResult.tableIndex, voteResult.course.id)
+      })
       return plainToClass(
         GetVoteForStudentPageDto,
         {
           ...vote,
           approveCourse: coursesApprovedIdSelect.map((course) => course.id),
-          studentVotes: Array.from(this.studentVotingList, (value) => value),
+          studentVotes: Array.from(studentVotes, (value) => value),
         },
         { excludeExtraneousValues: true },
       )
@@ -588,11 +591,11 @@ export class VotingService {
 
     sortArray(courses, voteStudentDto.courses).map(async (course, index) => {
       try {
-        this.studentVotingList.set(index, course.id)
         await VotingResult.create({
           student,
           course,
           vote,
+          tableIndex: index,
         }).save({ data: { id: sub } })
       } catch (e) {
         throw new NotAcceptableException('Не вишло зберегти голосування.' + e.message)
@@ -670,7 +673,7 @@ export class VotingService {
     return selectedItems
   }
 
-  async getVotingStartDateForStudent(token: TokenDto) {
+  async getVotingPeriodForStudent(token: TokenDto) {
     const { sub } = token
     const student = await Student.createQueryBuilder()
       .leftJoin('Student.user', 'User')
@@ -691,6 +694,7 @@ export class VotingService {
     if (vote) {
       return {
         startDate: vote?.startDate,
+        endDate: vote?.endDate,
         isRevote: vote?.isRevote,
       }
     }

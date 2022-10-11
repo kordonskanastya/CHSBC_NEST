@@ -237,6 +237,6 @@ export class StudentsController {
   @Get('page/voting/start-date')
   @MinRole(ROLE.STUDENT)
   async getStartDate(@Request() req) {
-    return this.votingService.getVotingStartDateForStudent(req.user)
+    return this.votingService.getVotingPeriodForStudent(req.user)
   }
 }

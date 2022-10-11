@@ -512,15 +512,6 @@ export class VotingService {
         })
         .getRawMany()
 
-      // const votedStud = await VotingResult.find({
-      //   where: {
-      //     student,
-      //     vote: {
-      //       id: vote.id,
-      //     },
-      //   },
-      //   relations: ['course', 'vote', 'student'],
-      //  })
       const votedStud = new Map(this.votings)
       this.votings.clear()
       return plainToClass(
@@ -677,6 +668,32 @@ export class VotingService {
     return selectedItems
   }
 
+  async getVotingStartDateForStudent(token: TokenDto) {
+    const { sub } = token
+    const student = await Student.createQueryBuilder()
+      .leftJoin('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .where('User.id=:id', { id: sub })
+      .getOne()
+
+    if (!student) {
+      throw new NotFoundException(`Студент не знайдений`)
+    }
+
+    const vote = await this.votingRepository
+      .createQueryBuilder()
+      .leftJoin('Vote.groups', 'Group')
+      .where('Group.id=:groupId', { groupId: student.group.id })
+      .getOne()
+
+    if (vote) {
+      return {
+        startDate: vote?.startDate,
+        isRevote: vote?.isRevote,
+      }
+    }
+  }
+
   async updateTookPart() {
     const voteRes = await VotingResult.createQueryBuilder('vr')
       .select('distinct vr.voteId')
@@ -702,7 +719,7 @@ export class VotingService {
     }
   }
 
-  async checkVotingStatus(vote: Vote) {
+  checkVotingStatus(vote: Vote) {
     if (vote.status === VotingStatus.NEEDS_REVIEW || vote.status === VotingStatus.APPROVED) {
       throw new BadRequestException(`Голосування вже закінчено`)
     }

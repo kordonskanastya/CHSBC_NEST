@@ -528,9 +528,7 @@ export class VotingService {
         { excludeExtraneousValues: true },
       )
     } else {
-      return {
-        hasVote: false,
-      }
+      return []
     }
   }
 

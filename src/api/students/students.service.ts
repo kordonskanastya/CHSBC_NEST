@@ -454,9 +454,9 @@ export class StudentsService {
       await course.remove({ data: { id: sub } })
     })
 
-    const courses_ = await Course.find({ where: { id: In(insertedArrayCoursesId) } })
+    const coursesForCreateGrade = await Course.find({ where: { id: In(insertedArrayCoursesId) } })
 
-    courses_.map(async (course) => {
+    coursesForCreateGrade.map(async (course) => {
       await Grade.create({ course, student, grade: 0 }).save({ data: { id: sub } })
     })
 

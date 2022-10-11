@@ -53,6 +53,7 @@ export class VotingService {
   ) {}
 
   private minQuantityVotesToApproveCourse = 3
+  private votings = new Map()
 
   async create(createVotingDto: CreateVotingDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
@@ -510,38 +511,24 @@ export class VotingService {
           minQuantityVotesToApproveCourse: this.minQuantityVotesToApproveCourse,
         })
         .getRawMany()
-      const votedStud = await VotingResult.find({
-        where: {
-          student,
-          vote: {
-            id: vote.id,
-          },
-        },
-        relations: ['course', 'vote', 'student'],
-      })
 
-      function groupByTable(list, keyGetter) {
-        const map = new Map()
-        list.forEach((item) => {
-          const key = keyGetter(item)
-          const collection = map.get(key)
-          if (!collection) {
-            map.set(key, item.course.id)
-          } else {
-            collection.push(item.course.id)
-          }
-        })
-        return Array.from(map, ([table, courseId]) => [table, courseId])
-      }
-
-      const tableCourses = groupByTable(votedStud, (res) => res.tableCourse)
-
+      // const votedStud = await VotingResult.find({
+      //   where: {
+      //     student,
+      //     vote: {
+      //       id: vote.id,
+      //     },
+      //   },
+      //   relations: ['course', 'vote', 'student'],
+      //  })
+      const votedStud = new Map(this.votings)
+      this.votings.clear()
       return plainToClass(
         GetVoteForStudentPageDto,
         {
           ...vote,
           approveCourse: coursesApprovedIdSelect.map((course) => course.id),
-          studentVotes: tableCourses,
+          studentVotes: Array.from(votedStud, (value) => value),
         },
         { excludeExtraneousValues: true },
       )
@@ -598,13 +585,21 @@ export class VotingService {
       throw new BadRequestException('Ви вже проголосували')
     }
 
-    courses.map(async (course) => {
+    const sortArray = (courses: Course[], originalArray: number[]) => {
+      const sortedArray = []
+      originalArray.map((id) => {
+        sortedArray.push(courses[courses.findIndex((element) => element.id === id)])
+      })
+      return sortedArray
+    }
+
+    sortArray(courses, voteStudentDto.courses).map(async (course, index) => {
       try {
+        this.votings.set(index, course.id)
         await VotingResult.create({
           student,
           course,
           vote,
-          tableCourse: voteStudentDto.courses.indexOf(course.id),
         }).save({ data: { id: sub } })
       } catch (e) {
         throw new NotAcceptableException('Не вишло зберегти голосування.' + e.message)

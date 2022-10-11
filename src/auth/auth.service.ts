@@ -188,14 +188,19 @@ export class AuthService {
             color: white;
         }
         .links{
-            display: flex;
-            justify-content: center;
-            grid-gap: 20px;
-            align-items: center;
+            display: block;
+            text-align: center;
+ 
+        }
+        .links > a {
+            margin-left: 20px;
+            display: inline-block;
         }
         .icon{
             width: 40px;
+            height: 40px;
             cursor: pointer;
+            display: inline-block;
         }
     </style>
 </head>
@@ -205,16 +210,16 @@ export class AuthService {
         <img class="header_img" src="https://ltdfoto.ru/images/2022/10/07/logo1e769e1a436c4b798.png" alt="ЧЕРКАСЬКИЙ ДЕРЖАВНИЙ БІЗНЕС - КОЛЕДЖ" />
     </header>
     <div class="info_block">
-        <h1 id="info_blocK_title">Привіт <b>${user.firstName} ${user.lastName}</b>, ми раді тебе вітати в нашій електроній системі SMET</h1>
-        <h2 id="info_block_subtitle">Нещодавно нам надійшов запит на створення для тебе нового <b>паролю</b></h2>
-        <h2 id="info_block_subtitle">Для того щоб його використати тобі потрібно перейти в <a class="LinkToSite" href="google.com"> SMET</a></h2>
-        <h2 class="info_block_subtitle_left_and_top">Ось твої дані для входу в електронну систему:</h2>
-        <h2 class="info_block_subtitle_left">Логін: ${user.email}</h2>
-        <h2 class="info_block_subtitle_left">Пароль: ${user.password}</h2>
-        <h2 class="info_block_subtitle_left_and_top">Дякуємо що скористувався нашою системою. З повагою ЧДБК</h2>
+        <h3 class="info_block_subtitle_left">Привіт <b>${user.firstName} ${user.lastName}</b>, ми раді тебе вітати в нашій електроній системі SMET</h3>
+        <h3 class="info_block_subtitle_left">Нам надійшов запит на створення для тебе нового <b>паролю</b></h3>
+        <h3 class="info_block_subtitle_left">Для того щоб його використати тобі потрібно перейти в <a class="LinkToSite" href="http://csbcstage.web.app"> SMET</a></h3>
+        <h3 class="info_block_subtitle_left_and_top">Нові логін та пароль для авторизації в системі:</h3>
+        <h3 class="info_block_subtitle_left">Логін: ${user.email}</h3>
+        <h3 class="info_block_subtitle_left">Пароль: ${user.password}</h3>
+        <h3 class="info_block_subtitle_left_and_top">Дякуємо. З повагою ЧДБК</h3>
     </div>
     <div class="footer">
-        <h1 class="info_blocK_title_white">Ми в соціальних мережах: </h1>
+        <h1 class="info_blocK_title_white">Наші ресурси: </h1>
         <div class="links">
             <a  href="http://csbc.edu.ua/"><img class="icon" src="https://img.icons8.com/external-flaticons-flat-flat-icons/40/000000/external-college-university-flaticons-flat-flat-icons.png" alt="ЧДБК" border="0" /></a>
             <a  href="http://78.137.2.119:1919/m72/"><img class="icon" src="https://img.icons8.com/color/48/000000/moodle.png" alt="Moodle" border="0" /></a>
@@ -272,8 +277,7 @@ export class AuthService {
         from: configService.getMailFrom(),
         to: user.email,
         subject: 'SYSTEM MANAGEMENT EDUCATION TRAJECTORY',
-        html: `
-           <!DOCTYPE html>
+        html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -349,14 +353,19 @@ export class AuthService {
             color: white;
         }
         .links{
-            display: flex;
-            justify-content: center;
-            grid-gap: 20px;
-            align-items: center;
+            display: block;
+            text-align: center;
+ 
+        }
+        .links > a {
+            margin-left: 20px;
+            display: inline-block;
         }
         .icon{
             width: 40px;
+            height: 40px;
             cursor: pointer;
+            display: inline-block;
         }
     </style>
 </head>
@@ -366,16 +375,16 @@ export class AuthService {
         <img class="header_img" src="https://ltdfoto.ru/images/2022/10/07/logo1e769e1a436c4b798.png" alt="ЧЕРКАСЬКИЙ ДЕРЖАВНИЙ БІЗНЕС - КОЛЕДЖ" />
     </header>
     <div class="info_block">
-        <h1 id="info_blocK_title">Привіт <b>${user.firstName} ${user.lastName}</b>, ми раді тебе вітати в нашій електроній системі SMET</h1>
-        <h2 id="info_block_subtitle">Нещодавно нам надійшов запит на створення для тебе нового <b>паролю</b></h2>
-        <h2 id="info_block_subtitle">Для того щоб його використати тобі потрібно перейти в <a class="LinkToSite" href="google.com"> SMET</a></h2>
-        <h2 class="info_block_subtitle_left_and_top">Ось твої дані для входу в електронну систему:</h2>
-        <h2 class="info_block_subtitle_left">Логін: ${user.email}</h2>
-        <h2 class="info_block_subtitle_left">Пароль: ${password}</h2>
-        <h2 class="info_block_subtitle_left_and_top">Дякуємо що скористувався нашою системою. З повагою ЧДБК</h2>
+        <h3 class="info_block_subtitle_left">Привіт <b>${user.firstName} ${user.lastName}</b>, ми раді тебе вітати в нашій електроній системі SMET</h3>
+        <h3 class="info_block_subtitle_left">Нам надійшов запит на створення для тебе нового <b>паролю</b></h3>
+        <h3 class="info_block_subtitle_left">Для того щоб його використати тобі потрібно перейти в <a class="LinkToSite" href="http://csbcstage.web.app"> SMET</a></h3>
+        <h3 class="info_block_subtitle_left_and_top">Нові логін та пароль для авторизації в системі:</h3>
+        <h3 class="info_block_subtitle_left">Логін: ${user.email}</h3>
+        <h3 class="info_block_subtitle_left">Пароль: ${password}</h3>
+        <h3 class="info_block_subtitle_left_and_top">Дякуємо. З повагою ЧДБК</h3>
     </div>
     <div class="footer">
-        <h1 class="info_blocK_title_white">Ми в соціальних мережах: </h1>
+        <h1 class="info_blocK_title_white">Наші ресурси: </h1>
         <div class="links">
             <a  href="http://csbc.edu.ua/"><img class="icon" src="https://img.icons8.com/external-flaticons-flat-flat-icons/40/000000/external-college-university-flaticons-flat-flat-icons.png" alt="ЧДБК" border="0" /></a>
             <a  href="http://78.137.2.119:1919/m72/"><img class="icon" src="https://img.icons8.com/color/48/000000/moodle.png" alt="Moodle" border="0" /></a>
@@ -389,8 +398,7 @@ export class AuthService {
 </div>
 </body>
 </body>
-</html>
-        `,
+</html>`,
       })
 
       const result: ForgotPasswordResultDto = {

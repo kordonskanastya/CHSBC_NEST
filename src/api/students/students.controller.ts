@@ -234,7 +234,7 @@ export class StudentsController {
     return this.studentsService.editIndividualPlan(+id, updateIndividualPlan, req.user)
   }
 
-  @Get('page/voting/start-date')
+  @Get('page/voting/info')
   @MinRole(ROLE.STUDENT)
   async getStartDate(@Request() req) {
     return this.votingService.getVotingPeriodForStudent(req.user)

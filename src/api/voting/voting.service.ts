@@ -635,9 +635,23 @@ export class VotingService {
         student,
       },
     })
-
-    votingResultStudent.map(async (voteResultStudent, key) => {
-      voteResultStudent.course = courses[key]
+    const sortArrayCourses = (courses: Course[], originalArray: number[]) => {
+      const sortedArray = []
+      originalArray.map((id) => {
+        sortedArray.push(courses[courses.findIndex((element) => element.id === id)])
+      })
+      return sortedArray
+    }
+    const sortArrayResults = (results: VotingResult[], originalArray: number[]) => {
+      const sortedArray = []
+      originalArray.map((id) => {
+        sortedArray.push(results[results.findIndex((element) => element.course.id === id)])
+      })
+      return sortedArray
+    }
+    sortArrayResults(votingResultStudent, voteStudentDto.courses).map(async (voteResultStudent, key) => {
+      voteResultStudent.course = sortArrayCourses(courses, voteStudentDto.courses)[key]
+      voteResultStudent.tableIndex = key
       try {
         await voteResultStudent.save({ data: { id: sub } })
       } catch (e) {
@@ -675,27 +689,47 @@ export class VotingService {
 
   async getVotingPeriodForStudent(token: TokenDto) {
     const { sub } = token
-    const student = await Student.createQueryBuilder()
+    const onlyStudent = await Student.createQueryBuilder()
       .leftJoin('Student.user', 'User')
       .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Student.votingResults', 'VoteResult')
       .where('User.id=:id', { id: sub })
       .getOne()
 
-    if (!student) {
+    if (!onlyStudent) {
       throw new NotFoundException(`Студент не знайдений`)
     }
+
+    const studentWithData = await Student.createQueryBuilder()
+      .leftJoin('Student.user', 'User')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Student.votingResults', 'VoteResult')
+      .leftJoinAndSelect('VoteResult.vote', 'Vote')
+      .where('User.id=:id', { id: sub })
+      .getOne()
 
     const vote = await this.votingRepository
       .createQueryBuilder()
       .leftJoin('Vote.groups', 'Group')
-      .where('Group.id=:groupId', { groupId: student.group.id })
+      .where('Group.id=:groupId', { groupId: studentWithData.group.id })
       .getOne()
 
+    const isVoted = studentWithData.votingResults.filter((voteResult) => voteResult.vote.id === vote.id)
     if (vote) {
-      return {
-        startDate: vote?.startDate,
-        endDate: vote?.endDate,
-        isRevote: vote?.isRevote,
+      if (isVoted.length > 0) {
+        return {
+          startDate: vote?.startDate,
+          endDate: vote?.endDate,
+          isRevote: vote?.isRevote,
+          isVoted: true,
+        }
+      } else {
+        return {
+          startDate: vote?.startDate,
+          endDate: vote?.endDate,
+          isRevote: vote?.isRevote,
+          isVoted: false,
+        }
       }
     }
   }

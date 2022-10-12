@@ -626,40 +626,16 @@ export class VotingService {
         id: student.group.id,
       },
     })
+    this.checkVotingStatus(group.vote)
 
-    await this.checkVotingStatus(group.vote)
-
-    const votingResultStudent = await VotingResult.find({
-      relations: ['student', 'course'],
-      where: {
-        student,
-      },
-    })
-    const sortArrayCourses = (courses: Course[], originalArray: number[]) => {
-      const sortedArray = []
-      originalArray.map((id) => {
-        sortedArray.push(courses[courses.findIndex((element) => element.id === id)])
-      })
-      return sortedArray
-    }
-    const sortArrayResults = (results: VotingResult[], originalArray: number[]) => {
-      const sortedArray = []
-      originalArray.map((id) => {
-        sortedArray.push(results[results.findIndex((element) => element.course.id === id)])
-      })
-      return sortedArray
-    }
-    sortArrayResults(votingResultStudent, voteStudentDto.courses).map(async (voteResultStudent, key) => {
-      voteResultStudent.course = sortArrayCourses(courses, voteStudentDto.courses)[key]
-      voteResultStudent.tableIndex = key
-      try {
-        await voteResultStudent.save({ data: { id: sub } })
-      } catch (e) {
-        throw new NotAcceptableException('Не вишло зберегти результат. ' + e.message)
+    try {
+      await VotingResult.delete({ vote: group.vote, student })
+      await this.postVotingForStudent(voteStudentDto, tokenDto)
+      return {
+        success: true,
       }
-    })
-    return {
-      success: true,
+    } catch (e) {
+      throw new BadRequestException('Не вишло обновити голосування ' + e.message)
     }
   }
 

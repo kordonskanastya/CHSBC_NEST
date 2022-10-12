@@ -321,7 +321,7 @@ export class UsersService {
       .createQueryBuilder()
       .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
 
-    return plainToClass(GetUserDropdownResponseDto, teachers, { excludeExtraneousValues: true })
+    return plainToClass(GetUserDropdownResponseDto, teachers.getMany(), { excludeExtraneousValues: true })
   }
 
   async dropdownAdmin() {

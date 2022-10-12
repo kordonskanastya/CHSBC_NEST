@@ -224,7 +224,14 @@ export class UsersService {
     if (updateUserDto.password) {
       await user.hashPassword()
     }
-
+    if (updateUserDto.email) {
+      this.authService.sendMailCreatePassword({
+        firstName: updateUserDto.firstName,
+        lastName: updateUserDto.lastName,
+        password: updateUserDto.password,
+        email: user.email,
+      })
+    }
     try {
       await user.save({
         data: {
@@ -234,7 +241,6 @@ export class UsersService {
     } catch (e) {
       throw new NotAcceptableException('Не вишло зберегти користувача. ' + e.message)
     }
-
     return {
       success: true,
     }

@@ -241,6 +241,7 @@ export class StudentsService {
     if (!student) {
       throw new NotFoundException(`Студент з id: ${id} не знайдений`)
     }
+
     Object.assign(student, updateStudentDto)
 
     const group = await Group.findOne(updateStudentDto.groupId)
@@ -261,7 +262,8 @@ export class StudentsService {
 
     try {
       if (user) {
-        await this.usersService.update(userId, user, { sub, role })
+        const newPassword = Buffer.from(Math.random().toString()).toString('base64').substring(0, 8)
+        await this.usersService.update(userId, { ...user, password: newPassword }, { sub, role })
       }
       await student.save({
         data: {

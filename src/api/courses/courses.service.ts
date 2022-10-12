@@ -338,18 +338,12 @@ export class CoursesService {
   }
 
   async getCoursesDropdown(
-    options: IPaginationOptions,
-    orderByColumn: CourseColumns,
-    orderBy: 'ASC' | 'DESC',
     courseName: string,
     type: CourseType,
     teacherId: number,
     curatorId: number,
     semester: SEMESTER,
   ) {
-    orderByColumn = orderByColumn || CourseColumns.ID
-    orderBy = orderBy || 'ASC'
-
     const courses = await this.coursesRepository
       .createQueryBuilder('Course')
       .leftJoinAndSelect('Course.groups', 'Group')
@@ -374,7 +368,6 @@ export class CoursesService {
       courses.andWhere('Course.semester=:semester', { semester })
     }
 
-    courses.orderBy(`Course.${orderByColumn}`, orderBy)
-    return await paginateAndPlainToClass(GetCourseDropdownResponseDto, courses, options)
+    return plainToClass(GetCourseDropdownResponseDto, courses.getMany(), { excludeExtraneousValues: true })
   }
 }

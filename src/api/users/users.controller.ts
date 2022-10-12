@@ -168,31 +168,8 @@ export class UsersController {
   @ApiPaginatedResponse(GetUserDropdownResponseDto, {
     description: 'Find teachers full names (ПІБ) for dropdown filter',
   })
-  @ApiImplicitQueries([
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
-    { name: 'teacherName', required: false },
-  ])
-  async dropdownTeacher(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('orderBy') orderBy: 'ASC' | 'DESC',
-    @Query('orderByColumn') orderByColumn: UserColumns,
-    @Query('teacherName') teacherName: string,
-  ) {
-    return await this.usersService.dropdownTeacher(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.GROUPS}`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
-      orderBy,
-      orderByColumn,
-      teacherName,
-    )
+  async dropdownTeacher() {
+    return await this.usersService.dropdownTeacher()
   }
 
   @Get('dropdown/admin')
@@ -201,28 +178,8 @@ export class UsersController {
     description: 'Find admins full names (ПІБ) for dropdown filter',
     type: GetUserDropdownResponseDto,
   })
-  @ApiImplicitQueries([
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
-  ])
-  async dropdownAdmin(
-    @Query('page') page = 1,
-    @Query('orderByColumn') orderByColumn: UserColumns,
-    @Query('limit') limit = 10,
-    @Query('orderBy') orderBy: 'ASC' | 'DESC',
-  ) {
-    return await this.usersService.dropdownAdmin(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.GROUPS}`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
-      orderBy,
-      orderByColumn,
-    )
+  async dropdownAdmin() {
+    return await this.usersService.dropdownAdmin()
   }
 
   @Get('/curator')

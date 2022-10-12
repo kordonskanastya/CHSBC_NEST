@@ -195,20 +195,8 @@ export class GroupsService {
     }
   }
 
-  async dropdownName(
-    options: IPaginationOptions,
-    orderByColumn: GroupsColumns,
-    orderBy: 'ASC' | 'DESC',
-    name: string,
-    teacherId: number,
-    curatorId: number,
-  ) {
-    orderByColumn = orderByColumn || GroupsColumns.ID
-    orderBy = orderBy || 'ASC'
-
-    checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
-
-    const query = this.groupsRepository
+  async dropdownName(name: string, teacherId: number, curatorId: number) {
+    const query = await this.groupsRepository
       .createQueryBuilder('Group')
       .leftJoinAndSelect('Group.curator', 'User')
       .leftJoin('Group.courses', 'Course')
@@ -228,34 +216,11 @@ export class GroupsService {
       query.andWhere('User.id=:curatorId', { curatorId })
     }
 
-    query.orderBy(`Group.${orderByColumn}`, orderBy)
-
-    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
+    return plainToClass(CreateGroupResponseDto, query.getMany(), { excludeExtraneousValues: true })
   }
 
-  async dropdownCurators(
-    options: IPaginationOptions,
-    orderByColumn: GroupsColumns,
-    orderBy: 'ASC' | 'DESC',
-    search: string,
-  ) {
-    orderByColumn = orderByColumn || GroupsColumns.ID
-    orderBy = orderBy || 'ASC'
-
-    checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
-
-    const query = User.createQueryBuilder().where('LOWER(User.role) = LOWER(:role)', { role: ROLE.CURATOR })
-
-    if (search) {
-      query.andWhere(
-        // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER("firstName") , LOWER("lastName")  ,LOWER(concat("firstName",' ', "lastName"))) LIKE LOWER(:search)`,
-        {
-          search: `%${search}%`,
-        },
-      )
-    }
-    query.orderBy(`User.${orderByColumn}`, orderBy)
-    return await paginateAndPlainToClass(GetUserDropdownResponseDto, query, options)
+  async dropdownCurators() {
+    const query = await User.createQueryBuilder().where('LOWER(User.role) = LOWER(:role)', { role: ROLE.CURATOR })
+    return plainToClass(GetUserDropdownResponseDto, query.getMany(), { excludeExtraneousValues: true })
   }
 }

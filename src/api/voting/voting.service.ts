@@ -21,6 +21,7 @@ import { CreateStudentVoteDto } from './dto/create-student-vote.dto'
 import { GetVoteForStudentPageDto } from './dto/get-vote-for-student-page.dto'
 import { GetVotingSubmitDto } from './dto/get-voting-submit.dto'
 import { Grade } from '../grades/entities/grade.entity'
+import { CourseType } from '../courses/courses.service'
 
 export enum VotingColumns {
   ID = 'id',
@@ -47,12 +48,12 @@ export const VOTING_COLUMNS = enumToObject(VotingColumns)
 
 @Injectable()
 export class VotingService {
+  private minQuantityVotesToApproveCourse = 15
+
   constructor(
     @Inject(VOTE_REPOSITORY)
     private votingRepository: Repository<Vote>,
   ) {}
-
-  private minQuantityVotesToApproveCourse = 3
 
   async create(createVotingDto: CreateVotingDto, tokenDto?: TokenDto) {
     const { sub } = tokenDto || {}
@@ -785,30 +786,34 @@ export class VotingService {
     }
 
     const studentVotedCourses = groupBy(resultsForCourses, (res) => res.student.id)
-    studentVotedCourses.map(async (studVoteResult) => {
-      const student = await Student.findOne(studVoteResult.name, { relations: ['courses'] })
-      const newCourses = [...student.courses, ...studVoteResult.value]
-      Object.assign(student, { ...student, courses: newCourses })
-      try {
-        await student.save({ data: { id: sub } })
-      } catch (e) {
-        throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
-      }
-    })
-
-    resultsForCourses.map(async (resultForOneCourse) => {
-      try {
-        await Grade.create({
-          course: resultForOneCourse.course,
-          student: resultForOneCourse.student,
-          grade: 0,
-        }).save({ data: { id: sub } })
-      } catch (e) {
-        throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
-      }
-    })
-
     try {
+      studentVotedCourses.map(async (studVoteResult) => {
+        const student = await Student.findOne(studVoteResult.name, { relations: ['courses'] })
+        const studentRequiredCourses = student.courses.filter(
+          (course) =>
+            course.type === CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE,
+        )
+        const newCourses = [...studentRequiredCourses, ...studVoteResult.value]
+        Object.assign(student, { ...student, courses: newCourses })
+        try {
+          await student.save({ data: { id: sub } })
+        } catch (e) {
+          throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
+        }
+      })
+
+      resultsForCourses.map(async (resultForOneCourse) => {
+        try {
+          await Grade.create({
+            course: resultForOneCourse.course,
+            student: resultForOneCourse.student,
+            grade: 0,
+          }).save({ data: { id: sub } })
+        } catch (e) {
+          throw new NotAcceptableException('Не вишло затвердити предмет.' + e.message)
+        }
+      })
+
       await this.votingRepository
         .createQueryBuilder()
         .update(Vote)

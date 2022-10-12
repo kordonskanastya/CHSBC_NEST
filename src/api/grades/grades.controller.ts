@@ -96,28 +96,9 @@ export class GradesController {
   @ApiPaginatedResponse(CreateGroupResponseDto, {
     description: 'get dropdown list',
   })
-  @ApiImplicitQueries([
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
-    { name: 'groupName', required: false },
-  ])
-  async dropdownGroupName(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('orderBy') orderBy: 'ASC' | 'DESC',
-    @Query('groupName') groupName: string,
-  ) {
-    return await this.gradesService.dropdownGroup(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.GRADES}`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
-      orderBy,
-      groupName,
-    )
+  @ApiImplicitQueries([{ name: 'groupName', required: false }])
+  async dropdownGroupName(@Query('groupName') groupName: string) {
+    return await this.gradesService.dropdownGroup(groupName)
   }
 
   @Get('download-grades/student/:id([0-9]+)')

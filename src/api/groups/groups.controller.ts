@@ -92,37 +92,16 @@ export class GroupsController {
     description: 'get dropdown list',
   })
   @ApiImplicitQueries([
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GroupsColumns },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'name', required: false },
     { name: 'teacherId', required: false },
     { name: 'curatorId', required: false },
   ])
   async dropdownName(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('orderByColumn') orderByColumn: GroupsColumns,
-    @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('name') name: string,
     @Query('teacherId') teacherId: number,
     @Query('curatorId') curatorId: number,
   ) {
-    return await this.groupsService.dropdownName(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.GROUPS}/dropdown/name`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
-      orderByColumn,
-      orderBy,
-      name,
-      teacherId,
-      curatorId,
-    )
+    return await this.groupsService.dropdownName(name, teacherId, curatorId)
   }
 
   @Get('dropdown/curators')
@@ -130,31 +109,9 @@ export class GroupsController {
   @ApiPaginatedResponse(GetUserDropdownResponseDto, {
     description: 'get dropdown list',
   })
-  @ApiImplicitQueries([
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GroupsColumns },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
-    { name: 'curatorName', required: false },
-  ])
-  async dropdownCurator(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('orderByColumn') orderByColumn: GroupsColumns,
-    @Query('orderBy') orderBy: 'ASC' | 'DESC',
-    @Query('curatorName') curatorName: string,
-  ) {
-    return await this.groupsService.dropdownCurators(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.GROUPS}`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
-      orderByColumn,
-      orderBy,
-      curatorName,
-    )
+  @ApiImplicitQueries([])
+  async dropdownCurator() {
+    return await this.groupsService.dropdownCurators()
   }
 
   @Get(':id([0-9]+)')

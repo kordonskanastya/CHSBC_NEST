@@ -155,33 +155,11 @@ export class StudentsController {
     type: GetUserDropdownResponseDto,
   })
   @ApiImplicitQueries([
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: StudentColumns },
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'teacherId', required: false },
     { name: 'curatorId', required: false },
   ])
-  async dropdownStudent(
-    @Query('page') page = 1,
-    @Query('orderByColumn') orderByColumn: StudentColumns,
-    @Query('limit') limit = 10,
-    @Query('orderBy') orderBy: 'ASC' | 'DESC',
-    @Query('teacherId') teacherId: number,
-    @Query('curatorId') curatorId: number,
-  ) {
-    return await this.studentsService.dropdownStudent(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.STUDENTS}/dropdown/name`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
-      orderBy,
-      orderByColumn,
-      teacherId,
-      curatorId,
-    )
+  async dropdownStudent(@Query('teacherId') teacherId: number, @Query('curatorId') curatorId: number) {
+    return await this.studentsService.dropdownStudent(teacherId, curatorId)
   }
 
   @Get('page/voting')
@@ -232,5 +210,11 @@ export class StudentsController {
     @Request() req,
   ) {
     return this.studentsService.editIndividualPlan(+id, updateIndividualPlan, req.user)
+  }
+
+  @Get('page/voting/info')
+  @MinRole(ROLE.STUDENT)
+  async getStartDate(@Request() req) {
+    return this.votingService.getVotingPeriodForStudent(req.user)
   }
 }

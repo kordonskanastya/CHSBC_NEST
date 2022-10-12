@@ -12,7 +12,6 @@ import { IPaginationOptions } from 'nestjs-typeorm-paginate'
 import { checkColumnExist, enumToArray, enumToObject } from '../../utils/common'
 import { paginateAndPlainToClass } from '../../utils/paginate'
 import { Group } from '../groups/entities/group.entity'
-import { GroupsColumns } from '../groups/groups.service'
 import { GetStudentForGradeDto } from '../students/dto/get-student-for-grade.dto'
 import { GradeHistory } from '../grades-history/entities/grades-history.entity'
 import { User } from '../users/entities/user.entity'
@@ -217,16 +216,13 @@ export class GradesService {
     }
   }
 
-  async dropdownGroup(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', groupName: string) {
-    const orderByColumn = GroupsColumns.ID
-    orderBy = orderBy || 'ASC'
-
+  async dropdownGroup(groupName: string) {
     const query = Group.createQueryBuilder('Group').leftJoin('Group.courses', 'Course').groupBy('Group.id')
     if (groupName) {
       query.andWhere('LOWER(Group.name) LIKE LOWER(:name)', { name: `%${groupName}%` })
     }
-    query.orderBy(`Group.${orderByColumn}`, orderBy).having('Count(Course.id)>0')
-    return await paginateAndPlainToClass(CreateGroupResponseDto, query, options)
+    query.having('Count(Course.id)>0')
+    return plainToClass(CreateGroupResponseDto, query.getMany(), { excludeExtraneousValues: true })
   }
 
   async downloadStudentsGrades(id: number, semester: SEMESTER) {

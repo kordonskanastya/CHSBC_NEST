@@ -241,6 +241,7 @@ export class StudentsService {
     if (!student) {
       throw new NotFoundException(`Студент з id: ${id} не знайдений`)
     }
+
     Object.assign(student, updateStudentDto)
 
     const group = await Group.findOne(updateStudentDto.groupId)
@@ -261,7 +262,8 @@ export class StudentsService {
 
     try {
       if (user) {
-        await this.usersService.update(userId, user, { sub, role })
+        const newPassword = Buffer.from(Math.random().toString()).toString('base64').substring(0, 8)
+        await this.usersService.update(userId, { ...user, password: newPassword }, { sub, role })
       }
       await student.save({
         data: {
@@ -307,15 +309,7 @@ export class StudentsService {
     }
   }
 
-  async dropdownStudent(
-    options: IPaginationOptions,
-    orderBy: 'ASC' | 'DESC',
-    orderByColumn: StudentColumns,
-    teacherId: number,
-    curatorId: number,
-  ) {
-    orderByColumn = orderByColumn || StudentColumns.ID
-
+  async dropdownStudent(teacherId: number, curatorId: number) {
     const students = await this.studentsRepository
       .createQueryBuilder()
       .leftJoinAndSelect('Student.user', 'User')
@@ -331,41 +325,39 @@ export class StudentsService {
       students.andWhere('Group.curatorId=:curatorId', { curatorId })
     }
 
-    students.orderBy(`Student.${orderByColumn}`, orderBy)
-
-    return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
+    return plainToClass(GetStudentDropdownNameDto, students.getMany(), { excludeExtraneousValues: true })
   }
 
   async getIndividualPlan(userId: number, semester: SEMESTER) {
-    const student = await Student.createQueryBuilder()
+    const studentQuery = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
-      .leftJoin('Student.courses', 'St_course')
+      .leftJoin('Student.courses', 'Student_course')
       .leftJoinAndSelect('Grade.course', 'Grade_Course')
       .leftJoinAndSelect('Grade_Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
       .where('User.id=:userId', { userId })
-      .andWhere('St_course.id=Grade_Course.id')
+      .andWhere('Student_course.id=Grade_Course.id')
 
-    const student_ = await Student.createQueryBuilder()
+    const student = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
       .leftJoinAndSelect('Student.user', 'User')
       .where('User.id=:userId', { userId })
       .getOne()
 
-    if (!student_) {
+    if (!student) {
       throw new BadRequestException(`Студента не знайдено`)
     }
 
-    if (!(await student.getOne())) {
-      Object.assign(student_, { ...student_, grades: [] })
-      return plainToClass(GetStudentIndividualPlanDto, student_, { excludeExtraneousValues: true })
+    if (!(await studentQuery.getOne())) {
+      Object.assign(student, { ...student, grades: [] })
+      return plainToClass(GetStudentIndividualPlanDto, student, { excludeExtraneousValues: true })
     }
 
     if (semester) {
-      student.andWhere('Course.semester=:semester', { semester })
+      studentQuery.andWhere('Grade_Course.semester=:semester', { semester })
     }
 
-    if (!(await student.getOne())) {
+    if (!(await studentQuery.getOne())) {
       throw new NotFoundException(
         `Індивідуальний план для студента ${await User.findOne(userId).then(
           (user) => user.lastName + ' ' + user.firstName[0] + '.' + user.patronymic[0],
@@ -373,7 +365,7 @@ export class StudentsService {
       )
     }
 
-    return plainToClass(GetStudentIndividualPlanDto, student.getOne(), { excludeExtraneousValues: true })
+    return plainToClass(GetStudentIndividualPlanDto, studentQuery.getOne(), { excludeExtraneousValues: true })
   }
 
   async downloadIndividualPlan(id: number, semester: SEMESTER) {
@@ -389,12 +381,12 @@ export class StudentsService {
     const { sub } = token
     const student = await Student.createQueryBuilder()
       .leftJoinAndSelect('Student.grades', 'Grade')
-      .leftJoinAndSelect('Student.courses', 'St_course')
+      .leftJoinAndSelect('Student.courses', 'Student_course')
       .leftJoinAndSelect('Grade.course', 'Course')
       .leftJoinAndSelect('Course.teacher', 'Teacher')
       .leftJoinAndSelect('Student.user', 'User')
       .where('User.id=:id', { id })
-      .andWhere('St_course.id=Course.id')
+      .andWhere('Student_course.id=Course.id')
       .getOne()
 
     if (!student) {
@@ -454,9 +446,9 @@ export class StudentsService {
       await course.remove({ data: { id: sub } })
     })
 
-    const courses_ = await Course.find({ where: { id: In(insertedArrayCoursesId) } })
+    const coursesForCreateGrade = await Course.find({ where: { id: In(insertedArrayCoursesId) } })
 
-    courses_.map(async (course) => {
+    coursesForCreateGrade.map(async (course) => {
       await Grade.create({ course, student, grade: 0 }).save({ data: { id: sub } })
     })
 
@@ -473,3 +465,6 @@ export class StudentsService {
     }
   }
 }
+
+// systemctl stop csbc-dev.service
+// systemctl start csbc-dev.service

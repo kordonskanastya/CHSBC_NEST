@@ -224,7 +224,14 @@ export class UsersService {
     if (updateUserDto.password) {
       await user.hashPassword()
     }
-
+    if (updateUserDto.email) {
+      this.authService.sendMailCreatePassword({
+        firstName: updateUserDto.firstName,
+        lastName: updateUserDto.lastName,
+        password: updateUserDto.password,
+        email: user.email,
+      })
+    }
     try {
       await user.save({
         data: {
@@ -234,7 +241,6 @@ export class UsersService {
     } catch (e) {
       throw new NotAcceptableException('Не вишло зберегти користувача. ' + e.message)
     }
-
     return {
       success: true,
     }
@@ -310,43 +316,20 @@ export class UsersService {
     }
   }
 
-  async dropdownTeacher(
-    options: IPaginationOptions,
-    orderBy: 'ASC' | 'DESC',
-    orderByColumn: UserColumns,
-    search: string,
-  ) {
-    orderByColumn = orderByColumn || UserColumns.ID
-    orderBy = orderBy || 'ASC'
-
+  async dropdownTeacher() {
     const teachers = await this.usersRepository
       .createQueryBuilder()
       .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.TEACHER })
 
-    if (search) {
-      teachers.andWhere(
-        // eslint-disable-next-line max-len
-        `concat_ws(' ', LOWER("firstName") , LOWER("lastName") , LOWER("patronymic")  ,LOWER(concat("firstName",' ', "lastName",' ',"patronymic"))) LIKE LOWER(:search)`,
-        {
-          search: `%${search}%`,
-        },
-      )
-    }
-    teachers.orderBy(`User.${orderByColumn}`, orderBy)
-
-    return await paginateAndPlainToClass(GetUserDropdownResponseDto, teachers, options)
+    return plainToClass(GetUserDropdownResponseDto, teachers.getMany(), { excludeExtraneousValues: true })
   }
 
-  async dropdownAdmin(options: IPaginationOptions, orderBy: 'ASC' | 'DESC', orderByColumn: UserColumns) {
-    orderByColumn = orderByColumn || UserColumns.ID
-
+  async dropdownAdmin() {
     const administrators = await this.usersRepository
       .createQueryBuilder()
       .where('LOWER(User.role) = LOWER(:role)', { role: ROLE.ADMIN })
 
-    administrators.orderBy(`User.${orderByColumn}`, orderBy)
-
-    return paginateAndPlainToClass(GetUserDropdownResponseDto, administrators, options)
+    return plainToClass(GetUserDropdownResponseDto, administrators.getMany(), { excludeExtraneousValues: true })
   }
 
   async getCuratorsGroups(

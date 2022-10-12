@@ -309,15 +309,7 @@ export class StudentsService {
     }
   }
 
-  async dropdownStudent(
-    options: IPaginationOptions,
-    orderBy: 'ASC' | 'DESC',
-    orderByColumn: StudentColumns,
-    teacherId: number,
-    curatorId: number,
-  ) {
-    orderByColumn = orderByColumn || StudentColumns.ID
-
+  async dropdownStudent(teacherId: number, curatorId: number) {
     const students = await this.studentsRepository
       .createQueryBuilder()
       .leftJoinAndSelect('Student.user', 'User')
@@ -333,9 +325,7 @@ export class StudentsService {
       students.andWhere('Group.curatorId=:curatorId', { curatorId })
     }
 
-    students.orderBy(`Student.${orderByColumn}`, orderBy)
-
-    return paginateAndPlainToClass(GetStudentDropdownNameDto, students, options)
+    return plainToClass(GetStudentDropdownNameDto, students.getMany(), { excludeExtraneousValues: true })
   }
 
   async getIndividualPlan(userId: number, semester: SEMESTER) {

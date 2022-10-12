@@ -129,10 +129,6 @@ export class CoursesController {
   @MinRole(ROLE.STUDENT)
   @ApiOkResponse({ type: GetCourseResponseDto, description: 'Get course dropdown' })
   @ApiImplicitQueries([
-    { name: 'page', required: false, description: 'default 1' },
-    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
-    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: CourseColumns },
-    { name: 'orderBy', required: false, description: 'default "ASC"' },
     { name: 'courseName', required: false, description: 'course name' },
     { name: 'type', required: false, enum: CourseType },
     { name: 'teacherId', required: false },
@@ -140,30 +136,12 @@ export class CoursesController {
     { name: 'semester', required: false },
   ])
   async getCoursesDropdown(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('orderByColumn') orderByColumn: CourseColumns,
-    @Query('orderBy') orderBy: 'ASC' | 'DESC',
     @Query('courseName') courseName: string,
     @Query('type') type: CourseType,
     @Query('teacherId') teacherId: number,
     @Query('curatorId') curatorId: number,
     @Query('semester') semester: SEMESTER,
   ) {
-    return await this.coursesService.getCoursesDropdown(
-      {
-        page,
-        limit: Math.min(limit, 100),
-        route: `/${Entities.COURSES}/course/dropdown`,
-        paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
-      },
-      orderByColumn,
-      orderBy,
-      courseName,
-      type,
-      teacherId,
-      curatorId,
-      semester,
-    )
+    return await this.coursesService.getCoursesDropdown(courseName, type, teacherId, curatorId, semester)
   }
 }

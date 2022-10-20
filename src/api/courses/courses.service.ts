@@ -35,6 +35,12 @@ export enum CourseColumns {
 export enum SEMESTER {
   FIRST = 1,
   SECOND = 2,
+  THIRD = 3,
+  FOURTH = 4,
+  FIFTH = 5,
+  SIXTH = 6,
+  SEVENTH = 7,
+  EIGHT = 8,
 }
 
 export enum CourseType {
@@ -67,18 +73,18 @@ export class CoursesService {
     ) {
       throw new BadRequestException(`Предмет з таким ім'ям: ${createCourseDto.name} вже існує`)
     }
+    let groups = []
+    if (createCourseDto.groups.length > 0) {
+      groups = await Group.createQueryBuilder()
+        .where(`Group.id IN (:...ids)`, {
+          ids: createCourseDto.groups,
+        })
+        .getMany()
 
-    const groupIds = Array.isArray(createCourseDto.groups) ? createCourseDto.groups : [createCourseDto.groups]
-    const groups = await Group.createQueryBuilder()
-      .where(`Group.id IN (:...ids)`, {
-        ids: groupIds,
-      })
-      .getMany()
-
-    if (!groups || groups.length !== groupIds.length) {
-      throw new BadRequestException(`Група з іd: ${createCourseDto.groups} не існує.`)
+      if (!groups || groups.length !== createCourseDto.groups.length) {
+        throw new BadRequestException(`Група з іd: ${createCourseDto.groups} не існує.`)
+      }
     }
-
     const teacher = await User.findOne(createCourseDto.teacher)
 
     if (!teacher) {
@@ -96,21 +102,23 @@ export class CoursesService {
     if (!course) {
       throw new BadRequestException(`Не вишло створити предмет`)
     } else {
-      const studentsInGroup = await Student.createQueryBuilder()
-        .leftJoinAndSelect('Student.courses', 'Course')
-        .leftJoinAndSelect('Student.group', 'Group')
-        .where(`Group.id IN (:...ids)`, {
-          ids: groupIds,
+      if (createCourseDto.groups.length > 0) {
+        const studentsInGroup = await Student.createQueryBuilder()
+          .leftJoinAndSelect('Student.courses', 'Course')
+          .leftJoinAndSelect('Student.group', 'Group')
+          .where(`Group.id IN (:...ids)`, {
+            ids: createCourseDto.groups,
+          })
+          .getMany()
+        studentsInGroup.map(async (student) => {
+          if (course.type == CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE) {
+            student.courses.push(course)
+            Object.assign(student, { ...student, courses: student.courses })
+            await student.save({ data: { id: sub } })
+            await this.gradeRepository.create({ grade: 0, student, course }).save({ data: { id: sub } })
+          }
         })
-        .getMany()
-      studentsInGroup.map(async (student) => {
-        if (course.type == CourseType.GENERAL_COMPETENCE || course.type === CourseType.PROFESSIONAL_COMPETENCE) {
-          student.courses.push(course)
-          Object.assign(student, { ...student, courses: student.courses })
-          await student.save({ data: { id: sub } })
-          await this.gradeRepository.create({ grade: 0, student, course }).save({ data: { id: sub } })
-        }
-      })
+      }
     }
     return plainToClass(CreateCourseResponseDto, course, {
       excludeExtraneousValues: true,

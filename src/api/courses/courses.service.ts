@@ -237,15 +237,18 @@ export class CoursesService {
     }
 
     if (updateCourseDto.groups && updateCourseDto.teacher) {
-      const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
-      const groups = await Group.createQueryBuilder()
-        .where(`Group.id IN (:...ids)`, {
-          ids: groupIds,
-        })
-        .getMany()
+      let groups = []
+      if (updateCourseDto.groups.length > 0) {
+        const groupIds = Array.isArray(updateCourseDto.groups) ? updateCourseDto.groups : [updateCourseDto.groups]
+        groups = await Group.createQueryBuilder()
+          .where(`Group.id IN (:...ids)`, {
+            ids: groupIds,
+          })
+          .getMany()
 
-      if (!groups || groups.length !== groupIds.length) {
-        throw new BadRequestException(`Група з іd: ${updateCourseDto.groups} не існує .`)
+        if (!groups || groups.length !== groupIds.length) {
+          throw new BadRequestException(`Група з іd: ${updateCourseDto.groups} не існує .`)
+        }
       }
 
       const teacher = await User.findOne(updateCourseDto.teacher)

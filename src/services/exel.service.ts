@@ -40,7 +40,7 @@ export class ExelService {
     const worksheetName = 'Оцінки'
     const fileName = `student-grades_${randomUUID()}.xlsx`
     const dataToExport = [
-      data.user.firstName,
+      data.user.firstName + data.user.lastName[0] + '.' + data.user.patronymic[0] + '.',
       data.group.name,
       ...data.grades.map((grade) => {
         return [grade.grade]

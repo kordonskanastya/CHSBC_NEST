@@ -26,7 +26,7 @@ export class ExelService {
         grade.course.lectureHours,
         grade.course.isExam ? 'Екзамен' : 'Залік',
         grade.grade,
-        grade.course.type === CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE
+        grade.course.type === (CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE)
           ? `Обов'язковий`
           : `Вибірковий`,
       ]

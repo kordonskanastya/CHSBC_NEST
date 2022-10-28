@@ -219,19 +219,21 @@ export class UsersService {
       throw new NotFoundException(`Користувач з id: ${id} не знайдений`)
     }
 
+    if (user.email !== updateUserDto.email) {
+      this.authService.sendMailCreatePassword({
+        firstName: updateUserDto.firstName,
+        lastName: updateUserDto.lastName,
+        password: updateUserDto.password,
+        email: updateUserDto.email,
+      })
+    }
+
     Object.assign(user, updateUserDto)
 
     if (updateUserDto.password) {
       await user.hashPassword()
     }
-    if (updateUserDto.email) {
-      this.authService.sendMailCreatePassword({
-        firstName: updateUserDto.firstName,
-        lastName: updateUserDto.lastName,
-        password: updateUserDto.password,
-        email: user.email,
-      })
-    }
+
     try {
       await user.save({
         data: {

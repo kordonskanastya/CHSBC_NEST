@@ -81,13 +81,59 @@ export class VotingController {
     if (limit <= 0) {
       throw new BadRequestException('Не правильний ліміт має бути 1 - 100.')
     }
-    return await this.votingService.findAll(
+    return await this.votingService.findAllWithPagination(
       {
         page,
         limit: Math.min(limit, 100),
         route: `/${Entities.VOTING}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      search,
+      id,
+      orderByColumn,
+      orderBy,
+      name,
+      groups,
+      startDate,
+      endDate,
+      requiredCourses,
+      notRequiredCourses,
+      status,
+    )
+  }
+
+  @Get('without-pagination')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetVotingDto, {
+    description: 'Find all courses',
+  })
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: VotingColumns },
+    { name: 'search', required: false },
+    { name: 'id', required: false },
+    { name: 'name', required: false },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'groups', required: false, type: 'array' },
+    { name: 'startDate', required: false, type: 'startDate' },
+    { name: 'endDate', required: false, type: 'endDate' },
+    { name: 'requiredCourses', required: false, type: 'array' },
+    { name: 'notRequiredCourses', required: false, type: 'array' },
+    { name: 'status', required: false, enum: VotingStatus },
+  ])
+  async findAllWithoutPagination(
+    @Query('orderByColumn') orderByColumn: VotingColumns,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('search') search: string,
+    @Query('id') id: number,
+    @Query('name') name: string,
+    @Query('groups') groups: number[],
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('requiredCourses') requiredCourses: number[],
+    @Query('notRequiredCourses') notRequiredCourses: number[],
+    @Query('status') status: VotingStatus,
+  ) {
+    return await this.votingService.findAllWithoutPagination(
       search,
       id,
       orderByColumn,

@@ -48,7 +48,7 @@ export class GradesService {
     private gradeHistoryRepository: Repository<GradeHistory>,
   ) {}
 
-  async findAll(
+  async findAllWithPagination(
     options: IPaginationOptions,
     search: string,
     orderByColumn: GradeColumns,
@@ -101,6 +101,51 @@ export class GradesService {
 
     query.orderBy(`${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetStudentForGradeDto, query, options)
+  }
+
+  async findAllWithOutPagination(
+    search: string,
+    orderByColumn: GradeColumns,
+    orderBy: 'ASC' | 'DESC',
+    studentId: number,
+    courseId: number,
+    groupId: number,
+    grade: number,
+    semester: SEMESTER,
+  ) {
+    orderByColumn = orderByColumn || GradeColumns.STUDENT_ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(GRADE_COLUMN_LIST, orderByColumn)
+
+    const query = this.studentRepository
+      .createQueryBuilder('Student')
+      .leftJoinAndSelect('Student.group', 'Group')
+      .leftJoinAndSelect('Student.grades', 'Grade')
+      .leftJoinAndSelect('Grade.course', 'Course')
+      .leftJoinAndSelect('Student.user', 'User')
+    if (grade) {
+      query.andWhere(`Grade.grade = :grade`, { grade })
+    }
+
+    if (courseId) {
+      query.andWhere(`Course.id=:courseId`, { courseId })
+    }
+
+    if (studentId) {
+      query.andWhere(`Student.id=:studentId`, { studentId })
+    }
+
+    if (groupId) {
+      query.andWhere(`Group.id=:groupId`, { groupId })
+    }
+
+    if (semester) {
+      query.andWhere('Course.semester=:semester', { semester })
+    }
+
+    query.orderBy(`${orderByColumn}`, orderBy)
+    return plainToClass(GetStudentForGradeDto, query.getMany(), { excludeExtraneousValues: true })
   }
 
   async findOneGradeByStudent(id: number, semester: SEMESTER) {

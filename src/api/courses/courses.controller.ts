@@ -84,13 +84,65 @@ export class CoursesController {
     if (limit <= 0) {
       throw new BadRequestException('Не правильний ліміт має бути 1 - 100.')
     }
-    return await this.coursesService.findAll(
+    return await this.coursesService.findAllWithPagination(
       {
         page,
         limit: Math.min(limit, 100),
         route: `/${Entities.COURSES}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      search,
+      id,
+      orderByColumn,
+      orderBy,
+      name,
+      credits,
+      lectureHours,
+      isExam,
+      isActive,
+      semester,
+      type,
+      teacher,
+      groups,
+    )
+  }
+
+  @Get('without-pagination')
+  @MinRole(ROLE.STUDENT)
+  @ApiPaginatedResponse(GetCourseResponseDto, {
+    description: 'Find all courses',
+  })
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: CourseColumns },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'search', required: false },
+    { name: 'id', required: false },
+    { name: 'name', required: false },
+    { name: 'credits', required: false },
+    { name: 'lectureHours', required: false },
+    { name: 'isExam', required: false },
+    { name: 'isActive', required: false },
+    { name: 'semester', required: false },
+    { name: 'type', required: false, enum: CourseType },
+    { name: 'teacher', required: false },
+    { name: 'groups', required: false, type: 'array' },
+  ])
+  async findAllWithOutPagination(
+    @Query('orderByColumn') orderByColumn: CourseColumns,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('search') search: string,
+    @Query('id') id: number,
+    @Query('name') name: string,
+    @Query('credits') credits: number,
+    @Query('lectureHours') lectureHours: number,
+    @Query('isExam') isExam: boolean,
+    @Query('isActive') isActive: boolean,
+    @Query('semester') semester: number,
+    @Query('type') type: string,
+    @Query('teacher') teacher: number,
+    @Query('groups') groups: number[],
+  ) {
+    return await this.coursesService.findAllWithOutPagination(
       search,
       id,
       orderByColumn,

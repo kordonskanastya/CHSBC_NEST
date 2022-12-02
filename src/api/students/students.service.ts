@@ -115,7 +115,7 @@ export class StudentsService {
     })
   }
 
-  async findAll(
+  async findAllWithPagination(
     options: IPaginationOptions,
     search: string,
     orderByColumn: StudentColumns,
@@ -194,6 +194,86 @@ export class StudentsService {
     query.orderBy(`student.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetStudentResponseDto, query, options)
+  }
+
+  async findAllWithoutPagination(
+    search: string,
+    orderByColumn: StudentColumns,
+    orderBy: 'ASC' | 'DESC',
+    id: number,
+    firstName: string,
+    lastName: string,
+    patronymic: string,
+    email: string,
+    group: number,
+    orderNumber: string,
+    edeboId: string,
+    isFullTime: boolean,
+  ) {
+    orderByColumn = orderByColumn || StudentColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(STUDENT_COLUMN_LIST, orderByColumn)
+
+    const query = this.studentsRepository
+      .createQueryBuilder('student')
+      .leftJoinAndSelect('student.user', 'user')
+      .leftJoinAndSelect('student.group', 'group')
+      .where('user.role = :role', {
+        role: 'student',
+      })
+
+    if (search) {
+      query.andWhere(
+        // eslint-disable-next-line max-len
+        `concat_ws(' ', LOWER(student.group), LOWER(student.orderNumber), LOWER(student.edeboId), LOWER(student.isFullTime)) LIKE LOWER(:search)`,
+        {
+          search: `%${search}%`,
+        },
+      )
+    }
+
+    if (id) {
+      query.andWhere('Student.id=:id', { id })
+    }
+
+    if (firstName) {
+      query.andWhere(`LOWER(user.firstName) LIKE LOWER('%${firstName}%')`)
+    }
+
+    if (lastName) {
+      query.andWhere(`LOWER(user.lastName) LIKE LOWER('%${lastName}%')`)
+    }
+
+    if (patronymic) {
+      query.andWhere(`LOWER(user.patronymic) LIKE LOWER('%${patronymic}%')`)
+    }
+
+    if (email) {
+      query.andWhere(`LOWER(user.email) LIKE LOWER('%${email}%')`)
+    }
+
+    if (group) {
+      query.andWhere('student.group = :group', {
+        group,
+      })
+    }
+
+    if (orderNumber) {
+      query.andWhere(`LOWER(student.orderNumber) LIKE LOWER('%${orderNumber}%')`)
+    }
+
+    if (edeboId) {
+      query.andWhere(`LOWER(student.edeboId) LIKE LOWER('%${edeboId}%')`)
+    }
+
+    if (isFullTime !== undefined) {
+      query.andWhere(`student.isFullTime = :isFullTime`, { isFullTime })
+    }
+
+    query.orderBy(`student.${orderByColumn}`, orderBy)
+
+    return plainToClass(GetStudentResponseDto, query.getMany(), { excludeExtraneousValues: true })
   }
 
   async findOne(id: number): Promise<GetStudentResponseDto> {

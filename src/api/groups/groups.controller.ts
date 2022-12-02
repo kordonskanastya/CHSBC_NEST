@@ -58,7 +58,7 @@ export class GroupsController {
     { name: 'orderNumber', required: false },
     { name: 'deletedOrderNumber', required: false },
   ])
-  async findAll(
+  async findAllWithPagination(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderByColumn') orderByColumn: GroupsColumns,
@@ -69,13 +69,49 @@ export class GroupsController {
     @Query('orderNumber') orderNumber: string,
     @Query('deletedOrderNumber') deletedOrderNumber: string,
   ) {
-    return await this.groupsService.findAll(
+    return await this.groupsService.findAllWithPagination(
       {
         page,
         limit: Math.min(limit, 100),
         route: `/${Entities.GROUPS}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      search,
+      orderByColumn,
+      orderBy,
+      name,
+      curatorId,
+      orderNumber,
+      deletedOrderNumber,
+    )
+  }
+
+  @Get('without-pagination')
+  @MinRole(ROLE.ADMIN)
+  @ApiPaginatedResponse(GetGroupResponseDto, {
+    description: 'Find all groups',
+  })
+  @ApiImplicitQueries([
+    { name: 'page', required: false, description: 'default 1' },
+    { name: 'limit', required: false, description: 'default 10, min 1 - max 100' },
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GroupsColumns },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'search', required: false },
+    { name: 'name', required: false },
+    { name: 'curatorId', required: false },
+    { name: 'orderNumber', required: false },
+    { name: 'deletedOrderNumber', required: false },
+  ])
+  async findAllWithoutPagination(
+    @Query('orderByColumn') orderByColumn: GroupsColumns,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('search') search: string,
+    @Query('name') name: string,
+    @Query('curatorId') curatorId: number,
+    @Query('orderNumber') orderNumber: string,
+    @Query('deletedOrderNumber') deletedOrderNumber: string,
+  ) {
+    return await this.groupsService.findAllWithoutPagination(
       search,
       orderByColumn,
       orderBy,

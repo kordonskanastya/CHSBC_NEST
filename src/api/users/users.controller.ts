@@ -99,13 +99,56 @@ export class UsersController {
       throw new BadRequestException('Неправильний ліміт. Має бути від 1 до 100.')
     }
 
-    return await this.usersService.findAll(
+    return await this.usersService.findAllWithPagination(
       {
         page,
         limit: Math.min(limit, 100),
         route: `/${Entities.USERS}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      search,
+      orderByColumn,
+      orderBy,
+      id,
+      name,
+      firstName,
+      lastName,
+      patronymic,
+      email,
+      role,
+    )
+  }
+
+  @Get('without-pagination')
+  @MinRole(ROLE.TEACHER)
+  @ApiPaginatedResponse(GetUserResponseDto, {
+    description: 'Find all users',
+  })
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: UserColumns },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'search', required: false },
+    { name: 'id', required: false },
+    { name: 'name', required: false },
+    { name: 'firstName', required: false },
+    { name: 'lastName', required: false },
+    { name: 'patronymic', required: false },
+    { name: 'email', required: false },
+    { name: 'role', required: false },
+  ])
+  async findAllWithoutPagination(
+    @Query('orderByColumn') orderByColumn: UserColumns,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('search') search: string,
+    @Query('id') id: number,
+    @Query('name') name: string,
+    @Query('firstName') firstName: string,
+    @Query('lastName') lastName: string,
+    @Query('patronymic') patronymic: string,
+    @Query('email') email: string,
+    @Query('role') role: string,
+  ) {
+    return await this.usersService.findAllWithoutPagination(
       search,
       orderByColumn,
       orderBy,

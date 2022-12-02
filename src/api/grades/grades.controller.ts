@@ -42,7 +42,7 @@ export class GradesController {
     { name: 'grade', required: false },
     { name: 'semester', required: false },
   ])
-  async findAll(
+  async findAllWithPagination(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('orderByColumn') orderByColumn: GradeColumns,
@@ -54,13 +54,50 @@ export class GradesController {
     @Query('grade') grade: number,
     @Query('semester') semester: SEMESTER,
   ) {
-    return await this.gradesService.findAll(
+    return await this.gradesService.findAllWithPagination(
       {
         page,
         limit: Math.min(limit, 100),
         route: `/${Entities.GRADES}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      search,
+      orderByColumn,
+      orderBy,
+      studentId,
+      courseId,
+      groupId,
+      grade,
+      semester,
+    )
+  }
+
+  @Get('without-pagination')
+  @MinRole(ROLE.TEACHER)
+  @ApiPaginatedResponse(GetGradeResponseDto, {
+    description: 'Find all grades',
+  })
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: GradeColumns },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'search', required: false },
+    { name: 'studentId', required: false },
+    { name: 'courseId', required: false },
+    { name: 'groupId', required: false },
+    { name: 'grade', required: false },
+    { name: 'semester', required: false },
+  ])
+  async findAllWithoutPagination(
+    @Query('orderByColumn') orderByColumn: GradeColumns,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('search') search: string,
+    @Query('studentId') studentId: number,
+    @Query('courseId') courseId: number,
+    @Query('groupId') groupId: number,
+    @Query('grade') grade: number,
+    @Query('semester') semester: SEMESTER,
+  ) {
+    return await this.gradesService.findAllWithOutPagination(
       search,
       orderByColumn,
       orderBy,

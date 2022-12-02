@@ -125,7 +125,7 @@ export class CoursesService {
     })
   }
 
-  async findAll(
+  async findAllWithPagination(
     options: IPaginationOptions,
     search: string,
     id: number,
@@ -210,6 +210,80 @@ export class CoursesService {
     }
     query.orderBy(`Course.${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetCourseResponseDto, query, options)
+  }
+
+  async findAllWithOutPagination(
+    search: string,
+    id: number,
+    orderByColumn: CourseColumns,
+    orderBy: 'ASC' | 'DESC',
+    name: string,
+    credits: number,
+    lectureHours: number,
+    isExam: boolean,
+    isActive: boolean,
+    semester: number,
+    type: string,
+    teacher: number,
+    groups: number[],
+  ) {
+    orderByColumn = orderByColumn || CourseColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(COURSE_COLUMN_LIST, orderByColumn)
+
+    const query = this.coursesRepository
+      .createQueryBuilder('Course')
+      .leftJoinAndSelect('Course.groups', 'Group')
+      .leftJoinAndSelect('Course.teacher', 'User')
+
+    if (id) {
+      query.andWhere(`Course.id=:id`, { id })
+    }
+
+    if (name) {
+      query.andWhere(`LOWER(Course.name) LIKE LOWER(:name)`, { name: `%${name}%` })
+    }
+
+    if (credits) {
+      query.andWhere('Course.credits=:credits', { credits })
+    }
+
+    if (lectureHours) {
+      query.andWhere('Course.lectureHours=:lectureHours', { lectureHours })
+    }
+
+    if (isActive) {
+      query.andWhere('Course.isActive=:isActive', { isActive })
+    }
+
+    if (isExam) {
+      query.andWhere('Course.isExam=:isExam', { isExam })
+    }
+
+    if (semester) {
+      query.andWhere('Course.semester=:semester', { semester })
+    }
+
+    if (type) {
+      query.andWhere('Course.type=:type', { type })
+    }
+
+    if (teacher) {
+      query.andWhere('Course.teacherId=:teacher', { teacher })
+    }
+
+    if (groups) {
+      if (typeof groups === 'object') {
+        query.andWhere('Group.id IN (:...groups)', { groups })
+      } else {
+        if (typeof groups === 'string') {
+          query.andWhere('Group.id=:groupId', { groupId: groups })
+        }
+      }
+    }
+    query.orderBy(`Course.${orderByColumn}`, orderBy)
+    return plainToClass(GetCourseResponseDto, query.getMany(), { excludeExtraneousValues: true })
   }
 
   async findOne(id: number): Promise<GetCourseResponseDto> {

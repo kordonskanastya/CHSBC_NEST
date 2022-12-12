@@ -20,7 +20,6 @@ import { LoginAuthGuard } from './login-auth.guard'
 import { ROLE } from './roles/role.enum'
 import { MinRole } from './roles/roles.decorator'
 import { RolesGuard } from './roles/roles.guard'
-import { JwtRefreshGuard } from './jwt-refresh.guard'
 import { RegisterDto } from './dto/register.dto'
 import { capitalize } from '../utils/common'
 import { Entities } from '../api/common/enums'
@@ -40,7 +39,7 @@ export class AuthController {
   }
 
   @Get('refresh-token')
-  @UseGuards(JwtAuthGuard, JwtRefreshGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOkResponse({ type: LoginUserResultDto, description: 'Refresh token' })
   async refresh(@Request() request) {
     return await this.authService.refreshToken(request.user?.sub, request.headers.authorization)

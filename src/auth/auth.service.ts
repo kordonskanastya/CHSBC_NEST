@@ -90,7 +90,6 @@ export class AuthService {
     await this.usersService.removeRefreshToken(id, requestToken)
 
     const user = await User.findOne(id)
-    console.log(user)
     return this.login(
       plainToClass(AuthUserDto, user, {
         excludeExtraneousValues: true,

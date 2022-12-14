@@ -24,6 +24,7 @@ import { RegisterDto } from './dto/register.dto'
 import { capitalize } from '../utils/common'
 import { Entities } from '../api/common/enums'
 import { configService } from '../config/config.service'
+import jwt_decode from 'jwt-decode'
 
 @Controller(Entities.AUTH)
 @ApiTags(capitalize(Entities.AUTH))
@@ -39,10 +40,10 @@ export class AuthController {
   }
 
   @Get('refresh-token')
-  @UseGuards(JwtAuthGuard)
   @ApiOkResponse({ type: LoginUserResultDto, description: 'Refresh token' })
   async refresh(@Request() request) {
-    return await this.authService.refreshToken(request.user?.sub, request.headers.authorization)
+    const user = jwt_decode(request.headers.authorization.replace('Bearer', ''))
+    return await this.authService.refreshToken(user['sub'], request.headers.authorization)
   }
 
   // TODO: remove in production

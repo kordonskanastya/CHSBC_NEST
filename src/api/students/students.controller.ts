@@ -104,13 +104,63 @@ export class StudentsController {
       throw new BadRequestException('Неправильний ліміт. Має бути від 1 до 100.')
     }
 
-    return this.studentsService.findAll(
+    return this.studentsService.findAllWithPagination(
       {
         page,
         limit: Math.min(limit, 100),
         route: `/${Entities.STUDENTS}`,
         paginationType: PaginationTypeEnum.TAKE_AND_SKIP,
       },
+      search,
+      orderByColumn,
+      orderBy,
+      id,
+      firstName,
+      lastName,
+      patronymic,
+      email,
+      group,
+      orderNumber,
+      edeboId,
+      isFullTime,
+    )
+  }
+
+  @Get('without-pagination')
+  @UsePipes(new ValidationPipe({ transform: false }))
+  @MinRole(ROLE.TEACHER)
+  @ApiPaginatedResponse(GetStudentResponseDto, {
+    description: 'Find all students',
+  })
+  @ApiImplicitQueries([
+    { name: 'orderByColumn', required: false, description: 'default "id", case-sensitive', enum: StudentColumns },
+    { name: 'orderBy', required: false, description: 'default "ASC"' },
+    { name: 'search', required: false },
+    { name: 'id', required: false },
+    { name: 'firstName', required: false },
+    { name: 'lastName', required: false },
+    { name: 'patronymic', required: false },
+    { name: 'email', required: false },
+    { name: 'group', required: false },
+    { name: 'orderNumber', required: false },
+    { name: 'edeboId', required: false },
+    { name: 'isFullTime', required: false },
+  ])
+  findAllWithoutPagination(
+    @Query('orderByColumn') orderByColumn: StudentColumns,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC',
+    @Query('search') search: string,
+    @Query('id') id: number,
+    @Query('firstName') firstName: string,
+    @Query('lastName') lastName: string,
+    @Query('email') email: string,
+    @Query('patronymic') patronymic: string,
+    @Query('group') group: number,
+    @Query('orderNumber') orderNumber: string,
+    @Query('edeboId') edeboId: string,
+    @Query('isFullTime') isFullTime: boolean,
+  ) {
+    return this.studentsService.findAllWithoutPagination(
       search,
       orderByColumn,
       orderBy,

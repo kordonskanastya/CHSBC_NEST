@@ -106,7 +106,7 @@ export class UsersService {
     return this.usersRepository.createQueryBuilder()
   }
 
-  async findAll(
+  async findAllWithPagination(
     options: IPaginationOptions,
     search: string,
     orderByColumn: UserColumns,
@@ -180,6 +180,79 @@ export class UsersService {
     return await paginateAndPlainToClass(GetUserResponseDto, query, options)
   }
 
+  async findAllWithoutPagination(
+    search: string,
+    orderByColumn: UserColumns,
+    orderBy: 'ASC' | 'DESC',
+    id: number,
+    name: string,
+    firstName: string,
+    lastName: string,
+    patronymic: string,
+    email: string,
+    role: string,
+  ) {
+    orderByColumn = orderByColumn || UserColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(USER_COLUMN_LIST, orderByColumn)
+
+    const query = this.selectUsers().where({
+      role: Not('root'),
+    })
+
+    if (search) {
+      query.andWhere(
+        // eslint-disable-next-line max-len
+        `concat_ws(' ', LOWER(User.firstName), LOWER(User.lastName), LOWER(User.patronymic), LOWER(User.email)) LIKE LOWER(:search)`,
+        {
+          search: `%${search}%`,
+        },
+      )
+    }
+
+    if (id) {
+      query.andWhere(`User.id=:id`, { id })
+    }
+
+    if (firstName) {
+      query.andWhere(`LOWER(User.firstName) LIKE LOWER(:firstname)`, { firstname: `%${firstName}%` })
+    }
+
+    if (lastName) {
+      query.andWhere(`LOWER(User.lastName) LIKE LOWER(':lastname)`, { lastname: `%${lastName}%` })
+    }
+
+    if (patronymic) {
+      query.andWhere(`LOWER(User.patronymic) LIKE LOWER(':patronymic')`, { patronymic: `%${patronymic}%` })
+    }
+
+    if (name) {
+      query.andWhere(
+        `concat_ws(' ', LOWER(User.firstName), LOWER(User.lastName), LOWER(User.firstName)) LIKE LOWER(:name)`,
+        {
+          name: `%${name}%`,
+        },
+      )
+    }
+
+    if (email) {
+      query.andWhere(`LOWER(User.email) LIKE LOWER(:email)`, {
+        email: `%${email}%`,
+      })
+    }
+
+    if (role) {
+      query.andWhere('User.role = :role', {
+        role,
+      })
+    }
+
+    query.orderBy(`User.${orderByColumn}`, orderBy)
+
+    return plainToClass(GetUserResponseDto, query.getMany(), { excludeExtraneousValues: true })
+  }
+
   async findOne(id: number, token?: TokenDto): Promise<GetUserResponseDto> {
     const user = await this.selectUsers().andWhere({ id }).getOne()
 
@@ -219,19 +292,21 @@ export class UsersService {
       throw new NotFoundException(`Користувач з id: ${id} не знайдений`)
     }
 
+    if (user.email !== updateUserDto.email) {
+      this.authService.sendMailCreatePassword({
+        firstName: updateUserDto.firstName,
+        lastName: updateUserDto.lastName,
+        password: updateUserDto.password,
+        email: updateUserDto.email,
+      })
+    }
+
     Object.assign(user, updateUserDto)
 
     if (updateUserDto.password) {
       await user.hashPassword()
     }
-    if (updateUserDto.email) {
-      this.authService.sendMailCreatePassword({
-        firstName: updateUserDto.firstName,
-        lastName: updateUserDto.lastName,
-        password: updateUserDto.password,
-        email: user.email,
-      })
-    }
+
     try {
       await user.save({
         data: {

@@ -26,7 +26,7 @@ export class ExelService {
         grade.course.lectureHours,
         grade.course.isExam ? 'Екзамен' : 'Залік',
         grade.grade,
-        grade.course.type === CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE
+        grade.course.type === (CourseType.GENERAL_COMPETENCE || CourseType.PROFESSIONAL_COMPETENCE)
           ? `Обов'язковий`
           : `Вибірковий`,
       ]
@@ -40,7 +40,7 @@ export class ExelService {
     const worksheetName = 'Оцінки'
     const fileName = `student-grades_${randomUUID()}.xlsx`
     const dataToExport = [
-      data.user.firstName + data.user.lastName[0] + '.' + data.user.patronymic[0] + '.',
+      `${data.user.lastName} ${data.user.firstName[0]}.${data.user.patronymic[0]}`,
       data.group.name,
       ...data.grades.map((grade) => {
         return [grade.grade]

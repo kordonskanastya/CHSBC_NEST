@@ -65,7 +65,7 @@ export class GroupsService {
     })
   }
 
-  async findAll(
+  async findAllWithPagination(
     options: IPaginationOptions,
     search: string,
     orderByColumn: GroupsColumns,
@@ -114,6 +114,56 @@ export class GroupsService {
     query.orderBy(`Group.${orderByColumn}`, orderBy)
 
     return await paginateAndPlainToClass(GetGroupResponseDto, query, options)
+  }
+
+  async findAllWithoutPagination(
+    search: string,
+    orderByColumn: GroupsColumns,
+    orderBy: 'ASC' | 'DESC',
+    name: string,
+    curatorId: number,
+    orderNumber: string,
+    deletedOrderNumber: string,
+  ) {
+    orderByColumn = orderByColumn || GroupsColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(GROUPS_COLUMN_LIST, orderByColumn)
+
+    const query = this.groupsRepository
+      .createQueryBuilder('Group')
+      .leftJoinAndSelect('Group.curator', 'User')
+      .loadRelationCountAndMap('Group.students', 'Group.students', 'student')
+      .orWhere("(Group.deletedOrderNumber  <> '') IS NOT TRUE")
+
+    if (search) {
+      query.where(
+        // eslint-disable-next-line max-len
+        `concat_ws(' ', LOWER(name), LOWER(User.firstName) , LOWER(User.lastName)  ,LOWER(concat("firstName",' ', "lastName")) ,"orderNumber","curatorId","deletedOrderNumber") LIKE LOWER(:search)`,
+        {
+          search: `%${search}%`,
+        },
+      )
+    }
+    if (name) {
+      query.andWhere(`LOWER(Group.name) LIKE LOWER(:name)`, { name: `%${name}%` })
+    }
+    if (curatorId) {
+      query.andWhere(`User.id=:curId`, { curId: curatorId })
+    }
+    if (orderNumber) {
+      query.andWhere(`LOWER(Group.orderNumber) LIKE LOWER(:orderNumber)`, { orderNumber: `%${orderNumber}%` })
+    }
+    if (deletedOrderNumber) {
+      query
+        .andWhere("(Group.deletedOrderNumber  <> '') IS  TRUE")
+        .orWhere(`LOWER(Group.deletedOrderNumber) LIKE :deletedOrderNumber`, {
+          deletedOrderNumber: `%${deletedOrderNumber}%`,
+        })
+    }
+    query.orderBy(`Group.${orderByColumn}`, orderBy)
+
+    return plainToClass(GetGroupResponseDto, query.getMany(), { excludeExtraneousValues: true })
   }
 
   async findOne(id: number, token?: TokenDto): Promise<GetGroupResponseDto> {

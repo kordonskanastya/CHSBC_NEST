@@ -150,7 +150,7 @@ export class VotingService {
     })
   }
 
-  async findAll(
+  async findAllWithPagination(
     options: IPaginationOptions,
     search: string,
     id: number,
@@ -225,6 +225,82 @@ export class VotingService {
 
     query.orderBy(`Vote.${orderByColumn}`, orderBy)
     return await paginateAndPlainToClass(GetVotingDto, query, options)
+  }
+
+  async findAllWithoutPagination(
+    search: string,
+    id: number,
+    orderByColumn: VotingColumns,
+    orderBy: 'ASC' | 'DESC',
+    name: string,
+    groups: number[],
+    startDate: string,
+    endDate: string,
+    requiredCourses: number[],
+    notRequiredCourses: number[],
+    status: VotingStatus,
+  ) {
+    orderByColumn = orderByColumn || VotingColumns.ID
+    orderBy = orderBy || 'ASC'
+
+    checkColumnExist(VOTING_COLUMN_LIST, orderByColumn)
+    await this.updateStatusVoting()
+
+    const query = this.votingRepository
+      .createQueryBuilder('Vote')
+      .leftJoinAndSelect('Vote.groups', 'Group')
+      .leftJoinAndSelect('Vote.requiredCourses', 'Course_required')
+      .leftJoinAndSelect('Vote.notRequiredCourses', 'Course_notRequired')
+      .loadRelationCountAndMap('Vote.allStudents', 'Vote.students', 'AllStudents')
+
+    if (name) {
+      query.andWhere('Vote.name=:name', { name })
+    }
+
+    if (startDate) {
+      query.andWhere('Vote.startDate=:startDate', { startDate })
+    }
+
+    if (endDate) {
+      query.andWhere('Vote.endDate=:endDate', { endDate })
+    }
+
+    if (groups) {
+      if (typeof groups === 'object') {
+        query.andWhere('Group.id IN (:...groups)', { groups })
+      } else {
+        if (typeof groups === 'string') {
+          query.andWhere('Group.id=:groupId', { groupId: groups })
+        }
+      }
+    }
+
+    if (requiredCourses) {
+      if (typeof requiredCourses === 'object') {
+        query.andWhere('Course_required.id IN (:...requiredCourses)', { requiredCourses })
+      } else {
+        if (typeof requiredCourses === 'string') {
+          query.andWhere('Course_required.id=:requiredCourseId', { requiredCourseId: requiredCourses })
+        }
+      }
+    }
+
+    if (notRequiredCourses) {
+      if (typeof notRequiredCourses === 'object') {
+        query.andWhere('Course_notRequired.id IN (:...notRequiredCourses)', { notRequiredCourses })
+      } else {
+        if (typeof notRequiredCourses === 'string') {
+          query.andWhere('Course_notRequired.id=:notRequiredCourseId', { notRequiredCourseId: notRequiredCourses })
+        }
+      }
+    }
+
+    if (status) {
+      query.andWhere('Vote.status=:status', { status })
+    }
+
+    query.orderBy(`Vote.${orderByColumn}`, orderBy)
+    return plainToClass(GetVotingDto, query.getMany(), { excludeExtraneousValues: true })
   }
 
   async findOne(id: number) {
